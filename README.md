@@ -11,13 +11,11 @@ Tool for taking automated screenshots
 
 Install this tool using `pip`:
 
-    $ pip install shot-scraper
+    pip install shot-scraper
 
-You will also need to have the `puppeteer` tool on your PATH. This is provided by the [puppeteer-cli](https://www.npmjs.com/package/puppeteer-cli) NPM package.
+The tool runs `playwright` using `npx playwright`, so your system will need to have `npm` configured in such a way that the following works:
 
-You can install that using:
-
-    npm install -g puppeteer-cli
+    npx playwright --help
 
 ## Usage
 
@@ -35,7 +33,7 @@ Then run the tool like so:
 
 This will create two image files, `example.com.png` and `w3c.org.png`, containing screenshots of those two URLs.
 
-The screenshots default to being 800px wide and as long as needed to capture the full page.
+The screenshots default to being 1280px wide and as long as needed to capture the full page.
 
 ## Development
 

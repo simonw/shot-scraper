@@ -37,17 +37,15 @@ def take_shot(shot):
             "'output' filename is required, messing for url:\n  {}".format(url)
         )
     # Capture the screenshot with puppeteer
-    proc = subprocess.run(
+    subprocess.run(
         [
-            "puppeteer",
+            "npx",
+            "playwright",
             "screenshot",
+            "--full-page",
             url,
-            # "--viewport",
-            # "800x400",
-            # "--full-page=false",
+            output,
         ],
         capture_output=True,
     )
-    png_bytes = proc.stdout
-    open(output, "wb").write(png_bytes)
     click.echo("Screenshot of '{}' written to '{}'".format(url, output))
