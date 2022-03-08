@@ -13,9 +13,29 @@ Install this tool using `pip`:
 
     $ pip install shot-scraper
 
+You will also need to have the `puppeteer` tool on your PATH. This is provided by the [puppeteer-cli](https://www.npmjs.com/package/puppeteer-cli) NPM package.
+
+You can install that using:
+
+    npm install -g puppeteer-cli
+
 ## Usage
 
-Usage instructions go here.
+This tool is configured using a YAML file. Create a file called `shots.yml` that looks like this:
+
+```yaml
+- output: example.com.png
+  url: http://www.example.com/
+- output: w3c.org.png
+  url: https://www.w3.org/
+```
+Then run the tool like so:
+
+    shot-scraper shots.yml
+
+This will create two image files, `example.com.png` and `w3c.org.png`, containing screenshots of those two URLs.
+
+The screenshots default to being 800px wide and as long as needed to capture the full page.
 
 ## Development
 

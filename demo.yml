@@ -1,0 +1,4 @@
+- output: example.com.png
+  url: http://www.example.com/
+- output: w3c.org.png
+  url: https://www.w3.org/

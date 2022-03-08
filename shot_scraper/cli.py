@@ -1,21 +1,53 @@
 import click
+import subprocess
+import yaml
 
 
-@click.group()
+@click.command()
 @click.version_option()
-def cli():
-    "Tool for taking automated screenshots"
+@click.argument("config", type=click.File(mode="r"))
+def cli(config):
+    """
+    Tool for taking automated screenshots
+
+    Usage:
+
+        shot-scraper config.yml
+
+    Where config.yml contains configuration like this:
+
+    \b
+        - output: example.png
+          url: http://www.example.com/
+    """
+    shots = yaml.safe_load(config)
+    for shot in shots:
+        take_shot(shot)
 
 
-@cli.command(name="command")
-@click.argument(
-    "example"
-)
-@click.option(
-    "-o",
-    "--option",
-    help="An example option",
-)
-def first_command(example, option):
-    "Command description goes here"
-    click.echo("Here is some output")
+def take_shot(shot):
+    url = shot.get("url") or ""
+    if not (url.startswith("http://") or url.startswith("https://")):
+        raise click.ClickException(
+            "'url' must start http:// or https:// - got:  \n{}".format(url)
+        )
+    output = shot.get("output", "").strip()
+    if not output:
+        raise click.ClickException(
+            "'output' filename is required, messing for url:\n  {}".format(url)
+        )
+    # Capture the screenshot with puppeteer
+    proc = subprocess.run(
+        [
+            "puppeteer",
+            "screenshot",
+            url,
+            # "--viewport",
+            # "800x400",
+            # "--full-page=false",
+        ],
+        capture_output=True,
+    )
+    png_bytes = proc.stdout
+    open(output, "wb").write(png_bytes)
+    click.echo("Screenshot of '{}' written to '{}'".format(url, output))
