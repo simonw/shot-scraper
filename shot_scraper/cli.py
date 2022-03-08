@@ -36,7 +36,7 @@ def take_shot(shot):
         raise click.ClickException(
             "'output' filename is required, messing for url:\n  {}".format(url)
         )
-    # Capture the screenshot with puppeteer
+    # Capture the screenshot with Playwright
     subprocess.run(
         [
             "npx",
