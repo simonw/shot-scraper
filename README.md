@@ -7,6 +7,10 @@
 
 Tool for taking automated screenshots
 
+## Demo
+
+A live demo of the output of this tool can be found in the [shot-scraper-demo](https://github.com/simonw/shot-scraper-demo) repository.
+
 ## Installation
 
 Install this tool using `pip`:
