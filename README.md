@@ -13,11 +13,23 @@ Install this tool using `pip`:
 
     pip install shot-scraper
 
-This tool depends on Playwright, which may need to download a browser. Run `playwright install` after installing `shot-scraper` to finish installing Playwright.
+This tool depends on Playwright, which may need to download a browser. Run `playwright install` after installing `shot-scraper` to finish installing Play?wright.
 
-## Usage
+## Taking a screenshot
 
-This tool is configured using a YAML file. Create a file called `shots.yml` that looks like this:
+To take a screenshot of a web page and write it to `screenshot.png` run this:
+
+    shot-scraper https://datasette.io/ -o screenshot.png
+
+If you omit the `-o` the screenshot PNG binary will be output by the tool, so you can pipe it or redirect it to a file:
+
+    shot-scraper https://datasette.io/ > datasette.png
+
+Screenshots default to being 1280px wide and as long as needed to capture the full page.
+
+## Taking multiple screenshot
+
+You can configure multiple screenshots using a YAML file. Create a file called `shots.yml` that looks like this:
 
 ```yaml
 - output: example.com.png
@@ -27,11 +39,9 @@ This tool is configured using a YAML file. Create a file called `shots.yml` that
 ```
 Then run the tool like so:
 
-    shot-scraper shots.yml
+    shot-scraper multi shots.yml
 
 This will create two image files, `example.com.png` and `w3c.org.png`, containing screenshots of those two URLs.
-
-The screenshots default to being 1280px wide and as long as needed to capture the full page.
 
 ## Development
 
