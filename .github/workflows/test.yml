@@ -53,7 +53,7 @@ jobs:
           url: https://simonwillison.net/
           selector: "#bighead"
           javascript: |
-            document.body.style.backgroundColor = 'pink';
+            document.body.style.backgroundColor = "pink";
         - output: simon-narrow-from-multi.png
           url: https://simonwillison.net/
           width: 400
