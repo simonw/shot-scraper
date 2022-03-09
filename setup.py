@@ -33,5 +33,5 @@ setup(
     """,
     install_requires=["click", "PyYAML", "playwright", "click-default-group"],
     extras_require={"test": ["pytest"]},
-    python_requires=">=3.6",
+    python_requires=">=3.7",
 )
