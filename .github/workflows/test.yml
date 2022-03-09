@@ -24,7 +24,25 @@ jobs:
     - name: Install dependencies
       run: |
         pip install -e '.[test]'
+    - name: Install Playwright dependencies
+      run: |
+        python -m playwright install-deps
+        shot-scraper install
     - name: Run tests
       run: |
         pytest
-
+    - name: Generate example images
+      run: |
+        mkdir -p examples
+        shot-scraper https://github.com/ -o examples/github.com.png
+        # And using multi
+        echo '
+        - output: examples/example.com.png
+          url: http://www.example.com/
+        - output: examples/w3c.org.png
+          url: https://www.w3.org/' | shot-scraper multi -
+      - name: Archive examples
+        uses: actions/upload-artifact@v3
+        with:
+          name: examples
+          path: examples/*

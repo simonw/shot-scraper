@@ -26,6 +26,10 @@ jobs:
     - name: Install dependencies
       run: |
         pip install -e '.[test]'
+    - name: Install Playwright dependencies
+      run: |
+        python -m playwright install-deps
+        shot-scraper install
     - name: Run tests
       run: |
         pytest
