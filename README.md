@@ -13,8 +13,16 @@ Install this tool using `pip`:
 
     pip install shot-scraper
 
-This tool depends on Playwright, which may need to download a browser. Run `playwright install` after installing `shot-scraper` to finish installing Play?wright.
+This tool depends on Playwright, which first needs to install its own dedicated browser.
 
+Run `shot-scraper install` once to install that:
+```
+% shot-scraper install
+Downloading Playwright build of chromium v965416 - 117.2 Mb [====================] 100% 0.0s 
+Playwright build of chromium v965416 downloaded to /Users/simon/Library/Caches/ms-playwright/chromium-965416
+Downloading Playwright build of ffmpeg v1007 - 1.1 Mb [====================] 100% 0.0s 
+Playwright build of ffmpeg v1007 downloaded to /Users/simon/Library/Caches/ms-playwright/ffmpeg-1007
+```
 ## Taking a screenshot
 
 To take a screenshot of a web page and write it to `screenshot.png` run this:

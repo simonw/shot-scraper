@@ -1,6 +1,7 @@
 import click
 from click_default_group import DefaultGroup
 from playwright.sync_api import sync_playwright
+from runpy import run_module
 import sys
 import yaml
 
@@ -70,6 +71,19 @@ def multi(config):
         for shot in shots:
             take_shot(browser, shot)
         browser.close()
+
+
+@cli.command()
+def install():
+    """
+    Install Playwright browser needed by this tool.
+
+    Usage:
+
+        shot-scraper install
+    """
+    sys.argv = ["playwright", "install", "chromium"]
+    run_module("playwright", run_name="__main__")
 
 
 def take_shot(browser, shot, return_bytes=False):
