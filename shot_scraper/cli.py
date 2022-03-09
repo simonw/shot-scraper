@@ -29,7 +29,10 @@ def cli():
 @click.option(
     "-s", "--selector", help="Take shot of first element matching this CSS selector"
 )
-def shot(url, output, selector):
+@click.option(
+    "-j", "--javascript", help="Execute this JavaScript prior to taking the shot"
+)
+def shot(url, output, selector, javascript):
     """
     Take a single screenshot of a page or portion of a page.
 
@@ -50,6 +53,7 @@ def shot(url, output, selector):
                 {
                     "url": url,
                     "selector": selector,
+                    "javascript": javascript,
                 },
                 selector=selector,
                 return_bytes=True,
@@ -62,6 +66,7 @@ def shot(url, output, selector):
                     "url": url,
                     "output": str(output),
                     "selector": selector,
+                    "javascript": javascript,
                 },
             )
         browser.close()
@@ -119,6 +124,9 @@ def take_shot(browser, shot, return_bytes=False):
     page.goto(url)
     message = ""
     selector = shot.get("selector")
+    javascript = shot.get("javascript")
+    if javascript:
+        page.evaluate(javascript)
     if selector:
         if return_bytes:
             return page.locator(selector).screenshot()

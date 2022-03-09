@@ -36,6 +36,9 @@ jobs:
         mkdir -p examples
         shot-scraper https://github.com/ -o examples/github.com.png
         shot-scraper https://simonwillison.net/ -s '#bighead' -o examples/bighead.png
+        shot-scraper https://simonwillison.net/ -s '#bighead' \
+          --javascript "document.body.style.backgroundColor = 'pink';" \
+          -o examples/bighead-pink.png
         # And using multi
         echo '
         - output: examples/example.com.png
@@ -45,6 +48,11 @@ jobs:
         - output: examples/bighead-from-multi.png
           url: https://simonwillison.net/
           selector: "#bighead"
+        - output: examples/bighead-pink-from-multi.png
+          url: https://simonwillison.net/
+          selector: "#bighead"
+          javascript: |
+            document.body.style.backgroundColor = 'pink';
         ' | shot-scraper multi -
     - name: Archive examples
       uses: actions/upload-artifact@v3

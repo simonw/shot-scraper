@@ -35,6 +35,15 @@ If you omit the `-o` the screenshot PNG binary will be output by the tool, so yo
 
 Screenshots default to being 1280px wide and as long as needed to capture the full page.
 
+To take a screenshot of a specific element on the page, use `--selector` with its CSS selector:
+
+    shot-scraper https://simonwillison.net/ -s '#bighead' -o bighead.png
+
+You can use custom JavaScript to modify the page after it has loaded (after the 'onload' event has fired) but before the screenshot is taken using the `--javascript` option:
+
+    shot-scraper https://simonwillison.net/ -o simonwillison-pink.png \
+      --javascript "document.body.style.backgroundColor = 'pink';"
+
 ## Taking multiple screenshot
 
 You can configure multiple screenshots using a YAML file. Create a file called `shots.yml` that looks like this:
@@ -58,7 +67,14 @@ To take a screenshot of just the area of a page defined by a CSS selector, add `
   url: https://simonwillison.net/
   selector: "#bighead"
 ```
-
+To execute JavaScript after the page has loaded but before the screenshot is taken, add a `javascript` key:
+```yaml
+- output: bighead-pink.png
+  url: https://simonwillison.net/
+  selector: "#bighead"
+  javascript: |
+    document.body.style.backgroundColor = 'pink'
+```
 ## Development
 
 To contribute to this tool, first checkout the code. Then create a new virtual environment:
