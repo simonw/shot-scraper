@@ -52,6 +52,14 @@ You can use custom JavaScript to modify the page after it has loaded (after the 
     shot-scraper https://simonwillison.net/ -o simonwillison-pink.png \
       --javascript "document.body.style.backgroundColor = 'pink';"
 
+Screenshots default to PNG. You can save as a JPEG by specifying a `-o` filename that ends with `.jpg`.
+
+You can also use `--quality X` to save as a JPEG with the specified quality, in order to reduce the filesize. 80 is a good value to use here:
+
+    shot-scraper https://simonwillison.net/ \
+      -h 800 -o simonwillison.jpg --quality 80
+    % ls -lah simonwillison.jpg
+    -rw-r--r--@ 1 simon  staff   168K Mar  9 13:53 simonwillison.jpg
 
 ## Taking multiple screenshot
 
@@ -85,13 +93,14 @@ To execute JavaScript after the page has loaded but before the screenshot is tak
     document.body.style.backgroundColor = 'pink'
 ```
 
-You can include desired `height` and `width` options on each item as well:
+You can include desired `height` and `width` and `quality` options on each item as well:
 
 ```yaml
-- output: simon-narrow.png
+- output: simon-narrow.jpg
   url: https://simonwillison.net/
   width: 400
   height: 800
+  quality: 80
 ```
 
 ## Development

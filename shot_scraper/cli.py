@@ -45,7 +45,8 @@ def cli():
 @click.option(
     "-j", "--javascript", help="Execute this JavaScript prior to taking the shot"
 )
-def shot(url, output, width, height, selector, javascript):
+@click.option("--quality", type=int, help="Save as JPEG with this quality, e.g. 80")
+def shot(url, output, width, height, selector, javascript, quality):
     """
         Take a single screenshot of a page or portion of a page.
 
@@ -58,34 +59,22 @@ def shot(url, output, width, height, selector, javascript):
 
             shot-scraper https://simonwillison.net -o bighead.png -s '#bighead'
     """
+    shot = {
+        "url": url,
+        "selector": selector,
+        "javascript": javascript,
+        "width": width,
+        "height": height,
+        "quality": quality,
+    }
     with sync_playwright() as p:
         browser = p.chromium.launch()
         if output == "-":
-            shot = take_shot(
-                browser,
-                {
-                    "url": url,
-                    "selector": selector,
-                    "javascript": javascript,
-                    "width": width,
-                    "height": height,
-                },
-                selector=selector,
-                return_bytes=True,
-            )
+            shot = take_shot(browser, shot, return_bytes=True)
             sys.stdout.buffer.write(shot)
         else:
-            shot = take_shot(
-                browser,
-                {
-                    "url": url,
-                    "output": str(output),
-                    "selector": selector,
-                    "javascript": javascript,
-                    "width": width,
-                    "height": height,
-                },
-            )
+            shot["output"] = str(output)
+            shot = take_shot(browser, shot)
         browser.close()
 
 
@@ -137,6 +126,7 @@ def take_shot(browser, shot, return_bytes=False):
         raise click.ClickException(
             "'output' filename is required, messing for url:\n  {}".format(url)
         )
+    quality = shot.get("quality")
     page = browser.new_page()
 
     viewport = {}
@@ -155,19 +145,29 @@ def take_shot(browser, shot, return_bytes=False):
     javascript = shot.get("javascript")
     if javascript:
         page.evaluate(javascript)
+
+    screenshot_args = {}
+    if quality:
+        screenshot_args.update({"quality": quality, "type": "jpeg"})
+    if not return_bytes:
+        screenshot_args["path"] = output
+
+    if not selector:
+        screenshot_args["full_page"] = full_page
+
     if selector:
         if return_bytes:
-            return page.locator(selector).screenshot()
+            return page.locator(selector).screenshot(**screenshot_args)
         else:
-            page.locator(selector).screenshot(path=output)
+            page.locator(selector).screenshot(**screenshot_args)
             message = "Screenshot of '{}' on '{}' written to '{}'".format(
                 selector, url, output
             )
     else:
         # Whole page
         if return_bytes:
-            return page.screenshot(full_page=full_page)
+            return page.screenshot(**screenshot_args)
         else:
-            page.screenshot(path=output, full_page=full_page)
+            page.screenshot(**screenshot_args)
             message = "Screenshot of '{}' written to '{}'".format(url, output)
     click.echo(message, err=True)
