@@ -21,6 +21,19 @@ def cli():
 @cli.command()
 @click.argument("url")  # TODO: validate with custom type
 @click.option(
+    "-w",
+    "--width",
+    type=int,
+    help="Width of browser window, defaults to 1280",
+    default=1280,
+)
+@click.option(
+    "-h",
+    "--height",
+    type=int,
+    help="Height of browser window and shot - defaults to the full height of the page",
+)
+@click.option(
     "-o",
     "--output",
     type=click.Path(file_okay=True, writable=True, dir_okay=False, allow_dash=True),
@@ -32,18 +45,18 @@ def cli():
 @click.option(
     "-j", "--javascript", help="Execute this JavaScript prior to taking the shot"
 )
-def shot(url, output, selector, javascript):
+def shot(url, output, width, height, selector, javascript):
     """
-    Take a single screenshot of a page or portion of a page.
+        Take a single screenshot of a page or portion of a page.
 
-    Usage:
+        Usage:
 
-        shot-scraper http://www.example.com/ -o example.png
+            shot-scraper http://www.example.com/ -o example.png
+    .
+        Use -s to take a screenshot of one area of the page, identified
+        using a CSS selector:
 
-    Use -s to take a screenshot of one area of the page, identified
-    using a CSS selector:
-
-        shot-scraper https://simonwillison.net -o bighead.png -s '#bighead'
+            shot-scraper https://simonwillison.net -o bighead.png -s '#bighead'
     """
     with sync_playwright() as p:
         browser = p.chromium.launch()
@@ -54,6 +67,8 @@ def shot(url, output, selector, javascript):
                     "url": url,
                     "selector": selector,
                     "javascript": javascript,
+                    "width": width,
+                    "height": height,
                 },
                 selector=selector,
                 return_bytes=True,
@@ -67,6 +82,8 @@ def shot(url, output, selector, javascript):
                     "output": str(output),
                     "selector": selector,
                     "javascript": javascript,
+                    "width": width,
+                    "height": height,
                 },
             )
         browser.close()
@@ -121,6 +138,17 @@ def take_shot(browser, shot, return_bytes=False):
             "'output' filename is required, messing for url:\n  {}".format(url)
         )
     page = browser.new_page()
+
+    viewport = {}
+    full_page = True
+    if shot.get("width") or shot.get("height"):
+        viewport = {
+            "width": shot.get("width") or 1280,
+            "height": shot.get("height") or 720,
+        }
+        page.set_viewport_size(viewport)
+        if shot.get("height"):
+            full_page = False
     page.goto(url)
     message = ""
     selector = shot.get("selector")
@@ -138,8 +166,8 @@ def take_shot(browser, shot, return_bytes=False):
     else:
         # Whole page
         if return_bytes:
-            return page.screenshot(full_page=True)
+            return page.screenshot(full_page=full_page)
         else:
-            page.screenshot(path=output, full_page=True)
+            page.screenshot(path=output, full_page=full_page)
             message = "Screenshot of '{}' written to '{}'".format(url, output)
     click.echo(message, err=True)

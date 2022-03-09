@@ -39,6 +39,7 @@ jobs:
         shot-scraper https://simonwillison.net/ -s '#bighead' \
           --javascript "document.body.style.backgroundColor = 'pink';" \
           -o examples/bighead-pink.png
+        shot-scraper https://simonwillison.net/ -w 400 -h 800 -o examples/simon-narrow.png
         # And using multi
         echo '
         - output: examples/example.com.png
@@ -53,6 +54,10 @@ jobs:
           selector: "#bighead"
           javascript: |
             document.body.style.backgroundColor = 'pink';
+        - output: simon-narrow-from-multi.png
+          url: https://simonwillison.net/
+          width: 400
+          height: 800
         ' | shot-scraper multi -
     - name: Archive examples
       uses: actions/upload-artifact@v3

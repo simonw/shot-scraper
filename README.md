@@ -33,16 +33,25 @@ If you omit the `-o` the screenshot PNG binary will be output by the tool, so yo
 
     shot-scraper https://datasette.io/ > datasette.png
 
-Screenshots default to being 1280px wide and as long as needed to capture the full page.
+The browser window used to take the screenshots defaults to 1280px wide and 780px tall.
 
-To take a screenshot of a specific element on the page, use `--selector` with its CSS selector:
+You can adjust these with the `--width` and `--height` options:
+
+    shot-scraper https://datasette.io/ -o small.png --width 400 --height 800
+
+If you provide both options, the resulting screenshot will be of that size. If you omit `--height` a full page length screenshot will be produced (the default).
+
+To take a screenshot of a specific element on the page, use `--selector` or `-s` with its CSS selector:
 
     shot-scraper https://simonwillison.net/ -s '#bighead' -o bighead.png
+
+When using `--selector` the height and width, if provided, will set the size of the browser window when the page is loaded but the resulting screenshot will still be the same dimensions as the element on the page.
 
 You can use custom JavaScript to modify the page after it has loaded (after the 'onload' event has fired) but before the screenshot is taken using the `--javascript` option:
 
     shot-scraper https://simonwillison.net/ -o simonwillison-pink.png \
       --javascript "document.body.style.backgroundColor = 'pink';"
+
 
 ## Taking multiple screenshot
 
@@ -75,6 +84,16 @@ To execute JavaScript after the page has loaded but before the screenshot is tak
   javascript: |
     document.body.style.backgroundColor = 'pink'
 ```
+
+You can include desired `height` and `width` options on each item as well:
+
+```yaml
+- output: simon-narrow.png
+  url: https://simonwillison.net/
+  width: 400
+  height: 800
+```
+
 ## Development
 
 To contribute to this tool, first checkout the code. Then create a new virtual environment:
