@@ -51,6 +51,14 @@ Then run the tool like so:
 
 This will create two image files, `example.com.png` and `w3c.org.png`, containing screenshots of those two URLs.
 
+To take a screenshot of just the area of a page defined by a CSS selector, add `selector` to the YAML block:
+
+```yaml
+- output: bighead.png
+  url: https://simonwillison.net/
+  selector: "#bighead"
+```
+
 ## Development
 
 To contribute to this tool, first checkout the code. Then create a new virtual environment:
