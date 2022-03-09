@@ -13,9 +13,7 @@ Install this tool using `pip`:
 
     pip install shot-scraper
 
-The tool runs `playwright` using `npx playwright`, so your system will need to have `npm` configured in such a way that the following works:
-
-    npx playwright --help
+This tool depends on Playwright, which may need to download a browser. Run `playwright install` after installing `shot-scraper` to finish installing Playwright.
 
 ## Usage
 

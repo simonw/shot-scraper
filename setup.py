@@ -31,7 +31,7 @@ setup(
         [console_scripts]
         shot-scraper=shot_scraper.cli:cli
     """,
-    install_requires=["click", "PyYAML"],
+    install_requires=["click", "PyYAML", "playwright"],
     extras_require={"test": ["pytest"]},
     python_requires=">=3.6",
 )
