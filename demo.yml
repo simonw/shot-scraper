@@ -2,3 +2,6 @@
   url: http://www.example.com/
 - output: w3c.org.png
   url: https://www.w3.org/
+- output: simonwillison-bighead.png
+  url: https://simonwillison.net/
+  selector: "#bighead"

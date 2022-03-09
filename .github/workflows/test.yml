@@ -41,7 +41,11 @@ jobs:
         - output: examples/example.com.png
           url: http://www.example.com/
         - output: examples/w3c.org.png
-          url: https://www.w3.org/' | shot-scraper multi -
+          url: https://www.w3.org/
+        - output: examples/bighead-from-multi.png
+          url: https://simonwillison.net/
+          selector: "#bighead"
+        ' | shot-scraper multi -
     - name: Archive examples
       uses: actions/upload-artifact@v3
       with:

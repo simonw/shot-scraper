@@ -49,6 +49,7 @@ def shot(url, output, selector):
                 browser,
                 {
                     "url": url,
+                    "selector": selector,
                 },
                 selector=selector,
                 return_bytes=True,
@@ -60,8 +61,8 @@ def shot(url, output, selector):
                 {
                     "url": url,
                     "output": str(output),
+                    "selector": selector,
                 },
-                selector=selector,
             )
         browser.close()
 
@@ -103,7 +104,7 @@ def install():
     run_module("playwright", run_name="__main__")
 
 
-def take_shot(browser, shot, selector=None, return_bytes=False):
+def take_shot(browser, shot, return_bytes=False):
     url = shot.get("url") or ""
     if not (url.startswith("http://") or url.startswith("https://")):
         raise click.ClickException(
@@ -117,6 +118,7 @@ def take_shot(browser, shot, selector=None, return_bytes=False):
     page = browser.new_page()
     page.goto(url)
     message = ""
+    selector = shot.get("selector")
     if selector:
         if return_bytes:
             return page.locator(selector).screenshot()
