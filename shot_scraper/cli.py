@@ -26,7 +26,22 @@ def cli():
     type=click.Path(file_okay=True, writable=True, dir_okay=False, allow_dash=True),
     default="-",
 )
-def shot(url, output):
+@click.option(
+    "-s", "--selector", help="Take shot of first element matching this CSS selector"
+)
+def shot(url, output, selector):
+    """
+    Take a single screenshot of a page or portion of a page.
+
+    Usage:
+
+        shot-scraper http://www.example.com/ -o example.png
+
+    Use -s to take a screenshot of one area of the page, identified
+    using a CSS selector:
+
+        shot-scraper https://simonwillison.net -o bighead.png -s '#bighead'
+    """
     with sync_playwright() as p:
         browser = p.chromium.launch()
         if output == "-":
@@ -35,6 +50,7 @@ def shot(url, output):
                 {
                     "url": url,
                 },
+                selector=selector,
                 return_bytes=True,
             )
             sys.stdout.buffer.write(shot)
@@ -45,6 +61,7 @@ def shot(url, output):
                     "url": url,
                     "output": str(output),
                 },
+                selector=selector,
             )
         browser.close()
 
@@ -86,7 +103,7 @@ def install():
     run_module("playwright", run_name="__main__")
 
 
-def take_shot(browser, shot, return_bytes=False):
+def take_shot(browser, shot, selector=None, return_bytes=False):
     url = shot.get("url") or ""
     if not (url.startswith("http://") or url.startswith("https://")):
         raise click.ClickException(
@@ -99,8 +116,20 @@ def take_shot(browser, shot, return_bytes=False):
         )
     page = browser.new_page()
     page.goto(url)
-    if return_bytes:
-        return page.screenshot(full_page=True)
+    message = ""
+    if selector:
+        if return_bytes:
+            return page.locator(selector).screenshot()
+        else:
+            page.locator(selector).screenshot(path=output)
+            message = "Screenshot of '{}' on '{}' written to '{}'".format(
+                selector, url, output
+            )
     else:
-        page.screenshot(path=output, full_page=True)
-    click.echo("Screenshot of '{}' written to '{}'".format(url, output))
+        # Whole page
+        if return_bytes:
+            return page.screenshot(full_page=True)
+        else:
+            page.screenshot(path=output, full_page=True)
+            message = "Screenshot of '{}' written to '{}'".format(url, output)
+    click.echo(message, err=True)

@@ -35,6 +35,7 @@ jobs:
       run: |
         mkdir -p examples
         shot-scraper https://github.com/ -o examples/github.com.png
+        shot-scraper https://simonwillison.net/ -s '#bighead' -o examples/bighead.png
         # And using multi
         echo '
         - output: examples/example.com.png
