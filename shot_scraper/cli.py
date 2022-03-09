@@ -3,6 +3,7 @@ from click_default_group import DefaultGroup
 from playwright.sync_api import sync_playwright
 from runpy import run_module
 import sys
+import time
 import yaml
 
 
@@ -46,18 +47,20 @@ def cli():
     "-j", "--javascript", help="Execute this JavaScript prior to taking the shot"
 )
 @click.option("--quality", type=int, help="Save as JPEG with this quality, e.g. 80")
-def shot(url, output, width, height, selector, javascript, quality):
+@click.option(
+    "--wait", type=int, help="Wait this many milliseconds before taking screenshot"
+)
+def shot(url, output, width, height, selector, javascript, quality, wait):
     """
-        Take a single screenshot of a page or portion of a page.
+    Take a single screenshot of a page or portion of a page.
 
-        Usage:
+    Usage:
 
-            shot-scraper http://www.example.com/ -o example.png
-    .
-        Use -s to take a screenshot of one area of the page, identified
-        using a CSS selector:
+        shot-scraper http://www.example.com/ -o example.png
 
-            shot-scraper https://simonwillison.net -o bighead.png -s '#bighead'
+    Use -s to take a screenshot of one area of the page, identified using a CSS selector:
+
+        shot-scraper https://simonwillison.net -o bighead.png -s '#bighead'
     """
     shot = {
         "url": url,
@@ -66,6 +69,7 @@ def shot(url, output, width, height, selector, javascript, quality):
         "width": width,
         "height": height,
         "quality": quality,
+        "wait": wait,
     }
     with sync_playwright() as p:
         browser = p.chromium.launch()
@@ -127,6 +131,8 @@ def take_shot(browser, shot, return_bytes=False):
             "'output' filename is required, messing for url:\n  {}".format(url)
         )
     quality = shot.get("quality")
+    wait = shot.get("wait")
+
     page = browser.new_page()
 
     viewport = {}
@@ -140,6 +146,8 @@ def take_shot(browser, shot, return_bytes=False):
         if shot.get("height"):
             full_page = False
     page.goto(url)
+    if wait:
+        time.sleep(wait / 1000)
     message = ""
     selector = shot.get("selector")
     javascript = shot.get("javascript")

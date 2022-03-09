@@ -47,6 +47,10 @@ To take a screenshot of a specific element on the page, use `--selector` or `-s`
 
 When using `--selector` the height and width, if provided, will set the size of the browser window when the page is loaded but the resulting screenshot will still be the same dimensions as the element on the page.
 
+Sometimes a page will not have completely loaded before a screenshot is taken. You can use `--wait X` to wait the specified number of milliseconds after the page load event has fired before taking the screenshot:
+
+    shot-scraper https://simonwillison.net/ --wait 2000 -o after-wait.png
+
 You can use custom JavaScript to modify the page after it has loaded (after the 'onload' event has fired) but before the screenshot is taken using the `--javascript` option:
 
     shot-scraper https://simonwillison.net/ -o simonwillison-pink.png \
@@ -93,7 +97,7 @@ To execute JavaScript after the page has loaded but before the screenshot is tak
     document.body.style.backgroundColor = 'pink'
 ```
 
-You can include desired `height` and `width` and `quality` options on each item as well:
+You can include desired `height`, `width`, `quality` and `wait` options on each item as well:
 
 ```yaml
 - output: simon-narrow.jpg
@@ -101,6 +105,7 @@ You can include desired `height` and `width` and `quality` options on each item 
   width: 400
   height: 800
   quality: 80
+  wait: 500
 ```
 
 ## Development

@@ -42,6 +42,10 @@ jobs:
         shot-scraper https://simonwillison.net/ -w 400 -h 800 -o examples/simon-narrow.png
         shot-scraper https://simonwillison.net/ \
           -h 800 -o examples/simonwillison-quality-80.jpg --quality 80
+        shot-scraper 'https://www.owlsnearme.com/?place=127871' \
+          --selector 'section.secondary' \
+          -o examples/owlsnearme-wait.jpg \
+          --wait 2000
         # And using multi
         echo '
         - output: examples/example.com.png
