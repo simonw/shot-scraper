@@ -90,7 +90,7 @@ def multi(config):
 
     Usage:
 
-        shot-scraper config.yml
+        shot-scraper multi config.yml
 
     Where config.yml contains configuration like this:
 
