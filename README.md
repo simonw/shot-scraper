@@ -71,7 +71,7 @@ You can also use `--quality X` to save as a JPEG with the specified quality, in 
     % ls -lah simonwillison.jpg
     -rw-r--r--@ 1 simon  staff   168K Mar  9 13:53 simonwillison.jpg
 
-## Taking multiple screenshot
+## Taking multiple screenshots
 
 You can configure multiple screenshots using a YAML file. Create a file called `shots.yml` that looks like this:
 
