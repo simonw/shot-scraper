@@ -7,6 +7,8 @@
 
 Tool for taking automated screenshots
 
+For background on this project see [shot-scraper: automated screenshots for documentation, built on Playwright](https://simonwillison.net/2022/Mar/10/shot-scraper/) on my blog.
+
 ## Demo
 
 A live demo of the output of this tool can be found in the [shot-scraper-demo](https://github.com/simonw/shot-scraper-demo) repository.
