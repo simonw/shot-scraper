@@ -1,5 +1,6 @@
 import click
 from click_default_group import DefaultGroup
+import json
 from playwright.sync_api import sync_playwright
 from runpy import run_module
 import sys
@@ -104,6 +105,25 @@ def multi(config):
         for shot in shots:
             take_shot(browser, shot)
         browser.close()
+
+
+@cli.command()
+@click.argument("url")
+def accessibility(url):
+    """
+    Dump the Chromium accessibility tree for the specifed page
+
+    Usage:
+
+        shot-scraper accessibility https://datasette.io/
+    """
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page()
+        page.goto(url)
+        snapshot = page.accessibility.snapshot()
+        browser.close()
+    click.echo(json.dumps(snapshot, indent=4))
 
 
 @cli.command()

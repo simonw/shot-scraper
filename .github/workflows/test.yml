@@ -46,6 +46,7 @@ jobs:
           --selector 'section.secondary' \
           -o examples/owlsnearme-wait.jpg \
           --wait 2000
+        shot-scraper accessibility https://datasette.io/ > examples/datasette-accessibility.json
         # And using multi
         echo '
         - output: examples/example.com.png

@@ -114,6 +114,12 @@ You can include desired `height`, `width`, `quality` and `wait` options on each 
   wait: 500
 ```
 
+## Dumping out an accessibility tree
+
+The `shot-scraper accessibility` command dumps out the Chromium accessibility tree for the provided URL, as JSON:
+
+    shot-scraper accessibility https://datasette.io/
+
 ## Development
 
 To contribute to this tool, first checkout the code. Then create a new virtual environment:
