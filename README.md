@@ -101,6 +101,7 @@ Usage: shot-scraper shot [OPTIONS] URL
       shot-scraper https://simonwillison.net -o bighead.png -s '#bighead'
 
 Options:
+  -a, --auth FILENAME    Path to JSON authentication context file
   -w, --width INTEGER    Width of browser window, defaults to 1280
   -h, --height INTEGER   Height of browser window and shot - defaults to the
                          full height of the page
@@ -202,7 +203,8 @@ Usage: shot-scraper multi [OPTIONS] CONFIG
         url: http://www.example.com/
 
 Options:
-  -h, --help  Show this message and exit.
+  -a, --auth FILENAME  Path to JSON authentication context file
+  -h, --help           Show this message and exit.
 ```
 <!-- [[[end]]] -->
 
@@ -231,6 +233,7 @@ Usage: shot-scraper pdf [OPTIONS] URL
       shot-scraper pdf https://datasette.io/ -o datasette.pdf
 
 Options:
+  -a, --auth FILENAME    Path to JSON authentication context file
   -o, --output FILE
   -j, --javascript TEXT  Execute this JS prior to creating the PDF
   --wait INTEGER         Wait this many milliseconds before taking the
@@ -270,6 +273,7 @@ Usage: shot-scraper accessibility [OPTIONS] URL
       shot-scraper accessibility https://datasette.io/
 
 Options:
+  -a, --auth FILENAME    Path to JSON authentication context file
   -o, --output FILENAME
   -j, --javascript TEXT  Execute this JS prior to taking the snapshot
   -h, --help             Show this message and exit.
