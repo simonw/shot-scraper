@@ -50,7 +50,10 @@ jobs:
           > examples/datasette-accessibility.json
         shot-scraper accessibility https://simonwillison.net \
           --javascript "document.getElementById('wrapper').style.display='none'" \
-          > examples/simonwillison-accessibility-after-javascript.json
+          > examples/simonwillison-accessibility-javascript.json
+        shot-scraper accessibility https://simonwillison.net \
+          --javascript "document.getElementById('wrapper').style.display='none'" \
+          --output examples/simonwillison-accessibility-javascript-and-dash-output.json
         # And using multi
         echo '
         - output: examples/example.com.png

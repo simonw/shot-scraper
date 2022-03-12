@@ -110,9 +110,15 @@ def multi(config):
 @cli.command()
 @click.argument("url")
 @click.option(
+    "-o",
+    "--output",
+    type=click.File("w"),
+    default="-",
+)
+@click.option(
     "-j", "--javascript", help="Execute this JavaScript prior to taking the snapshot"
 )
-def accessibility(url, javascript):
+def accessibility(url, output, javascript):
     """
     Dump the Chromium accessibility tree for the specifed page
 
@@ -128,7 +134,8 @@ def accessibility(url, javascript):
             page.evaluate(javascript)
         snapshot = page.accessibility.snapshot()
         browser.close()
-    click.echo(json.dumps(snapshot, indent=4))
+    output.write(json.dumps(snapshot, indent=4))
+    output.write("\n")
 
 
 @cli.command()
