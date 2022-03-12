@@ -45,11 +45,11 @@ def cli():
     "-s", "--selector", help="Take shot of first element matching this CSS selector"
 )
 @click.option(
-    "-j", "--javascript", help="Execute this JavaScript prior to taking the shot"
+    "-j", "--javascript", help="Execute this JS prior to taking the shot"
 )
 @click.option("--quality", type=int, help="Save as JPEG with this quality, e.g. 80")
 @click.option(
-    "--wait", type=int, help="Wait this many milliseconds before taking screenshot"
+    "--wait", type=int, help="Wait this many milliseconds before taking the screenshot"
 )
 def shot(url, output, width, height, selector, javascript, quality, wait):
     """
@@ -116,7 +116,7 @@ def multi(config):
     default="-",
 )
 @click.option(
-    "-j", "--javascript", help="Execute this JavaScript prior to taking the snapshot"
+    "-j", "--javascript", help="Execute this JS prior to taking the snapshot"
 )
 def accessibility(url, output, javascript):
     """
@@ -136,6 +136,65 @@ def accessibility(url, output, javascript):
         browser.close()
     output.write(json.dumps(snapshot, indent=4))
     output.write("\n")
+
+
+@cli.command()
+@click.argument("url")
+@click.option(
+    "-o",
+    "--output",
+    type=click.Path(file_okay=True, writable=True, dir_okay=False, allow_dash=True),
+    default="-",
+)
+@click.option(
+    "-j", "--javascript", help="Execute this JS prior to creating the PDF"
+)
+@click.option(
+    "--wait", type=int, help="Wait this many milliseconds before taking the screenshot"
+)
+
+@click.option(
+    "--media-screen", is_flag=True, help="Use screen rather than print styles"
+)
+@click.option(
+    "--landscape", is_flag=True, help="Use landscape orientation"
+)
+def pdf(url, output, javascript, wait, media_screen, landscape):
+    """
+    Create a PDF of the specified page
+
+    Usage:
+
+        shot-scraper pdf https://datasette.io/ -o datasette.pdf
+    """
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page()
+        page.goto(url)
+        if wait:
+            time.sleep(wait / 1000)
+        if javascript:
+            page.evaluate(javascript)
+
+        kwargs = {
+            "landscape": landscape,
+        }
+        if output != "-":
+            kwargs["path"] = output
+
+        if media_screen:
+            page.emulate_media(media="screen")
+
+        pdf = page.pdf(**kwargs)
+
+        if output == "-":
+            sys.stdout.buffer.write(pdf)
+        else:
+            click.echo(
+                "Screenshot of '{}' written to '{}'".format(url, output), err=True
+            )
+
+        browser.close()
 
 
 @cli.command()

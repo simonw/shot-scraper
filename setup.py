@@ -32,6 +32,6 @@ setup(
         shot-scraper=shot_scraper.cli:cli
     """,
     install_requires=["click", "PyYAML", "playwright", "click-default-group"],
-    extras_require={"test": ["pytest"]},
+    extras_require={"test": ["pytest", "cogapp"]},
     python_requires=">=3.7",
 )

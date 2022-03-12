@@ -31,7 +31,10 @@ jobs:
     - name: Run tests
       run: |
         pytest
-    - name: Generate example images
+    - name: Check if cog needs to be run
+      run: |
+        cog --check README.md
+    - name: Generate examples
       run: |
         mkdir -p examples
         shot-scraper https://github.com/ -o examples/github.com.png
@@ -54,6 +57,8 @@ jobs:
         shot-scraper accessibility https://simonwillison.net \
           --javascript "document.getElementById('wrapper').style.display='none'" \
           --output examples/simonwillison-accessibility-javascript-and-dash-output.json
+        shot-scraper pdf https://datasette.io \
+          --landscape -o examples/datasette-landscape.pdf
         # And using multi
         echo '
         - output: examples/example.com.png

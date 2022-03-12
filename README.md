@@ -116,6 +116,45 @@ You can include desired `height`, `width`, `quality` and `wait` options on each 
   wait: 500
 ```
 
+## Saving a webpage to PDF
+
+The `shot-scrapr pdf` command saves a PDF version of a web page - the equivalent of using `Print -> Save to PDF` in Chromium.
+
+    shot-scraper pdf https://datasette.io/ -o datasette.pdf
+
+Full `--help` for this command:
+
+<!-- [[[cog
+import cog
+from shot_scraper import cli
+from click.testing import CliRunner
+runner = CliRunner()
+result = runner.invoke(cli.cli, ["pdf", "--help"])
+help = result.output.replace("Usage: cli", "Usage: shot-scraper")
+cog.out(
+    "```\n{}\n```\n".format(help.strip())
+)
+]]] -->
+```
+Usage: shot-scraper pdf [OPTIONS] URL
+
+  Create a PDF of the specified page
+
+  Usage:
+
+      shot-scraper pdf https://datasette.io/ -o datasette.pdf
+
+Options:
+  -o, --output FILE
+  -j, --javascript TEXT  Execute this JS prior to creating the PDF
+  --wait INTEGER         Wait this many milliseconds before taking the
+                         screenshot
+  --media-screen         Use screen rather than print styles
+  --landscape            Use landscape orientation
+  -h, --help             Show this message and exit.
+```
+<!-- [[[end]]] -->
+
 ## Dumping out an accessibility tree
 
 The `shot-scraper accessibility` command dumps out the Chromium accessibility tree for the provided URL, as JSON:
