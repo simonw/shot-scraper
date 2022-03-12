@@ -311,3 +311,7 @@ Now install the dependencies and test dependencies:
 To run the tests:
 
     pytest
+
+Some of the tests exercise the CLI utility directly. Run those like so:
+
+    tests/run_examples.sh
