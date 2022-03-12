@@ -4,7 +4,9 @@ import json
 import pathlib
 from playwright.sync_api import sync_playwright
 from runpy import run_module
+import secrets
 import sys
+import textwrap
 import time
 import yaml
 
@@ -49,14 +51,27 @@ def cli():
     default="-",
 )
 @click.option(
-    "-s", "--selector", help="Take shot of first element matching this CSS selector"
+    "selectors",
+    "-s",
+    "--selector",
+    help="Take shot of first element matching this CSS selector",
+    multiple=True,
+)
+@click.option(
+    "-p",
+    "--padding",
+    type=int,
+    help="When using selectors, add this much padding in pixels",
+    default=0,
 )
 @click.option("-j", "--javascript", help="Execute this JS prior to taking the shot")
 @click.option("--quality", type=int, help="Save as JPEG with this quality, e.g. 80")
 @click.option(
     "--wait", type=int, help="Wait this many milliseconds before taking the screenshot"
 )
-def shot(url, auth, output, width, height, selector, javascript, quality, wait):
+def shot(
+    url, auth, output, width, height, selectors, padding, javascript, quality, wait
+):
     """
     Take a single screenshot of a page or portion of a page.
 
@@ -70,12 +85,13 @@ def shot(url, auth, output, width, height, selector, javascript, quality, wait):
     """
     shot = {
         "url": url,
-        "selector": selector,
+        "selectors": selectors,
         "javascript": javascript,
         "width": width,
         "height": height,
         "quality": quality,
         "wait": wait,
+        "padding": padding,
     }
     with sync_playwright() as p:
         context, browser = _browser_context(p, auth)
@@ -281,6 +297,12 @@ def take_shot(context, shot, return_bytes=False):
         )
     quality = shot.get("quality")
     wait = shot.get("wait")
+    padding = shot.get("padding") or 0
+
+    # If a single 'selector' turn that into selectors array with one item
+    selectors = shot.get("selectors") or []
+    if shot.get("selector"):
+        selectors.append(shot["selector"])
 
     page = context.new_page()
 
@@ -298,7 +320,6 @@ def take_shot(context, shot, return_bytes=False):
     if wait:
         time.sleep(wait / 1000)
     message = ""
-    selector = shot.get("selector")
     javascript = shot.get("javascript")
     if javascript:
         page.evaluate(javascript)
@@ -309,16 +330,21 @@ def take_shot(context, shot, return_bytes=False):
     if not return_bytes:
         screenshot_args["path"] = output
 
-    if not selector:
+    if not selectors:
         screenshot_args["full_page"] = full_page
 
-    if selector:
+    if selectors:
+        # Use JavaScript to create a box around those elements
+        selector_javascript, selector_to_shoot = _selector_javascript(
+            selectors, padding
+        )
+        page.evaluate(selector_javascript)
         if return_bytes:
-            return page.locator(selector).screenshot(**screenshot_args)
+            return page.locator(selector_to_shoot).screenshot(**screenshot_args)
         else:
-            page.locator(selector).screenshot(**screenshot_args)
+            page.locator(selector_to_shoot).screenshot(**screenshot_args)
             message = "Screenshot of '{}' on '{}' written to '{}'".format(
-                selector, url, output
+                ", ".join(selectors), url, output
             )
     else:
         # Whole page
@@ -328,3 +354,57 @@ def take_shot(context, shot, return_bytes=False):
             page.screenshot(**screenshot_args)
             message = "Screenshot of '{}' written to '{}'".format(url, output)
     click.echo(message, err=True)
+
+
+def _selector_javascript(selectors, padding=0):
+    selector_to_shoot = "shot-scraper-{}".format(secrets.token_hex(8))
+    selector_javascript = textwrap.dedent(
+        """
+    new Promise(takeShot => {
+        let padding = %s;
+        let minTop = 100000000;
+        let minLeft = 100000000;
+        let maxBottom = 0;
+        let maxRight = 0;
+        let els = %s.map(s => document.querySelector(s));
+        els.forEach(el => {
+            let rect = el.getBoundingClientRect();
+            if (rect.top < minTop) {
+                minTop = rect.top;
+            }
+            if (rect.left < minLeft) {
+                minLeft = rect.left;
+            }
+            if (rect.bottom > maxBottom) {
+                maxBottom = rect.bottom;
+            }
+            if (rect.right > maxRight) {
+                maxRight = rect.right;
+            }
+        });
+        // Adjust them based on scroll position
+        let top = minTop + window.scrollY;
+        let bottom = maxBottom + window.scrollY;
+        let left = minLeft + window.scrollX;
+        let right = maxRight + window.scrollX;
+        // Apply padding
+        top = top - padding;
+        bottom = bottom + padding;
+        left = left - padding;
+        right = right + padding;
+        let div = document.createElement('div');
+        div.style.position = 'absolute';
+        div.style.top = top + 'px';
+        div.style.left = left + 'px';
+        div.style.width = (right - left) + 'px';
+        div.style.height = (bottom - top) + 'px';
+        div.setAttribute('id', %s);
+        document.body.appendChild(div);
+        setTimeout(() => {
+            takeShot();
+        }, 300);
+    });
+    """
+        % (padding, json.dumps(selectors), json.dumps(selector_to_shoot))
+    )
+    return selector_javascript, "#" + selector_to_shoot

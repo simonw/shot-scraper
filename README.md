@@ -49,20 +49,36 @@ You can adjust these with the `--width` and `--height` options:
 
 If you provide both options, the resulting screenshot will be of that size. If you omit `--height` a full page length screenshot will be produced (the default).
 
+### Screenshotting a specific area with CSS selectors
+
 To take a screenshot of a specific element on the page, use `--selector` or `-s` with its CSS selector:
 
     shot-scraper https://simonwillison.net/ -s '#bighead' -o bighead.png
 
 When using `--selector` the height and width, if provided, will set the size of the browser window when the page is loaded but the resulting screenshot will still be the same dimensions as the element on the page.
 
+You can pass `--selector` multiple times. The resulting screenshot will cover the smallest area of the page that contains all of the elements you specified, for example:
+
+    shot-scraper https://simonwillison.net/ \
+      -s '#bighead' -s .overband \
+      -o examples/bighead-multi-selector.png
+
+You can add `--padding 20` to add 20px of padding around the elements when the shot is taken.
+
+### Adding a delay
+
 Sometimes a page will not have completely loaded before a screenshot is taken. You can use `--wait X` to wait the specified number of milliseconds after the page load event has fired before taking the screenshot:
 
     shot-scraper https://simonwillison.net/ --wait 2000 -o after-wait.png
+
+### Executing custom JavaScript
 
 You can use custom JavaScript to modify the page after it has loaded (after the 'onload' event has fired) but before the screenshot is taken using the `--javascript` option:
 
     shot-scraper https://simonwillison.net/ -o simonwillison-pink.png \
       --javascript "document.body.style.backgroundColor = 'pink';"
+
+### Using JPEGs instead of PNGs
 
 Screenshots default to PNG. You can save as a JPEG by specifying a `-o` filename that ends with `.jpg`.
 
@@ -107,6 +123,7 @@ Options:
                          full height of the page
   -o, --output FILE
   -s, --selector TEXT    Take shot of first element matching this CSS selector
+  -p, --padding INTEGER  When using selectors, add this much padding in pixels
   -j, --javascript TEXT  Execute this JS prior to taking the shot
   --quality INTEGER      Save as JPEG with this quality, e.g. 80
   --wait INTEGER         Wait this many milliseconds before taking the
@@ -158,6 +175,15 @@ To take a screenshot of just the area of a page defined by a CSS selector, add `
 - output: bighead.png
   url: https://simonwillison.net/
   selector: "#bighead"
+```
+You can pass more than one selector using a `selectors:` list. You can also use `padding:` to specify additional padding:
+```yaml
+- output: bighead-multi-selector.png
+  url: https://simonwillison.net/
+  selectors:
+  - "#bighead"
+  - .overband
+  padding: 20
 ```
 To execute JavaScript after the page has loaded but before the screenshot is taken, add a `javascript` key:
 ```yaml
