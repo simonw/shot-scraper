@@ -122,6 +122,8 @@ The `shot-scraper accessibility` command dumps out the Chromium accessibility tr
 
     shot-scraper accessibility https://datasette.io/
 
+Add `--javascript SCRIPT` to execute custom JavaScript before taking the snapshot.
+
 ## Development
 
 To contribute to this tool, first checkout the code. Then create a new virtual environment:
