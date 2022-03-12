@@ -1,6 +1,7 @@
 import click
 from click_default_group import DefaultGroup
 import json
+import pathlib
 from playwright.sync_api import sync_playwright
 from runpy import run_module
 import sys
@@ -22,6 +23,12 @@ def cli():
 
 @cli.command()
 @click.argument("url")  # TODO: validate with custom type
+@click.option(
+    "-a",
+    "--auth",
+    type=click.File("r"),
+    help="Path to JSON authentication context file",
+)
 @click.option(
     "-w",
     "--width",
@@ -49,7 +56,7 @@ def cli():
 @click.option(
     "--wait", type=int, help="Wait this many milliseconds before taking the screenshot"
 )
-def shot(url, output, width, height, selector, javascript, quality, wait):
+def shot(url, auth, output, width, height, selector, javascript, quality, wait):
     """
     Take a single screenshot of a page or portion of a page.
 
@@ -71,19 +78,34 @@ def shot(url, output, width, height, selector, javascript, quality, wait):
         "wait": wait,
     }
     with sync_playwright() as p:
-        browser = p.chromium.launch()
+        context, browser = _browser_context(p, auth)
         if output == "-":
-            shot = take_shot(browser, shot, return_bytes=True)
+            shot = take_shot(context, shot, return_bytes=True)
             sys.stdout.buffer.write(shot)
         else:
             shot["output"] = str(output)
-            shot = take_shot(browser, shot)
+            shot = take_shot(context, shot)
         browser.close()
+
+
+def _browser_context(p, auth):
+    browser = p.chromium.launch()
+    if auth:
+        context = browser.new_context(storage_state=json.load(auth))
+    else:
+        context = browser.new_context()
+    return context, browser
 
 
 @cli.command()
 @click.argument("config", type=click.File(mode="r"))
-def multi(config):
+@click.option(
+    "-a",
+    "--auth",
+    type=click.File("r"),
+    help="Path to JSON authentication context file",
+)
+def multi(config, auth):
     """
     Take multiple screenshots, defined by a YAML file
 
@@ -99,14 +121,20 @@ def multi(config):
     """
     shots = yaml.safe_load(config)
     with sync_playwright() as p:
-        browser = p.chromium.launch()
+        context, browser = _browser_context(p, auth)
         for shot in shots:
-            take_shot(browser, shot)
+            take_shot(context, shot)
         browser.close()
 
 
 @cli.command()
 @click.argument("url")
+@click.option(
+    "-a",
+    "--auth",
+    type=click.File("r"),
+    help="Path to JSON authentication context file",
+)
 @click.option(
     "-o",
     "--output",
@@ -114,7 +142,7 @@ def multi(config):
     default="-",
 )
 @click.option("-j", "--javascript", help="Execute this JS prior to taking the snapshot")
-def accessibility(url, output, javascript):
+def accessibility(url, auth, output, javascript):
     """
     Dump the Chromium accessibility tree for the specifed page
 
@@ -123,8 +151,8 @@ def accessibility(url, output, javascript):
         shot-scraper accessibility https://datasette.io/
     """
     with sync_playwright() as p:
-        browser = p.chromium.launch()
-        page = browser.new_page()
+        context, browser = _browser_context(p, auth)
+        page = context.new_page()
         page.goto(url)
         if javascript:
             page.evaluate(javascript)
@@ -136,6 +164,12 @@ def accessibility(url, output, javascript):
 
 @cli.command()
 @click.argument("url")
+@click.option(
+    "-a",
+    "--auth",
+    type=click.File("r"),
+    help="Path to JSON authentication context file",
+)
 @click.option(
     "-o",
     "--output",
@@ -150,7 +184,7 @@ def accessibility(url, output, javascript):
     "--media-screen", is_flag=True, help="Use screen rather than print styles"
 )
 @click.option("--landscape", is_flag=True, help="Use landscape orientation")
-def pdf(url, output, javascript, wait, media_screen, landscape):
+def pdf(url, auth, output, javascript, wait, media_screen, landscape):
     """
     Create a PDF of the specified page
 
@@ -159,8 +193,8 @@ def pdf(url, output, javascript, wait, media_screen, landscape):
         shot-scraper pdf https://datasette.io/ -o datasette.pdf
     """
     with sync_playwright() as p:
-        browser = p.chromium.launch()
-        page = browser.new_page()
+        context, browser = _browser_context(p, auth)
+        page = context.new_page()
         page.goto(url)
         if wait:
             time.sleep(wait / 1000)
@@ -201,7 +235,40 @@ def install():
     run_module("playwright", run_name="__main__")
 
 
-def take_shot(browser, shot, return_bytes=False):
+@cli.command()
+@click.argument("url")
+@click.argument(
+    "context_file",
+    type=click.Path(file_okay=True, writable=True, dir_okay=False, allow_dash=True),
+)
+def auth(url, context_file):
+    """
+    Open a browser so user can manually authenticate with the specified site,
+    then save the resulting authentication context to a file.
+
+    Usage:
+
+        shot-scraper auth https://github.com/ auth.json
+    """
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=False)
+        context = browser.new_context()
+        page = context.new_page()
+        page.goto(url)
+        click.echo("Hit <enter> after you have signed in:")
+        input()
+        context_state = context.storage_state()
+    context_json = json.dumps(context_state, indent=2) + "\n"
+    if context_file == "-":
+        click.echo(context_json)
+    else:
+        with open(context_file, "w") as fp:
+            fp.write(context_json)
+        # chmod 600 to avoid other users on the shared machine reading it
+        pathlib.Path(context_file).chmod(0o600)
+
+
+def take_shot(context, shot, return_bytes=False):
     url = shot.get("url") or ""
     if not (url.startswith("http://") or url.startswith("https://")):
         raise click.ClickException(
@@ -215,7 +282,7 @@ def take_shot(browser, shot, return_bytes=False):
     quality = shot.get("quality")
     wait = shot.get("wait")
 
-    page = browser.new_page()
+    page = context.new_page()
 
     viewport = {}
     full_page = True
