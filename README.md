@@ -208,9 +208,9 @@ Options:
 ```
 <!-- [[[end]]] -->
 
-## Saving a webpage to PDF
+## Saving a web page to PDF
 
-The `shot-scrapr pdf` command saves a PDF version of a web page - the equivalent of using `Print -> Save to PDF` in Chromium.
+The `shot-scraper pdf` command saves a PDF version of a web page - the equivalent of using `Print -> Save to PDF` in Chromium.
 
     shot-scraper pdf https://datasette.io/ -o datasette.pdf
 
