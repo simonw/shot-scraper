@@ -89,6 +89,15 @@ You can also use `--quality X` to save as a JPEG with the specified quality, in 
     % ls -lah simonwillison.jpg
     -rw-r--r--@ 1 simon  staff   168K Mar  9 13:53 simonwillison.jpg
 
+### Retina images
+
+The `--retina` option sets a device scale factor of 2. This means that an image will have its resolution effectively doubled, emulating the display of images on [retina](https://en.wikipedia.org/wiki/Retina_display) or higher pixel density screens.
+
+    shot-scraper https://simonwillison.net/ -o simon.png \
+      --width 400 --height 600 --retina
+
+This example will produce an image that is 800px wide and 1200px high.
+
 ### Interacting with the page
 
 Sometimes it's useful to be able to manually interact with a page before the screenshot is captured.
@@ -142,11 +151,13 @@ Options:
   -s, --selector TEXT    Take shot of first element matching this CSS selector
   -p, --padding INTEGER  When using selectors, add this much padding in pixels
   -j, --javascript TEXT  Execute this JS prior to taking the shot
+  --retina               Use device scale factor of 2
   --quality INTEGER      Save as JPEG with this quality, e.g. 80
   --wait INTEGER         Wait this many milliseconds before taking the
                          screenshot
   -i, --interactive      Interact with the page in a browser before taking the
                          shot
+  --devtools             Interact mode with developer tools
   --help                 Show this message and exit.
 ```
 <!-- [[[end]]] -->
@@ -187,6 +198,10 @@ Then run the tool like so:
     shot-scraper multi shots.yml
 
 This will create two image files, `example.com.png` and `w3c.org.png`, containing screenshots of those two URLs.
+
+Use `--retina` to take all screenshots at retina resolution instead, doubling the dimensions of the files:
+
+    shot-scraper multi shots.yml --retina
 
 To take a screenshot of just the area of a page defined by a CSS selector, add `selector` to the YAML block:
 
@@ -249,6 +264,7 @@ Usage: shot-scraper multi [OPTIONS] CONFIG
 
 Options:
   -a, --auth FILENAME  Path to JSON authentication context file
+  --retina             Use device scale factor of 2
   -h, --help           Show this message and exit.
 ```
 <!-- [[[end]]] -->

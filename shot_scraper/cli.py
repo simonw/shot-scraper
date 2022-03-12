@@ -65,6 +65,7 @@ def cli():
     default=0,
 )
 @click.option("-j", "--javascript", help="Execute this JS prior to taking the shot")
+@click.option("--retina", is_flag=True, help="Use device scale factor of 2")
 @click.option("--quality", type=int, help="Save as JPEG with this quality, e.g. 80")
 @click.option(
     "--wait", type=int, help="Wait this many milliseconds before taking the screenshot"
@@ -75,6 +76,11 @@ def cli():
     is_flag=True,
     help="Interact with the page in a browser before taking the shot",
 )
+@click.option(
+    "--devtools",
+    is_flag=True,
+    help="Interact mode with developer tools",
+)
 def shot(
     url,
     auth,
@@ -84,9 +90,11 @@ def shot(
     selectors,
     padding,
     javascript,
+    retina,
     quality,
     wait,
     interactive,
+    devtools,
 ):
     """
     Take a single screenshot of a page or portion of a page.
@@ -108,16 +116,22 @@ def shot(
         "quality": quality,
         "wait": wait,
         "padding": padding,
+        "retina": retina,
     }
+    interactive = interactive or devtools
     with sync_playwright() as p:
         use_existing_page = False
-        context, browser = _browser_context(p, auth, headless=not interactive)
-        if interactive:
+        context, browser = _browser_context(
+            p, auth, interactive=interactive, devtools=devtools, retina=retina
+        )
+        if interactive or devtools:
             use_existing_page = True
             page = context.new_page()
             page.goto(url)
             context = page
-            click.echo("Hit <enter> to take the shot and close the browser window:", err=True)
+            click.echo(
+                "Hit <enter> to take the shot and close the browser window:", err=True
+            )
             input()
         if output == "-":
             shot = take_shot(
@@ -130,12 +144,14 @@ def shot(
         browser.close()
 
 
-def _browser_context(p, auth, headless=True):
-    browser = p.chromium.launch(headless=headless)
+def _browser_context(p, auth, interactive=False, devtools=False, retina=False):
+    browser = p.chromium.launch(headless=not interactive, devtools=devtools)
+    context_args = {}
     if auth:
-        context = browser.new_context(storage_state=json.load(auth))
-    else:
-        context = browser.new_context()
+        context_args["storage_state"] = json.load(auth)
+    if retina:
+        context_args["device_scale_factor"] = 2
+    context = browser.new_context(**context_args)
     return context, browser
 
 
@@ -147,7 +163,8 @@ def _browser_context(p, auth, headless=True):
     type=click.File("r"),
     help="Path to JSON authentication context file",
 )
-def multi(config, auth):
+@click.option("--retina", is_flag=True, help="Use device scale factor of 2")
+def multi(config, auth, retina):
     """
     Take multiple screenshots, defined by a YAML file
 
@@ -163,7 +180,7 @@ def multi(config, auth):
     """
     shots = yaml.safe_load(config)
     with sync_playwright() as p:
-        context, browser = _browser_context(p, auth)
+        context, browser = _browser_context(p, auth, retina=retina)
         for shot in shots:
             take_shot(context, shot)
         browser.close()
