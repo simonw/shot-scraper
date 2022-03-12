@@ -14,7 +14,7 @@ def get_long_description():
 
 setup(
     name="shot-scraper",
-    description="Tool for taking automated screenshots",
+    description="Tools for taking automated screenshots of websites",
     long_description=get_long_description(),
     long_description_content_type="text/markdown",
     author="Simon Willison",
