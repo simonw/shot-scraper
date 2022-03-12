@@ -89,6 +89,23 @@ You can also use `--quality X` to save as a JPEG with the specified quality, in 
     % ls -lah simonwillison.jpg
     -rw-r--r--@ 1 simon  staff   168K Mar  9 13:53 simonwillison.jpg
 
+### Interacting with the page
+
+Sometimes it's useful to be able to manually interact with a page before the screenshot is captured.
+
+Add the `--interactive` option to open a browser window that you can interact with. Then hit `<enter>` in the terminal when you are ready to take the shot and close the window.
+
+    shot-scraper https://simonwillison.net/ -o after-interaction.png \
+      --height 800 --interactive
+
+This will output:
+
+    Hit <enter> to take the shot and close the browser window:
+      # And after you hit <enter>...
+    Screenshot of 'https://simonwillison.net/' written to 'after-interaction.png'
+
+### shot-scraper shot --help
+
 Full `--help` for this command:
 
 <!-- [[[cog
@@ -128,6 +145,8 @@ Options:
   --quality INTEGER      Save as JPEG with this quality, e.g. 80
   --wait INTEGER         Wait this many milliseconds before taking the
                          screenshot
+  -i, --interactive      Interact with the page in a browser before taking the
+                         shot
   --help                 Show this message and exit.
 ```
 <!-- [[[end]]] -->

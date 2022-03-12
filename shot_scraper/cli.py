@@ -69,8 +69,24 @@ def cli():
 @click.option(
     "--wait", type=int, help="Wait this many milliseconds before taking the screenshot"
 )
+@click.option(
+    "-i",
+    "--interactive",
+    is_flag=True,
+    help="Interact with the page in a browser before taking the shot",
+)
 def shot(
-    url, auth, output, width, height, selectors, padding, javascript, quality, wait
+    url,
+    auth,
+    output,
+    width,
+    height,
+    selectors,
+    padding,
+    javascript,
+    quality,
+    wait,
+    interactive,
 ):
     """
     Take a single screenshot of a page or portion of a page.
@@ -94,18 +110,28 @@ def shot(
         "padding": padding,
     }
     with sync_playwright() as p:
-        context, browser = _browser_context(p, auth)
+        use_existing_page = False
+        context, browser = _browser_context(p, auth, headless=not interactive)
+        if interactive:
+            use_existing_page = True
+            page = context.new_page()
+            page.goto(url)
+            context = page
+            click.echo("Hit <enter> to take the shot and close the browser window:", err=True)
+            input()
         if output == "-":
-            shot = take_shot(context, shot, return_bytes=True)
+            shot = take_shot(
+                context, shot, return_bytes=True, use_existing_page=use_existing_page
+            )
             sys.stdout.buffer.write(shot)
         else:
             shot["output"] = str(output)
-            shot = take_shot(context, shot)
+            shot = take_shot(context, shot, use_existing_page=use_existing_page)
         browser.close()
 
 
-def _browser_context(p, auth):
-    browser = p.chromium.launch()
+def _browser_context(p, auth, headless=True):
+    browser = p.chromium.launch(headless=headless)
     if auth:
         context = browser.new_context(storage_state=json.load(auth))
     else:
@@ -271,7 +297,7 @@ def auth(url, context_file):
         context = browser.new_context()
         page = context.new_page()
         page.goto(url)
-        click.echo("Hit <enter> after you have signed in:")
+        click.echo("Hit <enter> after you have signed in:", err=True)
         input()
         context_state = context.storage_state()
     context_json = json.dumps(context_state, indent=2) + "\n"
@@ -284,7 +310,7 @@ def auth(url, context_file):
         pathlib.Path(context_file).chmod(0o600)
 
 
-def take_shot(context, shot, return_bytes=False):
+def take_shot(context_or_page, shot, return_bytes=False, use_existing_page=False):
     url = shot.get("url") or ""
     if not (url.startswith("http://") or url.startswith("https://")):
         raise click.ClickException(
@@ -304,7 +330,10 @@ def take_shot(context, shot, return_bytes=False):
     if shot.get("selector"):
         selectors.append(shot["selector"])
 
-    page = context.new_page()
+    if not use_existing_page:
+        page = context_or_page.new_page()
+    else:
+        page = context_or_page
 
     viewport = {}
     full_page = True
@@ -316,7 +345,10 @@ def take_shot(context, shot, return_bytes=False):
         page.set_viewport_size(viewport)
         if shot.get("height"):
             full_page = False
-    page.goto(url)
+
+    if not use_existing_page:
+        page.goto(url)
+
     if wait:
         time.sleep(wait / 1000)
     message = ""
