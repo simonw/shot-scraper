@@ -44,9 +44,7 @@ def cli():
 @click.option(
     "-s", "--selector", help="Take shot of first element matching this CSS selector"
 )
-@click.option(
-    "-j", "--javascript", help="Execute this JS prior to taking the shot"
-)
+@click.option("-j", "--javascript", help="Execute this JS prior to taking the shot")
 @click.option("--quality", type=int, help="Save as JPEG with this quality, e.g. 80")
 @click.option(
     "--wait", type=int, help="Wait this many milliseconds before taking the screenshot"
@@ -115,9 +113,7 @@ def multi(config):
     type=click.File("w"),
     default="-",
 )
-@click.option(
-    "-j", "--javascript", help="Execute this JS prior to taking the snapshot"
-)
+@click.option("-j", "--javascript", help="Execute this JS prior to taking the snapshot")
 def accessibility(url, output, javascript):
     """
     Dump the Chromium accessibility tree for the specifed page
@@ -146,19 +142,14 @@ def accessibility(url, output, javascript):
     type=click.Path(file_okay=True, writable=True, dir_okay=False, allow_dash=True),
     default="-",
 )
-@click.option(
-    "-j", "--javascript", help="Execute this JS prior to creating the PDF"
-)
+@click.option("-j", "--javascript", help="Execute this JS prior to creating the PDF")
 @click.option(
     "--wait", type=int, help="Wait this many milliseconds before taking the screenshot"
 )
-
 @click.option(
     "--media-screen", is_flag=True, help="Use screen rather than print styles"
 )
-@click.option(
-    "--landscape", is_flag=True, help="Use landscape orientation"
-)
+@click.option("--landscape", is_flag=True, help="Use landscape orientation")
 def pdf(url, output, javascript, wait, media_screen, landscape):
     """
     Create a PDF of the specified page

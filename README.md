@@ -73,6 +73,47 @@ You can also use `--quality X` to save as a JPEG with the specified quality, in 
     % ls -lah simonwillison.jpg
     -rw-r--r--@ 1 simon  staff   168K Mar  9 13:53 simonwillison.jpg
 
+Full `--help` for this command:
+
+<!-- [[[cog
+import cog
+from shot_scraper import cli
+from click.testing import CliRunner
+runner = CliRunner()
+result = runner.invoke(cli.cli, ["shot", "--help"])
+help = result.output.replace("Usage: cli", "Usage: shot-scraper")
+cog.out(
+    "```\n{}\n```\n".format(help.strip())
+)
+]]] -->
+```
+Usage: shot-scraper shot [OPTIONS] URL
+
+  Take a single screenshot of a page or portion of a page.
+
+  Usage:
+
+      shot-scraper http://www.example.com/ -o example.png
+
+  Use -s to take a screenshot of one area of the page, identified using a CSS
+  selector:
+
+      shot-scraper https://simonwillison.net -o bighead.png -s '#bighead'
+
+Options:
+  -w, --width INTEGER    Width of browser window, defaults to 1280
+  -h, --height INTEGER   Height of browser window and shot - defaults to the
+                         full height of the page
+  -o, --output FILE
+  -s, --selector TEXT    Take shot of first element matching this CSS selector
+  -j, --javascript TEXT  Execute this JS prior to taking the shot
+  --quality INTEGER      Save as JPEG with this quality, e.g. 80
+  --wait INTEGER         Wait this many milliseconds before taking the
+                         screenshot
+  --help                 Show this message and exit.
+```
+<!-- [[[end]]] -->
+
 ## Taking multiple screenshots
 
 You can configure multiple screenshots using a YAML file. Create a file called `shots.yml` that looks like this:
@@ -116,6 +157,34 @@ You can include desired `height`, `width`, `quality` and `wait` options on each 
   wait: 500
 ```
 
+Full `--help` for this command:
+
+<!-- [[[cog
+result = runner.invoke(cli.cli, ["multi", "--help"])
+help = result.output.replace("Usage: cli", "Usage: shot-scraper")
+cog.out(
+    "```\n{}\n```\n".format(help.strip())
+)
+]]] -->
+```
+Usage: shot-scraper multi [OPTIONS] CONFIG
+
+  Take multiple screenshots, defined by a YAML file
+
+  Usage:
+
+      shot-scraper multi config.yml
+
+  Where config.yml contains configuration like this:
+
+      - output: example.png
+        url: http://www.example.com/
+
+Options:
+  -h, --help  Show this message and exit.
+```
+<!-- [[[end]]] -->
+
 ## Saving a webpage to PDF
 
 The `shot-scrapr pdf` command saves a PDF version of a web page - the equivalent of using `Print -> Save to PDF` in Chromium.
@@ -125,10 +194,6 @@ The `shot-scrapr pdf` command saves a PDF version of a web page - the equivalent
 Full `--help` for this command:
 
 <!-- [[[cog
-import cog
-from shot_scraper import cli
-from click.testing import CliRunner
-runner = CliRunner()
 result = runner.invoke(cli.cli, ["pdf", "--help"])
 help = result.output.replace("Usage: cli", "Usage: shot-scraper")
 cog.out(
@@ -164,6 +229,31 @@ The `shot-scraper accessibility` command dumps out the Chromium accessibility tr
 Use `-o filename.json` to write the output to a file instead of displaying it.
 
 Add `--javascript SCRIPT` to execute custom JavaScript before taking the snapshot.
+
+Full `--help` for this command:
+
+<!-- [[[cog
+result = runner.invoke(cli.cli, ["accessibility", "--help"])
+help = result.output.replace("Usage: cli", "Usage: shot-scraper")
+cog.out(
+    "```\n{}\n```\n".format(help.strip())
+)
+]]] -->
+```
+Usage: shot-scraper accessibility [OPTIONS] URL
+
+  Dump the Chromium accessibility tree for the specifed page
+
+  Usage:
+
+      shot-scraper accessibility https://datasette.io/
+
+Options:
+  -o, --output FILENAME
+  -j, --javascript TEXT  Execute this JS prior to taking the snapshot
+  -h, --help             Show this message and exit.
+```
+<!-- [[[end]]] -->
 
 ## Tips for executing JavaScript
 
