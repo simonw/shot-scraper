@@ -198,6 +198,10 @@ def multi(config, auth, retina):
           url: http://www.example.com/
     """
     shots = yaml.safe_load(config)
+    if shots is None:
+        shots = []
+    if not isinstance(shots, list):
+        raise click.ClickException("YAML file must contain a list")
     with sync_playwright() as p:
         context, browser = _browser_context(p, auth, retina=retina)
         for shot in shots:
