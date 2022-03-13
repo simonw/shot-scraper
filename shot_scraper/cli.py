@@ -228,6 +228,7 @@ def accessibility(url, auth, output, javascript):
 
         shot-scraper accessibility https://datasette.io/
     """
+    url = url_or_file_path(url, _check_and_absolutize)
     with sync_playwright() as p:
         context, browser = _browser_context(p, auth)
         page = context.new_page()
@@ -323,6 +324,7 @@ def pdf(url, auth, output, javascript, wait, media_screen, landscape):
 
         shot-scarper pdf https://datasette.io/ -o datasette.pdf
     """
+    url = url_or_file_path(url, _check_and_absolutize)
     if output is None:
         output = filename_for_url(url, ext="pdf", file_exists=os.path.exists)
     with sync_playwright() as p:

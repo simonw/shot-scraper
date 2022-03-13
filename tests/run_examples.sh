@@ -43,12 +43,14 @@ shot-scraper accessibility https://simonwillison.net \
 shot-scraper accessibility https://simonwillison.net \
   --javascript "document.getElementById('wrapper').style.display='none'" \
   --output examples/simonwillison-accessibility-javascript-and-dash-output.json
+shot-scraper accessibility local.html -o examples/local-accessibility.json
 # PDF
 (cd examples && shot-scraper pdf https://datasette.io/tools)
 shot-scraper pdf https://datasette.io \
   --landscape -o examples/datasette-landscape.pdf
 shot-scraper pdf https://datasette.io/tutorials/learn-sql \
   -o - > examples/learn-sql.pdf
+shot-scraper pdf local.html -o examples/local.pdf
 ## JavaScript
 shot-scraper javascript https://datasette.io/ "document.title" \
   > examples/datasette-io-title.json
