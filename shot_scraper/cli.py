@@ -3,7 +3,7 @@ from click_default_group import DefaultGroup
 import json
 import os
 import pathlib
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, Error
 from runpy import run_module
 import secrets
 import sys
@@ -238,7 +238,7 @@ def accessibility(url, auth, output, javascript):
         page = context.new_page()
         page.goto(url)
         if javascript:
-            page.evaluate(javascript)
+            _evaluate_js(page, javascript)
         snapshot = page.accessibility.snapshot()
         browser.close()
     output.write(json.dumps(snapshot, indent=4))
@@ -289,10 +289,17 @@ def javascript(url, javascript, auth, output):
         context, browser = _browser_context(p, auth)
         page = context.new_page()
         page.goto(url)
-        result = page.evaluate(javascript)
+        result = _evaluate_js(page, javascript)
         browser.close()
     output.write(json.dumps(result, indent=4, default=str))
     output.write("\n")
+
+
+def _evaluate_js(page, javascript):
+    try:
+        return page.evaluate(javascript)
+    except Error as error:
+        raise click.ClickException(error.message)
 
 
 @cli.command()
@@ -338,7 +345,7 @@ def pdf(url, auth, output, javascript, wait, media_screen, landscape):
         if wait:
             time.sleep(wait / 1000)
         if javascript:
-            page.evaluate(javascript)
+            _evaluate_js(page, javascript)
 
         kwargs = {
             "landscape": landscape,
@@ -461,7 +468,7 @@ def take_shot(context_or_page, shot, return_bytes=False, use_existing_page=False
     message = ""
     javascript = shot.get("javascript")
     if javascript:
-        page.evaluate(javascript)
+        _evaluate_js(page, javascript)
 
     screenshot_args = {}
     if quality:
@@ -477,7 +484,7 @@ def take_shot(context_or_page, shot, return_bytes=False, use_existing_page=False
         selector_javascript, selector_to_shoot = _selector_javascript(
             selectors, padding
         )
-        page.evaluate(selector_javascript)
+        _evaluate_js(page, selector_javascript)
         if return_bytes:
             return page.locator(selector_to_shoot).screenshot(**screenshot_args)
         else:
