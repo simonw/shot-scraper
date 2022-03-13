@@ -357,6 +357,87 @@ Options:
 ```
 <!-- [[[end]]] -->
 
+## Scraping pages using JavaScript
+
+The `shot-scraper javascript` command can be used to execute JavaScript directly against a page and return the result as JSON.
+
+This command doesn't produce a screenshot, but has interesting applications for scraping.
+
+To retrieve a string title of a document:
+
+    shot-scraper javascript https://datasette.io/ "document.title"
+
+This returns a JSON string:
+```json
+"Datasette: An open source multi-tool for exploring and publishing data"
+```
+To return a JSON object, wrap an object literal in parenthesis:
+
+    shot-scraper javascript https://datasette.io/ "({
+      title: document.title,
+      tagline: document.querySelector('.tagline').innerText
+    })"
+
+This returns:
+```json
+{
+  "title": "Datasette: An open source multi-tool for exploring and publishing data",
+  "tagline": "An open source multi-tool for exploring and publishing data"
+}
+```
+To use functions such as `setInterval()`, for example if you need to delay the shot for a second to allow an animation to finish running, return a promise:
+
+    shot-scraper javascript datasette.io "
+    new Promise(done => setInterval(
+      () => {
+        done({
+          title: document.title,
+          tagline: document.querySelector('.tagline').innerText
+        });
+      }, 1000
+    ));"
+
+Full `--help` for this command:
+
+<!-- [[[cog
+result = runner.invoke(cli.cli, ["javascript", "--help"])
+help = result.output.replace("Usage: cli", "Usage: shot-scraper")
+cog.out(
+    "```\n{}\n```\n".format(help.strip())
+)
+]]] -->
+```
+Usage: shot-scraper javascript [OPTIONS] URL JAVASCRIPT
+
+  Execute JavaScript against the page and return the result as JSON
+
+  Usage:
+
+      shot-scraper javascript https://datasette.io/ "document.title"
+
+  To return a JSON object, use this:
+
+      "({title: document.title, location: document.location})"
+
+  To use setInterval() or similar, pass a promise:
+
+      "new Promise(done => setInterval(
+        () => {
+          done({
+            title: document.title,
+            h2: document.querySelector('h2').innerHTML
+          });
+        }, 1000
+      ));"
+
+Options:
+  -a, --auth FILENAME    Path to JSON authentication context file
+  -o, --output FILENAME
+  -h, --help             Show this message and exit.
+```
+<!-- [[[end]]] -->
+
+
 ## Dumping out an accessibility tree
 
 The `shot-scraper accessibility` command dumps out the Chromium accessibility tree for the provided URL, as JSON:

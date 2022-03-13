@@ -49,6 +49,18 @@ shot-scraper pdf https://datasette.io \
   --landscape -o examples/datasette-landscape.pdf
 shot-scraper pdf https://datasette.io/tutorials/learn-sql \
   -o - > examples/learn-sql.pdf
+## JavaScript
+shot-scraper javascript https://datasette.io/ "document.title" \
+  > examples/datasette-io-title.json
+shot-scraper javascript datasette.io "
+new Promise(done => setInterval(
+  () => {
+    done({
+      title: document.title,
+      tagline: document.querySelector('.tagline').innerText
+    });
+  }, 1000
+));" -o examples/datasette-io-title-tagline-from-promise.json
 # And using multi
 echo '
 - output: examples/example.com.png

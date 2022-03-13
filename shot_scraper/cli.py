@@ -242,6 +242,56 @@ def accessibility(url, auth, output, javascript):
 
 @cli.command()
 @click.argument("url")
+@click.argument("javascript")
+@click.option(
+    "-a",
+    "--auth",
+    type=click.File("r"),
+    help="Path to JSON authentication context file",
+)
+@click.option(
+    "-o",
+    "--output",
+    type=click.File("w"),
+    default="-",
+)
+def javascript(url, javascript, auth, output):
+    """
+    Execute JavaScript against the page and return the result as JSON
+
+    Usage:
+
+        shot-scraper javascript https://datasette.io/ "document.title"
+
+    To return a JSON object, use this:
+
+        "({title: document.title, location: document.location})"
+
+    To use setInterval() or similar, pass a promise:
+
+    \b
+        "new Promise(done => setInterval(
+          () => {
+            done({
+              title: document.title,
+              h2: document.querySelector('h2').innerHTML
+            });
+          }, 1000
+        ));"
+    """
+    url = url_or_file_path(url, _check_and_absolutize)
+    with sync_playwright() as p:
+        context, browser = _browser_context(p, auth)
+        page = context.new_page()
+        page.goto(url)
+        result = page.evaluate(javascript)
+        browser.close()
+    output.write(json.dumps(result, indent=4, default=str))
+    output.write("\n")
+
+
+@cli.command()
+@click.argument("url")
 @click.option(
     "-a",
     "--auth",
