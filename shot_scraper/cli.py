@@ -1,6 +1,7 @@
 import click
 from click_default_group import DefaultGroup
 import json
+import os
 import pathlib
 from playwright.sync_api import sync_playwright
 from runpy import run_module
@@ -9,6 +10,8 @@ import sys
 import textwrap
 import time
 import yaml
+
+from shot_scraper.utils import filename_for_url
 
 
 @click.group(
@@ -48,7 +51,6 @@ def cli():
     "-o",
     "--output",
     type=click.Path(file_okay=True, writable=True, dir_okay=False, allow_dash=True),
-    default="-",
 )
 @click.option(
     "selectors",
@@ -101,12 +103,25 @@ def shot(
 
     Usage:
 
-        shot-scraper http://www.example.com/ -o example.png
+        shot-scraper https://www.example.com/
 
-    Use -s to take a screenshot of one area of the page, identified using a CSS selector:
+    This will write the screenshot to www-example-com.png
 
-        shot-scraper https://simonwillison.net -o bighead.png -s '#bighead'
+    Use "-o" to write to a specific file:
+
+        shot-scraper https://www.example.com/ -o example.png
+
+    Using "-o -" will output to standard out:
+
+        shot-scraper https://www.example.com/ -o - > example.png
+
+    Use -s to take a screenshot of one area of the page, identified using
+    one or more CSS selectors:
+
+        shot-scraper https://simonwillison.net -s '#bighead'
     """
+    if output is None:
+        output = filename_for_url(url, file_exists=os.path.exists)
     shot = {
         "url": url,
         "selectors": selectors,

@@ -33,13 +33,21 @@ Playwright build of ffmpeg v1007 downloaded to /Users/simon/Library/Caches/ms-pl
 ```
 ## Taking a screenshot
 
-To take a screenshot of a web page and write it to `screenshot.png` run this:
+To take a screenshot of a web page and write it to `datasette-io.png` run this:
 
-    shot-scraper https://datasette.io/ -o screenshot.png
+    shot-scraper https://datasette.io/
 
-If you omit the `-o` the screenshot PNG binary will be output by the tool, so you can pipe it or redirect it to a file:
+If a file called `datasette-io.png` already exists the filename `datasette-io.1.png` will be used instead.
 
-    shot-scraper https://datasette.io/ > datasette.png
+You can use the `-o` option to specify a filename:
+
+    shot-scraper https://datasette.io/ -o datasette.png
+
+Use `-o -` to write the PNG image to standard output:
+
+    shot-scraper https://datasette.io/ -o - > datasette.png
+
+### Adjusting the browser width and height
 
 The browser window used to take the screenshots defaults to 1280px wide and 780px tall.
 
@@ -53,7 +61,7 @@ If you provide both options, the resulting screenshot will be of that size. If y
 
 To take a screenshot of a specific element on the page, use `--selector` or `-s` with its CSS selector:
 
-    shot-scraper https://simonwillison.net/ -s '#bighead' -o bighead.png
+    shot-scraper https://simonwillison.net/ -s '#bighead'
 
 When using `--selector` the height and width, if provided, will set the size of the browser window when the page is loaded but the resulting screenshot will still be the same dimensions as the element on the page.
 
@@ -61,7 +69,7 @@ You can pass `--selector` multiple times. The resulting screenshot will cover th
 
     shot-scraper https://simonwillison.net/ \
       -s '#bighead' -s .overband \
-      -o examples/bighead-multi-selector.png
+      -o bighead-multi-selector.png
 
 You can add `--padding 20` to add 20px of padding around the elements when the shot is taken.
 
@@ -69,13 +77,14 @@ You can add `--padding 20` to add 20px of padding around the elements when the s
 
 Sometimes a page will not have completely loaded before a screenshot is taken. You can use `--wait X` to wait the specified number of milliseconds after the page load event has fired before taking the screenshot:
 
-    shot-scraper https://simonwillison.net/ --wait 2000 -o after-wait.png
+    shot-scraper https://simonwillison.net/ --wait 2000
 
 ### Executing custom JavaScript
 
 You can use custom JavaScript to modify the page after it has loaded (after the 'onload' event has fired) but before the screenshot is taken using the `--javascript` option:
 
-    shot-scraper https://simonwillison.net/ -o simonwillison-pink.png \
+    shot-scraper https://simonwillison.net/ \
+      -o simonwillison-pink.png \
       --javascript "document.body.style.backgroundColor = 'pink';"
 
 ### Using JPEGs instead of PNGs
@@ -135,12 +144,22 @@ Usage: shot-scraper shot [OPTIONS] URL
 
   Usage:
 
-      shot-scraper http://www.example.com/ -o example.png
+      shot-scraper https://www.example.com/
 
-  Use -s to take a screenshot of one area of the page, identified using a CSS
-  selector:
+  This will write the screenshot to www-example-com.png
 
-      shot-scraper https://simonwillison.net -o bighead.png -s '#bighead'
+  Use "-o" to write to a specific file:
+
+      shot-scraper https://www.example.com/ -o example.png
+
+  Using "-o -" will output to standard out:
+
+      shot-scraper https://www.example.com/ -o - > example.png
+
+  Use -s to take a screenshot of one area of the page, identified using one or
+  more CSS selectors:
+
+      shot-scraper https://simonwillison.net -s '#bighead'
 
 Options:
   -a, --auth FILENAME    Path to JSON authentication context file

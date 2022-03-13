@@ -4,6 +4,11 @@
 set -e
 
 mkdir -p examples
+# Without the -o option should produce www-example-com.png
+(cd examples && shot-scraper https://www.example.com/)
+# Run again should produce www-example-com.1.png
+(cd examples && shot-scraper https://www.example.com/)
+shot-scraper https://www.example.com/ -o - > examples/from-stdout-example.png
 # Full page
 shot-scraper https://github.com/ -o examples/github.com.png
 # Using a selector
