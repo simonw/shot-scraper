@@ -283,6 +283,8 @@ def javascript(url, javascript, auth, output):
             });
           }, 1000
         ));"
+
+    If a JavaScript error occurs an exit code of 1 will be returned.
     """
     url = url_or_file_path(url, _check_and_absolutize)
     with sync_playwright() as p:
@@ -293,13 +295,6 @@ def javascript(url, javascript, auth, output):
         browser.close()
     output.write(json.dumps(result, indent=4, default=str))
     output.write("\n")
-
-
-def _evaluate_js(page, javascript):
-    try:
-        return page.evaluate(javascript)
-    except Error as error:
-        raise click.ClickException(error.message)
 
 
 @cli.command()
@@ -554,3 +549,10 @@ def _selector_javascript(selectors, padding=0):
         % (padding, json.dumps(selectors), json.dumps(selector_to_shoot))
     )
     return selector_javascript, "#" + selector_to_shoot
+
+
+def _evaluate_js(page, javascript):
+    try:
+        return page.evaluate(javascript)
+    except Error as error:
+        raise click.ClickException(error.message)

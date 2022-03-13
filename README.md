@@ -396,6 +396,23 @@ To use functions such as `setInterval()`, for example if you need to delay the s
       }, 1000
     ));"
 
+### Handling JavaScript errors
+
+If a JavaScript error occurs, a stack trace will be written to standard error and the tool will terminate with an exit code of 1.
+
+This can be used to run JavaScript tests in continuous integration environments, by taking advantage of the `throw "error message"` JavaScript statement.
+
+This example [uses GitHub Actions](https://docs.github.com/en/actions/quickstart):
+
+```yaml
+- name: Test page title
+  run: |-
+    shot-scraper javascript datasette.io "
+      if (document.title != 'Datasette') {
+        throw 'Wrong title detected';
+      }"
+```
+
 Full `--help` for this command:
 
 <!-- [[[cog
@@ -428,6 +445,8 @@ Usage: shot-scraper javascript [OPTIONS] URL JAVASCRIPT
           });
         }, 1000
       ));"
+
+  If a JavaScript error occurs an exit code of 1 will be returned.
 
 Options:
   -a, --auth FILENAME    Path to JSON authentication context file
