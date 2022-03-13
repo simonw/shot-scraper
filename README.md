@@ -396,6 +396,14 @@ To use functions such as `setInterval()`, for example if you need to delay the s
       }, 1000
     ));"
 
+You can also save JavaScript to a file and execute it like this:
+
+    shot-scraper javascript datasette.io -i script.js
+
+Or read it from standard input like this:
+
+    echo "document.title" | shot-scraper javascript datasette.io
+
 ### Handling JavaScript errors
 
 If a JavaScript error occurs, a stack trace will be written to standard error and the tool will terminate with an exit code of 1.
@@ -423,7 +431,7 @@ cog.out(
 )
 ]]] -->
 ```
-Usage: shot-scraper javascript [OPTIONS] URL JAVASCRIPT
+Usage: shot-scraper javascript [OPTIONS] URL [JAVASCRIPT]
 
   Execute JavaScript against the page and return the result as JSON
 
@@ -449,8 +457,9 @@ Usage: shot-scraper javascript [OPTIONS] URL JAVASCRIPT
   If a JavaScript error occurs an exit code of 1 will be returned.
 
 Options:
+  -i, --input FILENAME   Read input JavaScript from this file
   -a, --auth FILENAME    Path to JSON authentication context file
-  -o, --output FILENAME
+  -o, --output FILENAME  Save output JSON to this file
   -h, --help             Show this message and exit.
 ```
 <!-- [[[end]]] -->

@@ -247,7 +247,14 @@ def accessibility(url, auth, output, javascript):
 
 @cli.command()
 @click.argument("url")
-@click.argument("javascript")
+@click.argument("javascript", required=False)
+@click.option(
+    "-i",
+    "--input",
+    type=click.File("r"),
+    default="-",
+    help="Read input JavaScript from this file",
+)
 @click.option(
     "-a",
     "--auth",
@@ -259,8 +266,9 @@ def accessibility(url, auth, output, javascript):
     "--output",
     type=click.File("w"),
     default="-",
+    help="Save output JSON to this file",
 )
-def javascript(url, javascript, auth, output):
+def javascript(url, javascript, input, auth, output):
     """
     Execute JavaScript against the page and return the result as JSON
 
@@ -286,6 +294,8 @@ def javascript(url, javascript, auth, output):
 
     If a JavaScript error occurs an exit code of 1 will be returned.
     """
+    if not javascript:
+        javascript = input.read()
     url = url_or_file_path(url, _check_and_absolutize)
     with sync_playwright() as p:
         context, browser = _browser_context(p, auth)
