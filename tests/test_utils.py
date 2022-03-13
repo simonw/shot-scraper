@@ -12,6 +12,7 @@ import pytest
             "jpg",
             "datasette-io---versions-json.jpg",
         ),
+        ("/tmp/index.html", "png", "tmp-index-html.png"),
     ),
 )
 def test_filename_for_url(url, ext, expected):

@@ -5,3 +5,7 @@
 - output: simonwillison-bighead.png
   url: https://simonwillison.net/
   selector: "#bighead"
+- output: daring.png
+  url: /tmp/Daring Fireball.html
+  height: 400
+

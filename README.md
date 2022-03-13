@@ -47,6 +47,10 @@ Use `-o -` to write the PNG image to standard output:
 
     shot-scraper https://datasette.io/ -o - > datasette.png
 
+If you omit the protocol `http://` will be added automatically, and any redirects will be followed:
+
+    shot-scraper datasette.io -o datasette.png
+
 ### Adjusting the browser width and height
 
 The browser window used to take the screenshots defaults to 1280px wide and 780px tall.
@@ -122,6 +126,14 @@ This will output:
       # And after you hit <enter>...
     Screenshot of 'https://simonwillison.net/' written to 'after-interaction.png'
 
+### Taking screenshots of local HTML files
+
+You can pass the path to an HTML file on disk to take a screenshot of that rendered file:
+
+    shot-scraper index.html -o index.png
+
+CSS and images referenced from that file using relative paths will also be included.
+
 ### shot-scraper shot --help
 
 Full `--help` for this command:
@@ -144,13 +156,17 @@ Usage: shot-scraper shot [OPTIONS] URL
 
   Usage:
 
-      shot-scraper https://www.example.com/
+      shot-scraper www.example.com
 
   This will write the screenshot to www-example-com.png
 
   Use "-o" to write to a specific file:
 
       shot-scraper https://www.example.com/ -o example.png
+
+  You can also pass a path to a local file on disk:
+
+      shot-scraper index.html -o index.png
 
   Using "-o -" will output to standard out:
 
@@ -218,6 +234,13 @@ Then run the tool like so:
 
 This will create two image files, `example.com.png` and `w3c.org.png`, containing screenshots of those two URLs.
 
+You can set `url:` to a path to a file on disk as well:
+
+```yaml
+- output: index.png
+  url: index.html
+```
+
 Use `--retina` to take all screenshots at retina resolution instead, doubling the dimensions of the files:
 
     shot-scraper multi shots.yml --retina
@@ -229,6 +252,7 @@ To take a screenshot of just the area of a page defined by a CSS selector, add `
   url: https://simonwillison.net/
   selector: "#bighead"
 ```
+
 You can pass more than one selector using a `selectors:` list. You can also use `padding:` to specify additional padding:
 ```yaml
 - output: bighead-multi-selector.png

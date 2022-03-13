@@ -11,7 +11,7 @@ import textwrap
 import time
 import yaml
 
-from shot_scraper.utils import filename_for_url
+from shot_scraper.utils import filename_for_url, url_or_file_path
 
 
 @click.group(
@@ -103,13 +103,17 @@ def shot(
 
     Usage:
 
-        shot-scraper https://www.example.com/
+        shot-scraper www.example.com
 
     This will write the screenshot to www-example-com.png
 
     Use "-o" to write to a specific file:
 
         shot-scraper https://www.example.com/ -o example.png
+
+    You can also pass a path to a local file on disk:
+
+        shot-scraper index.html -o index.png
 
     Using "-o -" will output to standard out:
 
@@ -347,12 +351,24 @@ def auth(url, context_file):
         pathlib.Path(context_file).chmod(0o600)
 
 
+class ShotError(Exception):
+    pass
+
+
+def _check_and_absolutize(filepath):
+    path = pathlib.Path(filepath)
+    if path.exists():
+        return path.absolute()
+    return False
+
+
 def take_shot(context_or_page, shot, return_bytes=False, use_existing_page=False):
     url = shot.get("url") or ""
-    if not (url.startswith("http://") or url.startswith("https://")):
-        raise click.ClickException(
-            "'url' must start http:// or https:// - got:  \n{}".format(url)
-        )
+    if not url:
+        raise ShotError("url is required")
+
+    url = url_or_file_path(url, file_exists=_check_and_absolutize)
+
     output = shot.get("output", "").strip()
     if not output and not return_bytes:
         raise click.ClickException(

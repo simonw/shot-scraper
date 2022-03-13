@@ -9,6 +9,9 @@ mkdir -p examples
 # Run again should produce www-example-com.1.png
 (cd examples && shot-scraper https://www.example.com/)
 shot-scraper https://www.example.com/ -o - > examples/from-stdout-example.png
+# HTML page
+echo '<html><h1>This is a page on disk</h1><p>...</p></html>' > local.html
+shot-scraper local.html -o examples/local.png
 # Full page
 shot-scraper https://github.com/ -o examples/github.com.png
 # Using a selector
@@ -75,4 +78,7 @@ echo '
   - "#bighead"
   - .overband
   padding: 20
+# Local page on disk
+- url: local.html
+  output: examples/local-from-multi.png
 ' | shot-scraper multi -
