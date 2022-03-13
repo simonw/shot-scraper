@@ -292,7 +292,12 @@ Options:
 
 The `shot-scraper pdf` command saves a PDF version of a web page - the equivalent of using `Print -> Save to PDF` in Chromium.
 
-    shot-scraper pdf https://datasette.io/ -o datasette.pdf
+    shot-scraper pdf https://datasette.io/
+
+This will save to `datasette-io.pdf`. You can use `-o` to specify a filename:
+
+    shot-scraper pdf https://datasette.io/tutorials/learn-sql \
+      -o learn-sql.pdf
 
 Full `--help` for this command:
 

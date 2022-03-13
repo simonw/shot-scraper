@@ -248,7 +248,6 @@ def accessibility(url, auth, output, javascript):
     "-o",
     "--output",
     type=click.Path(file_okay=True, writable=True, dir_okay=False, allow_dash=True),
-    default="-",
 )
 @click.option("-j", "--javascript", help="Execute this JS prior to creating the PDF")
 @click.option(
@@ -264,8 +263,14 @@ def pdf(url, auth, output, javascript, wait, media_screen, landscape):
 
     Usage:
 
-        shot-scraper pdf https://datasette.io/ -o datasette.pdf
+        shot-scraper pdf https://datasette.io/
+
+    Use -o to specify a filename:
+
+        shot-scarper pdf https://datasette.io/ -o datasette.pdf
     """
+    if output is None:
+        output = filename_for_url(url, ext="pdf", file_exists=os.path.exists)
     with sync_playwright() as p:
         context, browser = _browser_context(p, auth)
         page = context.new_page()

@@ -41,8 +41,11 @@ shot-scraper accessibility https://simonwillison.net \
   --javascript "document.getElementById('wrapper').style.display='none'" \
   --output examples/simonwillison-accessibility-javascript-and-dash-output.json
 # PDF
+(cd examples && shot-scraper pdf https://datasette.io/tools)
 shot-scraper pdf https://datasette.io \
   --landscape -o examples/datasette-landscape.pdf
+shot-scraper pdf https://datasette.io/tutorials/learn-sql \
+  -o - > examples/learn-sql.pdf
 # And using multi
 echo '
 - output: examples/example.com.png
