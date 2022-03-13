@@ -10,8 +10,8 @@ mkdir -p examples
 (cd examples && shot-scraper https://www.example.com/)
 shot-scraper https://www.example.com/ -o - > examples/from-stdout-example.png
 # HTML page
-echo '<html><h1>This is a page on disk</h1><p>...</p></html>' > local.html
-shot-scraper local.html -o examples/local.png
+echo '<html><h1>This is a page on disk</h1><p>...</p></html>' > examples/local.html
+shot-scraper examples/local.html -o examples/local.png
 # Full page
 shot-scraper https://github.com/ -o examples/github.com.png
 # Using a selector
@@ -43,14 +43,14 @@ shot-scraper accessibility https://simonwillison.net \
 shot-scraper accessibility https://simonwillison.net \
   --javascript "document.getElementById('wrapper').style.display='none'" \
   --output examples/simonwillison-accessibility-javascript-and-dash-output.json
-shot-scraper accessibility local.html -o examples/local-accessibility.json
+shot-scraper accessibility examples/local.html -o examples/local-accessibility.json
 # PDF
 (cd examples && shot-scraper pdf https://datasette.io/tools)
 shot-scraper pdf https://datasette.io \
   --landscape -o examples/datasette-landscape.pdf
 shot-scraper pdf https://datasette.io/tutorials/learn-sql \
   -o - > examples/learn-sql.pdf
-shot-scraper pdf local.html -o examples/local.pdf
+shot-scraper pdf examples/local.html -o examples/local.pdf
 ## JavaScript
 shot-scraper javascript https://datasette.io/ "document.title" \
   > examples/datasette-io-title.json
@@ -64,29 +64,34 @@ new Promise(done => setInterval(
   }, 1000
 ));" -o examples/datasette-io-title-tagline-from-promise.json
 # And using multi
-echo '
-- output: examples/example.com.png
+echo '# empty file' > empty.yml
+shot-scraper multi empty.yml
+(cd examples && echo '
+- output: example.com.png
   url: http://www.example.com/
-- output: examples/w3c.org.png
+# This one will produce github-com.png
+- url: https://github.com/
+  height: 600
+- output: w3c.org.png
   url: https://www.w3.org/
-- output: examples/bighead-from-multi.png
+- output: bighead-from-multi.png
   url: https://simonwillison.net/
   selector: "#bighead"
-- output: examples/bighead-pink-from-multi.png
+- output: bighead-pink-from-multi.png
   url: https://simonwillison.net/
   selector: "#bighead"
   javascript: |
     document.body.style.backgroundColor = "pink";
-- output: examples/simon-narrow-from-multi.png
+- output: simon-narrow-from-multi.png
   url: https://simonwillison.net/
   width: 400
   height: 800
-- output: examples/simon-quality-80-from-multi.png
+- output: simon-quality-80-from-multi.png
   url: https://simonwillison.net/
   height: 800
   quality: 80
 # Multiple selectors
-- output: examples/bighead-multi-selector-from-multi.png
+- output: bighead-multi-selector-from-multi.png
   url: https://simonwillison.net/
   selectors:
   - "#bighead"
@@ -94,5 +99,5 @@ echo '
   padding: 20
 # Local page on disk
 - url: local.html
-  output: examples/local-from-multi.png
-' | shot-scraper multi -
+  output: local-from-multi.png
+' | shot-scraper multi -)

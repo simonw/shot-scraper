@@ -427,9 +427,7 @@ def take_shot(context_or_page, shot, return_bytes=False, use_existing_page=False
 
     output = shot.get("output", "").strip()
     if not output and not return_bytes:
-        raise click.ClickException(
-            "'output' filename is required, messing for url:\n  {}".format(url)
-        )
+        output = filename_for_url(url, ext="png", file_exists=os.path.exists)
     quality = shot.get("quality")
     wait = shot.get("wait")
     padding = shot.get("padding") or 0

@@ -223,7 +223,6 @@ To take authenticated screenshots you can then use the `-a` or `--auth` options 
 You can configure multiple screenshots using a YAML file. Create a file called `shots.yml` that looks like this:
 
 ```yaml
-- output: example.com.png
   url: http://www.example.com/
 - output: w3c.org.png
   url: https://www.w3.org/
@@ -232,7 +231,7 @@ Then run the tool like so:
 
     shot-scraper multi shots.yml
 
-This will create two image files, `example.com.png` and `w3c.org.png`, containing screenshots of those two URLs.
+This will create two image files, `www-example-com.png` and `w3c.org.png`, containing screenshots of those two URLs.
 
 You can set `url:` to a path to a file on disk as well:
 
