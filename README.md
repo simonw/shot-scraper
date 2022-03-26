@@ -227,6 +227,7 @@ To take authenticated screenshots you can then use the `-a` or `--auth` options 
 You can configure multiple screenshots using a YAML file. Create a file called `shots.yml` that looks like this:
 
 ```yaml
+- output: example.com.png
   url: http://www.example.com/
 - output: w3c.org.png
   url: https://www.w3.org/
