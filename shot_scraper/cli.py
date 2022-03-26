@@ -183,7 +183,8 @@ def _browser_context(p, auth, interactive=False, devtools=False, retina=False):
     help="Path to JSON authentication context file",
 )
 @click.option("--retina", is_flag=True, help="Use device scale factor of 2")
-def multi(config, auth, retina):
+@click.option("--fail-on-error", is_flag=True, help="Fail noisily on error")
+def multi(config, auth, retina, fail_on_error):
     """
     Take multiple screenshots, defined by a YAML file
 
@@ -205,7 +206,7 @@ def multi(config, auth, retina):
     with sync_playwright() as p:
         context, browser = _browser_context(p, auth, retina=retina)
         for shot in shots:
-            take_shot(context, shot)
+            take_shot(context, shot, fail_on_error)
         browser.close()
 
 
@@ -430,7 +431,7 @@ def _check_and_absolutize(filepath):
     return False
 
 
-def take_shot(context_or_page, shot, return_bytes=False, use_existing_page=False):
+def take_shot(context_or_page, shot, fail_on_error, return_bytes=False, use_existing_page=False):
     url = shot.get("url") or ""
     if not url:
         raise ShotError("url is required")
@@ -465,12 +466,17 @@ def take_shot(context_or_page, shot, return_bytes=False, use_existing_page=False
         if shot.get("height"):
             full_page = False
 
+    
+
     message = ""
     if not use_existing_page:
-        try: 
+        if fail_on_error:
             page.goto(url)
-        except TimeoutError as e:
-            message = str(e)+'\n'
+        else:
+            try: 
+                page.goto(url)
+            except TimeoutError as e:
+                message = str(e)+'\n'
             
 
     if wait:
