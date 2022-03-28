@@ -73,7 +73,9 @@ def cli():
     "--wait", type=int, help="Wait this many milliseconds before taking the screenshot"
 )
 @click.option(
-    "--timeout", type=int, help="Wait this many milliseconds before failing",
+    "--timeout",
+    type=int,
+    help="Wait this many milliseconds before failing",
 )
 @click.option(
     "-i",
@@ -162,7 +164,7 @@ def shot(
             devtools=devtools,
             retina=retina,
             browser=browser,
-            timeout=timeout
+            timeout=timeout,
         )
         if interactive or devtools:
             use_existing_page = True
@@ -185,7 +187,13 @@ def shot(
 
 
 def _browser_context(
-    p, auth, interactive=False, devtools=False, retina=False, browser="chromium", timeout=None
+    p,
+    auth,
+    interactive=False,
+    devtools=False,
+    retina=False,
+    browser="chromium",
+    timeout=None,
 ):
     browser_kwargs = dict(headless=not interactive, devtools=devtools)
     if browser == "chromium":
@@ -499,7 +507,9 @@ def _check_and_absolutize(filepath):
     return False
 
 
-def take_shot(context_or_page, shot, fail_on_error, return_bytes=False, use_existing_page=False):
+def take_shot(
+    context_or_page, shot, fail_on_error, return_bytes=False, use_existing_page=False
+):
     url = shot.get("url") or ""
     if not url:
         raise ShotError("url is required")
@@ -534,18 +544,15 @@ def take_shot(context_or_page, shot, fail_on_error, return_bytes=False, use_exis
         if shot.get("height"):
             full_page = False
 
-    
-
     message = ""
     if not use_existing_page:
         if fail_on_error:
             page.goto(url)
         else:
-            try: 
+            try:
                 page.goto(url)
             except TimeoutError as e:
-                message = str(e)+'\n'
-            
+                message = str(e) + "\n"
 
     if wait:
         time.sleep(wait / 1000)

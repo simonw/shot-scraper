@@ -182,22 +182,27 @@ Usage: shot-scraper shot [OPTIONS] URL
       shot-scraper https://simonwillison.net -s '#bighead'
 
 Options:
-  -a, --auth FILENAME    Path to JSON authentication context file
-  -w, --width INTEGER    Width of browser window, defaults to 1280
-  -h, --height INTEGER   Height of browser window and shot - defaults to the
-                         full height of the page
+  -a, --auth FILENAME             Path to JSON authentication context file
+  -w, --width INTEGER             Width of browser window, defaults to 1280
+  -h, --height INTEGER            Height of browser window and shot - defaults
+                                  to the full height of the page
   -o, --output FILE
-  -s, --selector TEXT    Take shot of first element matching this CSS selector
-  -p, --padding INTEGER  When using selectors, add this much padding in pixels
-  -j, --javascript TEXT  Execute this JS prior to taking the shot
-  --retina               Use device scale factor of 2
-  --quality INTEGER      Save as JPEG with this quality, e.g. 80
-  --wait INTEGER         Wait this many milliseconds before taking the
-                         screenshot
-  -i, --interactive      Interact with the page in a browser before taking the
-                         shot
-  --devtools             Interact mode with developer tools
-  --help                 Show this message and exit.
+  -s, --selector TEXT             Take shot of first element matching this CSS
+                                  selector
+  -p, --padding INTEGER           When using selectors, add this much padding in
+                                  pixels
+  -j, --javascript TEXT           Execute this JS prior to taking the shot
+  --retina                        Use device scale factor of 2
+  --quality INTEGER               Save as JPEG with this quality, e.g. 80
+  --wait INTEGER                  Wait this many milliseconds before taking the
+                                  screenshot
+  --timeout INTEGER               Wait this many milliseconds before failing
+  -i, --interactive               Interact with the page in a browser before
+                                  taking the shot
+  --devtools                      Interact mode with developer tools
+  -b, --browser [chromium|firefox|chrome|chrome-beta]
+                                  Set the browser to install
+  --help                          Show this message and exit.
 ```
 <!-- [[[end]]] -->
 
@@ -315,10 +320,12 @@ Usage: shot-scraper multi [OPTIONS] CONFIG
         url: http://www.example.com/
 
 Options:
-  -a, --auth FILENAME  Path to JSON authentication context file
-  --retina             Use device scale factor of 2
-  --fail-on-error      Fail noisily on error
-  -h, --help           Show this message and exit.
+  -a, --auth FILENAME             Path to JSON authentication context file
+  --retina                        Use device scale factor of 2
+  --fail-on-error                 Fail noisily on error
+  -b, --browser [chromium|firefox|chrome|chrome-beta]
+                                  Set the browser to install
+  -h, --help                      Show this message and exit.
 ```
 <!-- [[[end]]] -->
 
@@ -479,10 +486,12 @@ Usage: shot-scraper javascript [OPTIONS] URL [JAVASCRIPT]
   If a JavaScript error occurs an exit code of 1 will be returned.
 
 Options:
-  -i, --input FILENAME   Read input JavaScript from this file
-  -a, --auth FILENAME    Path to JSON authentication context file
-  -o, --output FILENAME  Save output JSON to this file
-  -h, --help             Show this message and exit.
+  -i, --input FILENAME            Read input JavaScript from this file
+  -a, --auth FILENAME             Path to JSON authentication context file
+  -o, --output FILENAME           Save output JSON to this file
+  -b, --browser [chromium|firefox|chrome|chrome-beta]
+                                  Set the browser to install
+  -h, --help                      Show this message and exit.
 ```
 <!-- [[[end]]] -->
 
@@ -516,10 +525,12 @@ Usage: shot-scraper accessibility [OPTIONS] URL
       shot-scraper accessibility https://datasette.io/
 
 Options:
-  -a, --auth FILENAME    Path to JSON authentication context file
+  -a, --auth FILENAME             Path to JSON authentication context file
   -o, --output FILENAME
-  -j, --javascript TEXT  Execute this JS prior to taking the snapshot
-  -h, --help             Show this message and exit.
+  -j, --javascript TEXT           Execute this JS prior to taking the snapshot
+  -b, --browser [chromium|firefox|chrome|chrome-beta]
+                                  Set the browser to install
+  -h, --help                      Show this message and exit.
 ```
 <!-- [[[end]]] -->
 
