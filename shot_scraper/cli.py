@@ -3,7 +3,7 @@ from click_default_group import DefaultGroup
 import json
 import os
 import pathlib
-from playwright.sync_api import sync_playwright, Error
+from playwright.sync_api import sync_playwright, Error, TimeoutError
 from runpy import run_module
 import secrets
 import sys
@@ -215,6 +215,7 @@ def _browser_context(
     help="Path to JSON authentication context file",
 )
 @click.option("--retina", is_flag=True, help="Use device scale factor of 2")
+@click.option("--fail-on-error", is_flag=True, help="Fail noisily on error")
 @click.option(
     "--browser",
     "-b",
@@ -224,7 +225,7 @@ def _browser_context(
     ),
     help="Set the browser to install",
 )
-def multi(config, auth, retina, browser):
+def multi(config, auth, retina, fail_on_error, browser):
     """
     Take multiple screenshots, defined by a YAML file
 
@@ -246,7 +247,7 @@ def multi(config, auth, retina, browser):
     with sync_playwright() as p:
         context, browser_obj = _browser_context(p, auth, retina=retina, browser=browser)
         for shot in shots:
-            take_shot(context, shot)
+            take_shot(context, shot, fail_on_error)
         browser_obj.close()
 
 
@@ -498,7 +499,7 @@ def _check_and_absolutize(filepath):
     return False
 
 
-def take_shot(context_or_page, shot, return_bytes=False, use_existing_page=False):
+def take_shot(context_or_page, shot, fail_on_error, return_bytes=False, use_existing_page=False):
     url = shot.get("url") or ""
     if not url:
         raise ShotError("url is required")
@@ -533,12 +534,21 @@ def take_shot(context_or_page, shot, return_bytes=False, use_existing_page=False
         if shot.get("height"):
             full_page = False
 
+    
+
+    message = ""
     if not use_existing_page:
-        page.goto(url)
+        if fail_on_error:
+            page.goto(url)
+        else:
+            try: 
+                page.goto(url)
+            except TimeoutError as e:
+                message = str(e)+'\n'
+            
 
     if wait:
         time.sleep(wait / 1000)
-    message = ""
     javascript = shot.get("javascript")
     if javascript:
         _evaluate_js(page, javascript)
@@ -562,7 +572,7 @@ def take_shot(context_or_page, shot, return_bytes=False, use_existing_page=False
             return page.locator(selector_to_shoot).screenshot(**screenshot_args)
         else:
             page.locator(selector_to_shoot).screenshot(**screenshot_args)
-            message = "Screenshot of '{}' on '{}' written to '{}'".format(
+            message += "Screenshot of '{}' on '{}' written to '{}'".format(
                 ", ".join(selectors), url, output
             )
     else:
@@ -571,7 +581,7 @@ def take_shot(context_or_page, shot, return_bytes=False, use_existing_page=False
             return page.screenshot(**screenshot_args)
         else:
             page.screenshot(**screenshot_args)
-            message = "Screenshot of '{}' written to '{}'".format(url, output)
+            message += "Screenshot of '{}' written to '{}'".format(url, output)
     click.echo(message, err=True)
 
 

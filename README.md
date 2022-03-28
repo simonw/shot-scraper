@@ -227,6 +227,7 @@ To take authenticated screenshots you can then use the `-a` or `--auth` options 
 You can configure multiple screenshots using a YAML file. Create a file called `shots.yml` that looks like this:
 
 ```yaml
+- output: example.com.png
   url: http://www.example.com/
 - output: w3c.org.png
   url: https://www.w3.org/
@@ -247,6 +248,11 @@ You can set `url:` to a path to a file on disk as well:
 Use `--retina` to take all screenshots at retina resolution instead, doubling the dimensions of the files:
 
     shot-scraper multi shots.yml --retina
+
+Use `--fail-on-error` to fail noisily on error (may be helpful in CI):
+
+    shot-scraper multi shots.yml --fail-on-error
+
 
 To take a screenshot of just the area of a page defined by a CSS selector, add `selector` to the YAML block:
 
@@ -311,6 +317,7 @@ Usage: shot-scraper multi [OPTIONS] CONFIG
 Options:
   -a, --auth FILENAME  Path to JSON authentication context file
   --retina             Use device scale factor of 2
+  --fail-on-error      Fail noisily on error
   -h, --help           Show this message and exit.
 ```
 <!-- [[[end]]] -->
