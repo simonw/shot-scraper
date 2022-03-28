@@ -151,7 +151,12 @@ def shot(
     with sync_playwright() as p:
         use_existing_page = False
         context, browser_obj = _browser_context(
-            p, auth, interactive=interactive, devtools=devtools, retina=retina, browser=browser
+            p,
+            auth,
+            interactive=interactive,
+            devtools=devtools,
+            retina=retina,
+            browser=browser,
         )
         if interactive or devtools:
             use_existing_page = True
@@ -173,17 +178,16 @@ def shot(
         browser_obj.close()
 
 
-def _browser_context(p, auth, interactive=False, devtools=False, retina=False, browser="chromium"):
-    browser_kwargs = dict(
-        headless=not interactive,
-        devtools=devtools
-    )
+def _browser_context(
+    p, auth, interactive=False, devtools=False, retina=False, browser="chromium"
+):
+    browser_kwargs = dict(headless=not interactive, devtools=devtools)
     if browser == "chromium":
         browser_obj = p.chromium.launch(**browser_kwargs)
     elif browser == "firefox":
         browser_obj = p.firefox.launch(**browser_kwargs)
     else:
-        browser_kwargs['channel'] = browser
+        browser_kwargs["channel"] = browser
         browser_obj = p.chromium.launch(**browser_kwargs)
     context_args = {}
     if auth:
