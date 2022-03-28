@@ -255,7 +255,7 @@ def multi(config, auth, retina, fail_on_error, browser):
     with sync_playwright() as p:
         context, browser_obj = _browser_context(p, auth, retina=retina, browser=browser)
         for shot in shots:
-            take_shot(context, shot, fail_on_error)
+            take_shot(context, shot, fail_on_error=fail_on_error)
         browser_obj.close()
 
 
@@ -508,7 +508,11 @@ def _check_and_absolutize(filepath):
 
 
 def take_shot(
-    context_or_page, shot, fail_on_error, return_bytes=False, use_existing_page=False
+    context_or_page,
+    shot,
+    fail_on_error=False,
+    return_bytes=False,
+    use_existing_page=False,
 ):
     url = shot.get("url") or ""
     if not url:
