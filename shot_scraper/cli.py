@@ -73,6 +73,9 @@ def cli():
     "--wait", type=int, help="Wait this many milliseconds before taking the screenshot"
 )
 @click.option(
+    "--timeout", type=int, help="Wait this many milliseconds before failing",
+)
+@click.option(
     "-i",
     "--interactive",
     is_flag=True,
@@ -104,6 +107,7 @@ def shot(
     retina,
     quality,
     wait,
+    timeout,
     interactive,
     devtools,
     browser,
@@ -144,6 +148,7 @@ def shot(
         "height": height,
         "quality": quality,
         "wait": wait,
+        "timeout": timeout,
         "padding": padding,
         "retina": retina,
     }
@@ -157,6 +162,7 @@ def shot(
             devtools=devtools,
             retina=retina,
             browser=browser,
+            timeout=timeout
         )
         if interactive or devtools:
             use_existing_page = True
@@ -179,7 +185,7 @@ def shot(
 
 
 def _browser_context(
-    p, auth, interactive=False, devtools=False, retina=False, browser="chromium"
+    p, auth, interactive=False, devtools=False, retina=False, browser="chromium", timeout=None
 ):
     browser_kwargs = dict(headless=not interactive, devtools=devtools)
     if browser == "chromium":
@@ -195,6 +201,8 @@ def _browser_context(
     if retina:
         context_args["device_scale_factor"] = 2
     context = browser_obj.new_context(**context_args)
+    if timeout:
+        context.set_default_timeout(timeout)
     return context, browser_obj
 
 
