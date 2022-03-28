@@ -83,6 +83,15 @@ def cli():
     is_flag=True,
     help="Interact mode with developer tools",
 )
+@click.option(
+    "--browser",
+    "-b",
+    default="chromium",
+    type=click.Choice(
+        ("chromium", "firefox", "chrome", "chrome-beta"), case_sensitive=False
+    ),
+    help="Set the browser to install",
+)
 def shot(
     url,
     auth,
@@ -97,6 +106,7 @@ def shot(
     wait,
     interactive,
     devtools,
+    browser,
 ):
     """
     Take a single screenshot of a page or portion of a page.
@@ -140,8 +150,13 @@ def shot(
     interactive = interactive or devtools
     with sync_playwright() as p:
         use_existing_page = False
-        context, browser = _browser_context(
-            p, auth, interactive=interactive, devtools=devtools, retina=retina
+        context, browser_obj = _browser_context(
+            p,
+            auth,
+            interactive=interactive,
+            devtools=devtools,
+            retina=retina,
+            browser=browser,
         )
         if interactive or devtools:
             use_existing_page = True
@@ -160,18 +175,27 @@ def shot(
         else:
             shot["output"] = str(output)
             shot = take_shot(context, shot, use_existing_page=use_existing_page)
-        browser.close()
+        browser_obj.close()
 
 
-def _browser_context(p, auth, interactive=False, devtools=False, retina=False):
-    browser = p.chromium.launch(headless=not interactive, devtools=devtools)
+def _browser_context(
+    p, auth, interactive=False, devtools=False, retina=False, browser="chromium"
+):
+    browser_kwargs = dict(headless=not interactive, devtools=devtools)
+    if browser == "chromium":
+        browser_obj = p.chromium.launch(**browser_kwargs)
+    elif browser == "firefox":
+        browser_obj = p.firefox.launch(**browser_kwargs)
+    else:
+        browser_kwargs["channel"] = browser
+        browser_obj = p.chromium.launch(**browser_kwargs)
     context_args = {}
     if auth:
         context_args["storage_state"] = json.load(auth)
     if retina:
         context_args["device_scale_factor"] = 2
-    context = browser.new_context(**context_args)
-    return context, browser
+    context = browser_obj.new_context(**context_args)
+    return context, browser_obj
 
 
 @cli.command()
@@ -183,7 +207,16 @@ def _browser_context(p, auth, interactive=False, devtools=False, retina=False):
     help="Path to JSON authentication context file",
 )
 @click.option("--retina", is_flag=True, help="Use device scale factor of 2")
-def multi(config, auth, retina):
+@click.option(
+    "--browser",
+    "-b",
+    default="chromium",
+    type=click.Choice(
+        ("chromium", "firefox", "chrome", "chrome-beta"), case_sensitive=False
+    ),
+    help="Set the browser to install",
+)
+def multi(config, auth, retina, browser):
     """
     Take multiple screenshots, defined by a YAML file
 
@@ -203,10 +236,10 @@ def multi(config, auth, retina):
     if not isinstance(shots, list):
         raise click.ClickException("YAML file must contain a list")
     with sync_playwright() as p:
-        context, browser = _browser_context(p, auth, retina=retina)
+        context, browser_obj = _browser_context(p, auth, retina=retina, browser=browser)
         for shot in shots:
             take_shot(context, shot)
-        browser.close()
+        browser_obj.close()
 
 
 @cli.command()
@@ -224,7 +257,16 @@ def multi(config, auth, retina):
     default="-",
 )
 @click.option("-j", "--javascript", help="Execute this JS prior to taking the snapshot")
-def accessibility(url, auth, output, javascript):
+@click.option(
+    "--browser",
+    "-b",
+    default="chromium",
+    type=click.Choice(
+        ("chromium", "firefox", "chrome", "chrome-beta"), case_sensitive=False
+    ),
+    help="Set the browser to install",
+)
+def accessibility(url, auth, output, javascript, browser):
     """
     Dump the Chromium accessibility tree for the specifed page
 
@@ -234,13 +276,13 @@ def accessibility(url, auth, output, javascript):
     """
     url = url_or_file_path(url, _check_and_absolutize)
     with sync_playwright() as p:
-        context, browser = _browser_context(p, auth)
+        context, browser_obj = _browser_context(p, auth, browser=browser)
         page = context.new_page()
         page.goto(url)
         if javascript:
             _evaluate_js(page, javascript)
         snapshot = page.accessibility.snapshot()
-        browser.close()
+        browser_obj.close()
     output.write(json.dumps(snapshot, indent=4))
     output.write("\n")
 
@@ -268,7 +310,16 @@ def accessibility(url, auth, output, javascript):
     default="-",
     help="Save output JSON to this file",
 )
-def javascript(url, javascript, input, auth, output):
+@click.option(
+    "--browser",
+    "-b",
+    default="chromium",
+    type=click.Choice(
+        ("chromium", "firefox", "chrome", "chrome-beta"), case_sensitive=False
+    ),
+    help="Set the browser to install",
+)
+def javascript(url, javascript, input, auth, output, browser):
     """
     Execute JavaScript against the page and return the result as JSON
 
@@ -298,11 +349,11 @@ def javascript(url, javascript, input, auth, output):
         javascript = input.read()
     url = url_or_file_path(url, _check_and_absolutize)
     with sync_playwright() as p:
-        context, browser = _browser_context(p, auth)
+        context, browser_obj = _browser_context(p, auth, browser=browser)
         page = context.new_page()
         page.goto(url)
         result = _evaluate_js(page, javascript)
-        browser.close()
+        browser_obj.close()
     output.write(json.dumps(result, indent=4, default=str))
     output.write("\n")
 
@@ -344,7 +395,7 @@ def pdf(url, auth, output, javascript, wait, media_screen, landscape):
     if output is None:
         output = filename_for_url(url, ext="pdf", file_exists=os.path.exists)
     with sync_playwright() as p:
-        context, browser = _browser_context(p, auth)
+        context, browser_obj = _browser_context(p.chromium, auth)
         page = context.new_page()
         page.goto(url)
         if wait:
@@ -370,11 +421,20 @@ def pdf(url, auth, output, javascript, wait, media_screen, landscape):
                 "Screenshot of '{}' written to '{}'".format(url, output), err=True
             )
 
-        browser.close()
+        browser_obj.close()
 
 
 @cli.command()
-def install():
+@click.option(
+    "--browser",
+    "-b",
+    default="chromium",
+    type=click.Choice(
+        ("chromium", "firefox", "chrome", "chrome-beta"), case_sensitive=False
+    ),
+    help="Set the browser to install",
+)
+def install(browser):
     """
     Install Playwright browser needed by this tool.
 
@@ -382,7 +442,7 @@ def install():
 
         shot-scraper install
     """
-    sys.argv = ["playwright", "install", "chromium"]
+    sys.argv = ["playwright", "install", browser]
     run_module("playwright", run_name="__main__")
 
 
