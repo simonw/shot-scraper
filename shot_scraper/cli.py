@@ -88,7 +88,7 @@ def cli():
     "-b",
     default="chromium",
     type=click.Choice(
-        ("chromium", "firefox"), case_sensitive=False
+        ("chromium", "firefox", "chrome", "chrome-beta"), case_sensitive=False
     ),
     help="Set the browser to install",
 )
@@ -151,7 +151,7 @@ def shot(
     with sync_playwright() as p:
         use_existing_page = False
         context, browser_obj = _browser_context(
-            getattr(p, browser), auth, interactive=interactive, devtools=devtools, retina=retina
+            p, auth, interactive=interactive, devtools=devtools, retina=retina, browser=browser
         )
         if interactive or devtools:
             use_existing_page = True
@@ -173,8 +173,18 @@ def shot(
         browser_obj.close()
 
 
-def _browser_context(p, auth, interactive=False, devtools=False, retina=False):
-    browser_obj = p.launch(headless=not interactive, devtools=devtools)
+def _browser_context(p, auth, interactive=False, devtools=False, retina=False, browser="chromium"):
+    browser_kwargs = dict(
+        headless=not interactive,
+        devtools=devtools
+    )
+    if browser == "chromium":
+        browser_obj = p.chromium.launch(**browser_kwargs)
+    elif browser == "firefox":
+        browser_obj = p.firefox.launch(**browser_kwargs)
+    else:
+        browser_kwargs['channel'] = browser
+        browser_obj = p.chromium.launch(**browser_kwargs)
     context_args = {}
     if auth:
         context_args["storage_state"] = json.load(auth)
@@ -198,7 +208,7 @@ def _browser_context(p, auth, interactive=False, devtools=False, retina=False):
     "-b",
     default="chromium",
     type=click.Choice(
-        ("chromium", "firefox"), case_sensitive=False
+        ("chromium", "firefox", "chrome", "chrome-beta"), case_sensitive=False
     ),
     help="Set the browser to install",
 )
@@ -222,7 +232,7 @@ def multi(config, auth, retina, browser):
     if not isinstance(shots, list):
         raise click.ClickException("YAML file must contain a list")
     with sync_playwright() as p:
-        context, browser_obj = _browser_context(getattr(p, browser), auth, retina=retina)
+        context, browser_obj = _browser_context(p, auth, retina=retina, browser=browser)
         for shot in shots:
             take_shot(context, shot)
         browser_obj.close()
@@ -248,7 +258,7 @@ def multi(config, auth, retina, browser):
     "-b",
     default="chromium",
     type=click.Choice(
-        ("chromium", "firefox"), case_sensitive=False
+        ("chromium", "firefox", "chrome", "chrome-beta"), case_sensitive=False
     ),
     help="Set the browser to install",
 )
@@ -262,7 +272,7 @@ def accessibility(url, auth, output, javascript, browser):
     """
     url = url_or_file_path(url, _check_and_absolutize)
     with sync_playwright() as p:
-        context, browser_obj = _browser_context(getattr(p, browser), auth)
+        context, browser_obj = _browser_context(p, auth, browser=browser)
         page = context.new_page()
         page.goto(url)
         if javascript:
@@ -301,7 +311,7 @@ def accessibility(url, auth, output, javascript, browser):
     "-b",
     default="chromium",
     type=click.Choice(
-        ("chromium", "firefox"), case_sensitive=False
+        ("chromium", "firefox", "chrome", "chrome-beta"), case_sensitive=False
     ),
     help="Set the browser to install",
 )
@@ -335,7 +345,7 @@ def javascript(url, javascript, input, auth, output, browser):
         javascript = input.read()
     url = url_or_file_path(url, _check_and_absolutize)
     with sync_playwright() as p:
-        context, browser_obj = _browser_context(getattr(p, browser), auth)
+        context, browser_obj = _browser_context(p, auth, browser=browser)
         page = context.new_page()
         page.goto(url)
         result = _evaluate_js(page, javascript)
@@ -416,7 +426,7 @@ def pdf(url, auth, output, javascript, wait, media_screen, landscape):
     "-b",
     default="chromium",
     type=click.Choice(
-        ("chromium", "firefox"), case_sensitive=False
+        ("chromium", "firefox", "chrome", "chrome-beta"), case_sensitive=False
     ),
     help="Set the browser to install",
 )
