@@ -374,7 +374,16 @@ def pdf(url, auth, output, javascript, wait, media_screen, landscape):
 
 
 @cli.command()
-def install():
+@click.option(
+    "--browser",
+    "-b",
+    default="chromium",
+    type=click.Choice(
+        ("chromium", "chrome", "firefox"), case_sensitive=False
+    ),
+    help="Set the browser to install",
+)
+def install(browser):
     """
     Install Playwright browser needed by this tool.
 
@@ -382,7 +391,7 @@ def install():
 
         shot-scraper install
     """
-    sys.argv = ["playwright", "install", "chromium"]
+    sys.argv = ["playwright", "install", browser]
     run_module("playwright", run_name="__main__")
 
 
