@@ -97,9 +97,6 @@ shot-scraper multi empty.yml
   - "#bighead"
   - .overband
   padding: 20
-# Produces timeout error
-- output: images/cnn.com.png
-  url: https://www.cnn.com  
 # Local page on disk
 - url: local.html
   output: local-from-multi.png
