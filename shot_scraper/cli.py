@@ -180,14 +180,20 @@ def shot(
                 "Hit <enter> to take the shot and close the browser window:", err=True
             )
             input()
-        if output == "-":
-            shot = take_shot(
-                context, shot, return_bytes=True, use_existing_page=use_existing_page
-            )
-            sys.stdout.buffer.write(shot)
-        else:
-            shot["output"] = str(output)
-            shot = take_shot(context, shot, use_existing_page=use_existing_page)
+        try:
+            if output == "-":
+                shot = take_shot(
+                    context,
+                    shot,
+                    return_bytes=True,
+                    use_existing_page=use_existing_page,
+                )
+                sys.stdout.buffer.write(shot)
+            else:
+                shot["output"] = str(output)
+                shot = take_shot(context, shot, use_existing_page=use_existing_page)
+        except TimeoutError as e:
+            raise click.ClickException(str(e))
         browser_obj.close()
 
 
