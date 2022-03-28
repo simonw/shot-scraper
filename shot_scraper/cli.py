@@ -203,7 +203,7 @@ def _browser_context(
     context = browser_obj.new_context(**context_args)
     if timeout:
         context.set_default_timeout(timeout)
-    return context, browser
+    return context, browser_obj
 
 
 @cli.command()
