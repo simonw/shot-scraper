@@ -64,9 +64,9 @@ new Promise(done => setInterval(
   }, 1000
 ));" -o examples/datasette-io-title-tagline-from-promise.json
 # Different browsers
-shot 'https://www.whatismybrowser.com/detect/what-is-my-user-agent/' \
+shot-scraper 'https://www.whatismybrowser.com/detect/what-is-my-user-agent/' \
   -o /tmp/whatismybrowser-default-chromium.png -h 400 -w 800
-shot 'https://www.whatismybrowser.com/detect/what-is-my-user-agent/' \
+shot-scraper 'https://www.whatismybrowser.com/detect/what-is-my-user-agent/' \
   -o /tmp/whatismybrowser-firefox.png -h 400 -w 800 -b firefox
 # And using multi
 echo '# empty file' > empty.yml
