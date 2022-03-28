@@ -388,6 +388,17 @@ This returns:
   "tagline": "An open source multi-tool for exploring and publishing data"
 }
 ```
+
+You can pass an `async` function if you want to use `await`, including to import modules from external URLs. This example loads the [Readability.js](https://github.com/mozilla/readability) library from [Skypack](https://www.skypack.dev/) and uses it to extract the core content of a page:
+
+```
+shot-scraper javascript https://simonwillison.net/2022/Mar/14/scraping-web-pages-shot-scraper/ "
+async () => {
+  const readability = await import('https://cdn.skypack.dev/@mozilla/readability');
+  return (new readability.Readability(document)).parse();
+}"
+```
+
 To use functions such as `setInterval()`, for example if you need to delay the shot for a second to allow an animation to finish running, return a promise:
 
     shot-scraper javascript datasette.io "
