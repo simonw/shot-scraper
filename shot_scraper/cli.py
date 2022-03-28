@@ -412,7 +412,7 @@ def pdf(url, auth, output, javascript, wait, media_screen, landscape):
     if output is None:
         output = filename_for_url(url, ext="pdf", file_exists=os.path.exists)
     with sync_playwright() as p:
-        context, browser_obj = _browser_context(p.chromium, auth)
+        context, browser_obj = _browser_context(p, auth)
         page = context.new_page()
         page.goto(url)
         if wait:
