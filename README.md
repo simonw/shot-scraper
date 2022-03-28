@@ -201,7 +201,7 @@ Options:
                                   taking the shot
   --devtools                      Interact mode with developer tools
   -b, --browser [chromium|firefox|chrome|chrome-beta]
-                                  Set the browser to install
+                                  Which browser to use
   --help                          Show this message and exit.
 ```
 <!-- [[[end]]] -->
@@ -324,7 +324,7 @@ Options:
   --retina                        Use device scale factor of 2
   --fail-on-error                 Fail noisily on error
   -b, --browser [chromium|firefox|chrome|chrome-beta]
-                                  Set the browser to install
+                                  Which browser to use
   -h, --help                      Show this message and exit.
 ```
 <!-- [[[end]]] -->
@@ -490,7 +490,7 @@ Options:
   -a, --auth FILENAME             Path to JSON authentication context file
   -o, --output FILENAME           Save output JSON to this file
   -b, --browser [chromium|firefox|chrome|chrome-beta]
-                                  Set the browser to install
+                                  Which browser to use
   -h, --help                      Show this message and exit.
 ```
 <!-- [[[end]]] -->
@@ -525,12 +525,10 @@ Usage: shot-scraper accessibility [OPTIONS] URL
       shot-scraper accessibility https://datasette.io/
 
 Options:
-  -a, --auth FILENAME             Path to JSON authentication context file
+  -a, --auth FILENAME    Path to JSON authentication context file
   -o, --output FILENAME
-  -j, --javascript TEXT           Execute this JS prior to taking the snapshot
-  -b, --browser [chromium|firefox|chrome|chrome-beta]
-                                  Set the browser to install
-  -h, --help                      Show this message and exit.
+  -j, --javascript TEXT  Execute this JS prior to taking the snapshot
+  -h, --help             Show this message and exit.
 ```
 <!-- [[[end]]] -->
 

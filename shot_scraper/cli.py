@@ -13,6 +13,19 @@ import yaml
 
 from shot_scraper.utils import filename_for_url, url_or_file_path
 
+BROWSERS = ("chromium", "firefox", "chrome", "chrome-beta")
+
+
+def browser_option(fn):
+    click.option(
+        "--browser",
+        "-b",
+        default="chromium",
+        type=click.Choice(BROWSERS, case_sensitive=False),
+        help="Which browser to use",
+    )(fn)
+    return fn
+
 
 @click.group(
     cls=DefaultGroup,
@@ -88,15 +101,7 @@ def cli():
     is_flag=True,
     help="Interact mode with developer tools",
 )
-@click.option(
-    "--browser",
-    "-b",
-    default="chromium",
-    type=click.Choice(
-        ("chromium", "firefox", "chrome", "chrome-beta"), case_sensitive=False
-    ),
-    help="Set the browser to install",
-)
+@browser_option
 def shot(
     url,
     auth,
@@ -224,15 +229,7 @@ def _browser_context(
 )
 @click.option("--retina", is_flag=True, help="Use device scale factor of 2")
 @click.option("--fail-on-error", is_flag=True, help="Fail noisily on error")
-@click.option(
-    "--browser",
-    "-b",
-    default="chromium",
-    type=click.Choice(
-        ("chromium", "firefox", "chrome", "chrome-beta"), case_sensitive=False
-    ),
-    help="Set the browser to install",
-)
+@browser_option
 def multi(config, auth, retina, fail_on_error, browser):
     """
     Take multiple screenshots, defined by a YAML file
@@ -274,16 +271,7 @@ def multi(config, auth, retina, fail_on_error, browser):
     default="-",
 )
 @click.option("-j", "--javascript", help="Execute this JS prior to taking the snapshot")
-@click.option(
-    "--browser",
-    "-b",
-    default="chromium",
-    type=click.Choice(
-        ("chromium", "firefox", "chrome", "chrome-beta"), case_sensitive=False
-    ),
-    help="Set the browser to install",
-)
-def accessibility(url, auth, output, javascript, browser):
+def accessibility(url, auth, output, javascript):
     """
     Dump the Chromium accessibility tree for the specifed page
 
@@ -293,7 +281,7 @@ def accessibility(url, auth, output, javascript, browser):
     """
     url = url_or_file_path(url, _check_and_absolutize)
     with sync_playwright() as p:
-        context, browser_obj = _browser_context(p, auth, browser=browser)
+        context, browser_obj = _browser_context(p, auth)
         page = context.new_page()
         page.goto(url)
         if javascript:
@@ -327,15 +315,7 @@ def accessibility(url, auth, output, javascript, browser):
     default="-",
     help="Save output JSON to this file",
 )
-@click.option(
-    "--browser",
-    "-b",
-    default="chromium",
-    type=click.Choice(
-        ("chromium", "firefox", "chrome", "chrome-beta"), case_sensitive=False
-    ),
-    help="Set the browser to install",
-)
+@browser_option
 def javascript(url, javascript, input, auth, output, browser):
     """
     Execute JavaScript against the page and return the result as JSON
@@ -446,18 +426,20 @@ def pdf(url, auth, output, javascript, wait, media_screen, landscape):
     "--browser",
     "-b",
     default="chromium",
-    type=click.Choice(
-        ("chromium", "firefox", "chrome", "chrome-beta"), case_sensitive=False
-    ),
-    help="Set the browser to install",
+    type=click.Choice(BROWSERS, case_sensitive=False),
+    help="Which browser to install",
 )
 def install(browser):
     """
-    Install Playwright browser needed by this tool.
+    Install the Playwright browser needed by this tool.
 
     Usage:
 
         shot-scraper install
+
+    Or for browsers other than the Chromium default:
+
+        shot-scraper install -b firefox
     """
     sys.argv = ["playwright", "install", browser]
     run_module("playwright", run_name="__main__")
