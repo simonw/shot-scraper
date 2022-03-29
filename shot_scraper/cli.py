@@ -13,7 +13,7 @@ import yaml
 
 from shot_scraper.utils import filename_for_url, url_or_file_path
 
-BROWSERS = ("chromium", "firefox", "chrome", "chrome-beta")
+BROWSERS = ("chromium", "firefox", "webkit", "chrome", "chrome-beta")
 
 
 def browser_option(fn):
