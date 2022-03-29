@@ -234,9 +234,14 @@ def _browser_context(
     help="Path to JSON authentication context file",
 )
 @click.option("--retina", is_flag=True, help="Use device scale factor of 2")
+@click.option(
+    "--timeout",
+    type=int,
+    help="Wait this many milliseconds before failing",
+)
 @click.option("--fail-on-error", is_flag=True, help="Fail noisily on error")
 @browser_option
-def multi(config, auth, retina, fail_on_error, browser):
+def multi(config, auth, retina, timeout, fail_on_error, browser):
     """
     Take multiple screenshots, defined by a YAML file
 
@@ -256,9 +261,18 @@ def multi(config, auth, retina, fail_on_error, browser):
     if not isinstance(shots, list):
         raise click.ClickException("YAML file must contain a list")
     with sync_playwright() as p:
-        context, browser_obj = _browser_context(p, auth, retina=retina, browser=browser)
+        context, browser_obj = _browser_context(
+            p, auth, retina=retina, browser=browser, timeout=timeout
+        )
         for shot in shots:
-            take_shot(context, shot, fail_on_error=fail_on_error)
+            try:
+                take_shot(context, shot)
+            except TimeoutError as e:
+                if fail_on_error:
+                    raise click.ClickException(str(e))
+                else:
+                    click.echo(str(e), err=True)
+                    continue
         browser_obj.close()
 
 
@@ -498,7 +512,6 @@ def _check_and_absolutize(filepath):
 def take_shot(
     context_or_page,
     shot,
-    fail_on_error=False,
     return_bytes=False,
     use_existing_page=False,
 ):
@@ -536,15 +549,7 @@ def take_shot(
         if shot.get("height"):
             full_page = False
 
-    message = ""
-    if not use_existing_page:
-        if fail_on_error:
-            page.goto(url)
-        else:
-            try:
-                page.goto(url)
-            except TimeoutError as e:
-                message = str(e) + "\n"
+    page.goto(url)
 
     if wait:
         time.sleep(wait / 1000)
@@ -571,7 +576,7 @@ def take_shot(
             return page.locator(selector_to_shoot).screenshot(**screenshot_args)
         else:
             page.locator(selector_to_shoot).screenshot(**screenshot_args)
-            message += "Screenshot of '{}' on '{}' written to '{}'".format(
+            message = "Screenshot of '{}' on '{}' written to '{}'".format(
                 ", ".join(selectors), url, output
             )
     else:
@@ -580,7 +585,7 @@ def take_shot(
             return page.screenshot(**screenshot_args)
         else:
             page.screenshot(**screenshot_args)
-            message += "Screenshot of '{}' written to '{}'".format(url, output)
+            message = "Screenshot of '{}' written to '{}'".format(url, output)
     click.echo(message, err=True)
 
 
