@@ -353,6 +353,7 @@ Usage: shot-scraper multi [OPTIONS] CONFIG
 Options:
   -a, --auth FILENAME             Path to JSON authentication context file
   --retina                        Use device scale factor of 2
+  --timeout INTEGER               Wait this many milliseconds before failing
   --fail-on-error                 Fail noisily on error
   -b, --browser [chromium|firefox|chrome|chrome-beta]
                                   Which browser to use
