@@ -26,6 +26,14 @@ def browser_option(fn):
     )(fn)
     return fn
 
+def reduced_motion_option(fn):
+    click.option(
+        "--reduced-motion",
+        is_flag=True,
+        help="Emulate 'prefers-reduced-motion' media feature",
+    )(fn)
+    return fn
+
 
 @click.group(
     cls=DefaultGroup,
@@ -102,6 +110,7 @@ def cli():
     help="Interact mode with developer tools",
 )
 @browser_option
+@reduced_motion_option
 def shot(
     url,
     auth,
@@ -118,6 +127,7 @@ def shot(
     interactive,
     devtools,
     browser,
+    reduced_motion,
 ):
     """
     Take a single screenshot of a page or portion of a page.
@@ -170,6 +180,7 @@ def shot(
             retina=retina,
             browser=browser,
             timeout=timeout,
+            reduced_motion=reduced_motion,
         )
         if interactive or devtools:
             use_existing_page = True
@@ -205,6 +216,7 @@ def _browser_context(
     retina=False,
     browser="chromium",
     timeout=None,
+    reduced_motion=False,
 ):
     browser_kwargs = dict(headless=not interactive, devtools=devtools)
     if browser == "chromium":
@@ -219,6 +231,8 @@ def _browser_context(
         context_args["storage_state"] = json.load(auth)
     if retina:
         context_args["device_scale_factor"] = 2
+    if reduced_motion:
+        context_args["reduced_motion"] = 'reduce'
     context = browser_obj.new_context(**context_args)
     if timeout:
         context.set_default_timeout(timeout)
@@ -241,7 +255,8 @@ def _browser_context(
 )
 @click.option("--fail-on-error", is_flag=True, help="Fail noisily on error")
 @browser_option
-def multi(config, auth, retina, timeout, fail_on_error, browser):
+@reduced_motion_option
+def multi(config, auth, retina, timeout, fail_on_error, browser, reduced_motion):
     """
     Take multiple screenshots, defined by a YAML file
 
@@ -262,7 +277,7 @@ def multi(config, auth, retina, timeout, fail_on_error, browser):
         raise click.ClickException("YAML file must contain a list")
     with sync_playwright() as p:
         context, browser_obj = _browser_context(
-            p, auth, retina=retina, browser=browser, timeout=timeout
+            p, auth, retina=retina, browser=browser, timeout=timeout, reduced_motion=reduced_motion
         )
         for shot in shots:
             try:
@@ -336,7 +351,8 @@ def accessibility(url, auth, output, javascript):
     help="Save output JSON to this file",
 )
 @browser_option
-def javascript(url, javascript, input, auth, output, browser):
+@reduced_motion_option
+def javascript(url, javascript, input, auth, output, browser, reduced_motion):
     """
     Execute JavaScript against the page and return the result as JSON
 
@@ -366,7 +382,7 @@ def javascript(url, javascript, input, auth, output, browser):
         javascript = input.read()
     url = url_or_file_path(url, _check_and_absolutize)
     with sync_playwright() as p:
-        context, browser_obj = _browser_context(p, auth, browser=browser)
+        context, browser_obj = _browser_context(p, auth, browser=browser, reduced_motion=reduced_motion)
         page = context.new_page()
         page.goto(url)
         result = _evaluate_js(page, javascript)
