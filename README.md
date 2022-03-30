@@ -239,7 +239,7 @@ Options:
 
 ## Websites that need authentication
 
-If you want to take screnshots of a site that has some form of authentication, you will first need to authenticate with that website manually.
+If you want to take screenshots of a site that has some form of authentication, you will first need to authenticate with that website manually.
 
 You can do that using the `shot-scraper auth` command:
 
