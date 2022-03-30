@@ -392,7 +392,7 @@ Usage: shot-scraper pdf [OPTIONS] URL
 
   Use -o to specify a filename:
 
-      shot-scarper pdf https://datasette.io/ -o datasette.pdf
+      shot-scraper pdf https://datasette.io/ -o datasette.pdf
 
 Options:
   -a, --auth FILENAME    Path to JSON authentication context file

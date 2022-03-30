@@ -406,7 +406,7 @@ def pdf(url, auth, output, javascript, wait, media_screen, landscape):
 
     Use -o to specify a filename:
 
-        shot-scarper pdf https://datasette.io/ -o datasette.pdf
+        shot-scraper pdf https://datasette.io/ -o datasette.pdf
     """
     url = url_or_file_path(url, _check_and_absolutize)
     if output is None:
