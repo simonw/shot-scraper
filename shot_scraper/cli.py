@@ -147,7 +147,7 @@ def shot(
     """
     if output is None:
         ext = "jpg" if quality else None
-        output = filename_for_url(url, ext, file_exists=os.path.exists)
+        output = filename_for_url(url, ext=ext, file_exists=os.path.exists)
     shot = {
         "url": url,
         "selectors": selectors,
