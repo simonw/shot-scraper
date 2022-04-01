@@ -146,7 +146,8 @@ def shot(
         shot-scraper https://simonwillison.net -s '#bighead'
     """
     if output is None:
-        output = filename_for_url(url, file_exists=os.path.exists)
+        ext = "jpg" if quality else None
+        output = filename_for_url(url, ext, file_exists=os.path.exists)
     shot = {
         "url": url,
         "selectors": selectors,
