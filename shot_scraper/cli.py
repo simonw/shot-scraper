@@ -291,7 +291,12 @@ def multi(config, auth, retina, timeout, fail_on_error, browser):
     default="-",
 )
 @click.option("-j", "--javascript", help="Execute this JS prior to taking the snapshot")
-def accessibility(url, auth, output, javascript):
+@click.option(
+    "--timeout",
+    type=int,
+    help="Wait this many milliseconds before failing",
+)
+def accessibility(url, auth, output, javascript, timeout):
     """
     Dump the Chromium accessibility tree for the specifed page
 
@@ -301,7 +306,7 @@ def accessibility(url, auth, output, javascript):
     """
     url = url_or_file_path(url, _check_and_absolutize)
     with sync_playwright() as p:
-        context, browser_obj = _browser_context(p, auth)
+        context, browser_obj = _browser_context(p, auth, timeout=timeout)
         page = context.new_page()
         page.goto(url)
         if javascript:
