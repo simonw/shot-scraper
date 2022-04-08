@@ -233,6 +233,7 @@ Options:
   --devtools                      Interact mode with developer tools
   -b, --browser [chromium|firefox|chrome|chrome-beta]
                                   Which browser to use
+  --reduced-motion                Emulate 'prefers-reduced-motion' media feature
   --help                          Show this message and exit.
 ```
 <!-- [[[end]]] -->
@@ -383,6 +384,7 @@ Options:
   --fail-on-error                 Fail noisily on error
   -b, --browser [chromium|firefox|chrome|chrome-beta]
                                   Which browser to use
+  --reduced-motion                Emulate 'prefers-reduced-motion' media feature
   -h, --help                      Show this message and exit.
 ```
 <!-- [[[end]]] -->
@@ -549,6 +551,7 @@ Options:
   -o, --output FILENAME           Save output JSON to this file
   -b, --browser [chromium|firefox|chrome|chrome-beta]
                                   Which browser to use
+  --reduced-motion                Emulate 'prefers-reduced-motion' media feature
   -h, --help                      Show this message and exit.
 ```
 <!-- [[[end]]] -->
