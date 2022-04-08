@@ -239,7 +239,7 @@ Options:
 
 ## Websites that need authentication
 
-If you want to take screnshots of a site that has some form of authentication, you will first need to authenticate with that website manually.
+If you want to take screenshots of a site that has some form of authentication, you will first need to authenticate with that website manually.
 
 You can do that using the `shot-scraper auth` command:
 
@@ -418,7 +418,7 @@ Usage: shot-scraper pdf [OPTIONS] URL
 
   Use -o to specify a filename:
 
-      shot-scarper pdf https://datasette.io/ -o datasette.pdf
+      shot-scraper pdf https://datasette.io/ -o datasette.pdf
 
 Options:
   -a, --auth FILENAME    Path to JSON authentication context file
