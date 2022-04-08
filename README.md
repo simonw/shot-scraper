@@ -258,6 +258,32 @@ To take authenticated screenshots you can then use the `-a` or `--auth` options 
     shot-scraper https://datasette-auth-passwords-demo.datasette.io/ \
       -a auth.json -o authed.png
 
+Full `--help` for `shot-scraper auth`:
+
+<!-- [[[cog
+result = runner.invoke(cli.cli, ["auth", "--help"])
+help = result.output.replace("Usage: cli", "Usage: shot-scraper")
+cog.out(
+    "```\n{}\n```\n".format(help.strip())
+)
+]]] -->
+```
+Usage: shot-scraper auth [OPTIONS] URL CONTEXT_FILE
+
+  Open a browser so user can manually authenticate with the specified site, then
+  save the resulting authentication context to a file.
+
+  Usage:
+
+      shot-scraper auth https://github.com/ auth.json
+
+Options:
+  -b, --browser [chromium|firefox|chrome|chrome-beta]
+                                  Which browser to use
+  -h, --help                      Show this message and exit.
+```
+<!-- [[[end]]] -->
+
 ## Taking multiple screenshots
 
 You can configure multiple screenshots using a YAML file. Create a file called `shots.yml` that looks like this:

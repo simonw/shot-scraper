@@ -476,7 +476,8 @@ def install(browser):
     "context_file",
     type=click.Path(file_okay=True, writable=True, dir_okay=False, allow_dash=True),
 )
-def auth(url, context_file):
+@browser_option
+def auth(url, context_file, browser):
     """
     Open a browser so user can manually authenticate with the specified site,
     then save the resulting authentication context to a file.
@@ -486,8 +487,14 @@ def auth(url, context_file):
         shot-scraper auth https://github.com/ auth.json
     """
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
-        context = browser.new_context()
+        context, browser_obj = _browser_context(
+            p,
+            auth=None,
+            interactive=True,
+            devtools=True,
+            browser=browser,
+        )
+        context = browser_obj.new_context()
         page = context.new_page()
         page.goto(url)
         click.echo("Hit <enter> after you have signed in:", err=True)
