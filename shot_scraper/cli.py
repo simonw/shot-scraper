@@ -82,6 +82,12 @@ def cli():
     multiple=True,
 )
 @click.option(
+    "js_selectors",
+    "--js-selector",
+    help="Take shot of first element matching this JS (el) expression",
+    multiple=True,
+)
+@click.option(
     "-p",
     "--padding",
     type=int,
@@ -119,6 +125,7 @@ def shot(
     width,
     height,
     selectors,
+    js_selectors,
     padding,
     javascript,
     retina,
@@ -162,6 +169,7 @@ def shot(
     shot = {
         "url": url,
         "selectors": selectors,
+        "js_selectors": js_selectors,
         "javascript": javascript,
         "width": width,
         "height": height,
@@ -570,6 +578,10 @@ def take_shot(
     if shot.get("selector"):
         selectors.append(shot["selector"])
 
+    js_selectors = shot.get("js_selectors") or []
+    if shot.get("js_selector"):
+        js_selectors.append(shot["js_selector"])
+
     if not use_existing_page:
         page = context_or_page.new_page()
     else:
@@ -600,8 +612,14 @@ def take_shot(
     if not return_bytes:
         screenshot_args["path"] = output
 
-    if not selectors:
+    if not selectors and not js_selectors:
         screenshot_args["full_page"] = full_page
+
+    if js_selectors:
+        # Evaluate JavaScript adding classes we can select on
+        js_selector_javascript, extra_selectors = _js_selector_javascript(js_selectors)
+        selectors.extend(extra_selectors)
+        _evaluate_js(page, js_selector_javascript)
 
     if selectors:
         # Use JavaScript to create a box around those elements
@@ -624,6 +642,28 @@ def take_shot(
             page.screenshot(**screenshot_args)
             message = "Screenshot of '{}' written to '{}'".format(url, output)
     click.echo(message, err=True)
+
+
+def _js_selector_javascript(js_selectors):
+    extra_selectors = []
+    js_blocks = []
+    for js_selector in js_selectors:
+        klass = "js-selector-{}".format(secrets.token_hex(16))
+        extra_selectors.append(".{}".format(klass))
+        js_blocks.append(
+            textwrap.dedent(
+                """
+        Array.from(
+          document.getElementsByTagName('*')
+        ).find(el => {}).classList.add("{}");
+        """.format(
+                    js_selector, klass
+                )
+            )
+        )
+    js_selector_javascript = "() => {" + "\n".join(js_blocks) + "}"
+    print(js_selector_javascript, extra_selectors)
+    return js_selector_javascript, extra_selectors
 
 
 def _selector_javascript(selectors, padding=0):

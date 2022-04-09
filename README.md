@@ -220,6 +220,8 @@ Options:
   -o, --output FILE
   -s, --selector TEXT             Take shot of first element matching this CSS
                                   selector
+  --js-selector TEXT              Take shot of first element matching this JS
+                                  (el) expression
   -p, --padding INTEGER           When using selectors, add this much padding in
                                   pixels
   -j, --javascript TEXT           Execute this JS prior to taking the shot
