@@ -26,6 +26,7 @@ def browser_option(fn):
     )(fn)
     return fn
 
+
 def reduced_motion_option(fn):
     click.option(
         "--reduced-motion",
@@ -233,7 +234,7 @@ def _browser_context(
     if retina:
         context_args["device_scale_factor"] = 2
     if reduced_motion:
-        context_args["reduced_motion"] = 'reduce'
+        context_args["reduced_motion"] = "reduce"
     context = browser_obj.new_context(**context_args)
     if timeout:
         context.set_default_timeout(timeout)
@@ -278,7 +279,12 @@ def multi(config, auth, retina, timeout, fail_on_error, browser, reduced_motion)
         raise click.ClickException("YAML file must contain a list")
     with sync_playwright() as p:
         context, browser_obj = _browser_context(
-            p, auth, retina=retina, browser=browser, timeout=timeout, reduced_motion=reduced_motion
+            p,
+            auth,
+            retina=retina,
+            browser=browser,
+            timeout=timeout,
+            reduced_motion=reduced_motion,
         )
         for shot in shots:
             try:
@@ -388,7 +394,9 @@ def javascript(url, javascript, input, auth, output, browser, reduced_motion):
         javascript = input.read()
     url = url_or_file_path(url, _check_and_absolutize)
     with sync_playwright() as p:
-        context, browser_obj = _browser_context(p, auth, browser=browser, reduced_motion=reduced_motion)
+        context, browser_obj = _browser_context(
+            p, auth, browser=browser, reduced_motion=reduced_motion
+        )
         page = context.new_page()
         page.goto(url)
         result = _evaluate_js(page, javascript)
