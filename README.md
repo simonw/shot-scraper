@@ -65,7 +65,7 @@ Usage: shot-scraper install [OPTIONS]
       shot-scraper install -b firefox
 
 Options:
-  -b, --browser [chromium|firefox|chrome|chrome-beta]
+  -b, --browser [chromium|firefox|webkit|chrome|chrome-beta]
                                   Which browser to install
   -h, --help                      Show this message and exit.
 ```
@@ -231,7 +231,7 @@ Options:
   -i, --interactive               Interact with the page in a browser before
                                   taking the shot
   --devtools                      Interact mode with developer tools
-  -b, --browser [chromium|firefox|chrome|chrome-beta]
+  -b, --browser [chromium|firefox|webkit|chrome|chrome-beta]
                                   Which browser to use
   --user-agent TEXT               User-Agent header to use
   --reduced-motion                Emulate 'prefers-reduced-motion' media feature
@@ -280,7 +280,7 @@ Usage: shot-scraper auth [OPTIONS] URL CONTEXT_FILE
       shot-scraper auth https://github.com/ auth.json
 
 Options:
-  -b, --browser [chromium|firefox|chrome|chrome-beta]
+  -b, --browser [chromium|firefox|webkit|chrome|chrome-beta]
                                   Which browser to use
   --user-agent TEXT               User-Agent header to use
   -h, --help                      Show this message and exit.
@@ -384,7 +384,7 @@ Options:
   --retina                        Use device scale factor of 2
   --timeout INTEGER               Wait this many milliseconds before failing
   --fail-on-error                 Fail noisily on error
-  -b, --browser [chromium|firefox|chrome|chrome-beta]
+  -b, --browser [chromium|firefox|webkit|chrome|chrome-beta]
                                   Which browser to use
   --user-agent TEXT               User-Agent header to use
   --reduced-motion                Emulate 'prefers-reduced-motion' media feature
@@ -552,7 +552,7 @@ Options:
   -i, --input FILENAME            Read input JavaScript from this file
   -a, --auth FILENAME             Path to JSON authentication context file
   -o, --output FILENAME           Save output JSON to this file
-  -b, --browser [chromium|firefox|chrome|chrome-beta]
+  -b, --browser [chromium|firefox|webkit|chrome|chrome-beta]
                                   Which browser to use
   --user-agent TEXT               User-Agent header to use
   --reduced-motion                Emulate 'prefers-reduced-motion' media feature
