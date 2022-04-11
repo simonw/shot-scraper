@@ -29,6 +29,7 @@ jobs:
         python -m playwright install-deps
         shot-scraper install
         shot-scraper install -b firefox
+        shot-scraper install -b webkit
     - name: Run tests
       run: |
         pytest
