@@ -650,8 +650,16 @@ def take_shot(
             selectors, selectors_all, padding
         )
         _evaluate_js(page, selector_javascript)
+        try:
+            bytes_ = page.locator(selector_to_shoot).screenshot(**screenshot_args)
+        except TimeoutError as e:
+            raise click.ClickException(
+                "Timed out while waiting for element to become available.\n\n{}".format(
+                    e
+                )
+            )
         if return_bytes:
-            return page.locator(selector_to_shoot).screenshot(**screenshot_args)
+            return bytes_
         else:
             page.locator(selector_to_shoot).screenshot(**screenshot_args)
             message = "Screenshot of '{}' on '{}' written to '{}'".format(
