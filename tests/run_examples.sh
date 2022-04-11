@@ -26,7 +26,7 @@ shot-scraper https://simonwillison.net/ \
   -o examples/bighead-multi-selector.png
 # --selector-all
 shot-scraper https://simonwillison.net/ \
-  --selector-all .big --padding 20 \
+  --selector-all .day --padding 20 \
   -o examples/selector-all.png
 # Height and width
 shot-scraper https://simonwillison.net/ -w 400 -h 800 -o examples/simon-narrow.png
