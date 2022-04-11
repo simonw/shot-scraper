@@ -27,6 +27,11 @@ def browser_option(fn):
     return fn
 
 
+def user_agent_option(fn):
+    click.option("--user-agent", help="User-Agent header to use")(fn)
+    return fn
+
+
 def reduced_motion_option(fn):
     click.option(
         "--reduced-motion",
@@ -111,6 +116,7 @@ def cli():
     help="Interact mode with developer tools",
 )
 @browser_option
+@user_agent_option
 @reduced_motion_option
 def shot(
     url,
@@ -128,6 +134,7 @@ def shot(
     interactive,
     devtools,
     browser,
+    user_agent,
     reduced_motion,
 ):
     """
@@ -181,6 +188,7 @@ def shot(
             devtools=devtools,
             retina=retina,
             browser=browser,
+            user_agent=user_agent,
             timeout=timeout,
             reduced_motion=reduced_motion,
         )
@@ -217,6 +225,7 @@ def _browser_context(
     devtools=False,
     retina=False,
     browser="chromium",
+    user_agent=None,
     timeout=None,
     reduced_motion=False,
 ):
@@ -235,6 +244,8 @@ def _browser_context(
         context_args["device_scale_factor"] = 2
     if reduced_motion:
         context_args["reduced_motion"] = "reduce"
+    if user_agent is not None:
+        context_args["user_agent"] = user_agent
     context = browser_obj.new_context(**context_args)
     if timeout:
         context.set_default_timeout(timeout)
@@ -257,8 +268,11 @@ def _browser_context(
 )
 @click.option("--fail-on-error", is_flag=True, help="Fail noisily on error")
 @browser_option
+@user_agent_option
 @reduced_motion_option
-def multi(config, auth, retina, timeout, fail_on_error, browser, reduced_motion):
+def multi(
+    config, auth, retina, timeout, fail_on_error, browser, user_agent, reduced_motion
+):
     """
     Take multiple screenshots, defined by a YAML file
 
@@ -283,6 +297,7 @@ def multi(config, auth, retina, timeout, fail_on_error, browser, reduced_motion)
             auth,
             retina=retina,
             browser=browser,
+            user_agent=user_agent,
             timeout=timeout,
             reduced_motion=reduced_motion,
         )
@@ -363,8 +378,11 @@ def accessibility(url, auth, output, javascript, timeout):
     help="Save output JSON to this file",
 )
 @browser_option
+@user_agent_option
 @reduced_motion_option
-def javascript(url, javascript, input, auth, output, browser, reduced_motion):
+def javascript(
+    url, javascript, input, auth, output, browser, user_agent, reduced_motion
+):
     """
     Execute JavaScript against the page and return the result as JSON
 
@@ -395,7 +413,11 @@ def javascript(url, javascript, input, auth, output, browser, reduced_motion):
     url = url_or_file_path(url, _check_and_absolutize)
     with sync_playwright() as p:
         context, browser_obj = _browser_context(
-            p, auth, browser=browser, reduced_motion=reduced_motion
+            p,
+            auth,
+            browser=browser,
+            user_agent=user_agent,
+            reduced_motion=reduced_motion,
         )
         page = context.new_page()
         page.goto(url)
@@ -502,7 +524,8 @@ def install(browser):
     type=click.Path(file_okay=True, writable=True, dir_okay=False, allow_dash=True),
 )
 @browser_option
-def auth(url, context_file, browser):
+@user_agent_option
+def auth(url, context_file, browser, user_agent):
     """
     Open a browser so user can manually authenticate with the specified site,
     then save the resulting authentication context to a file.
@@ -518,6 +541,7 @@ def auth(url, context_file, browser):
             interactive=True,
             devtools=True,
             browser=browser,
+            user_agent=user_agent,
         )
         context = browser_obj.new_context()
         page = context.new_page()

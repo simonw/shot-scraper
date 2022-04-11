@@ -233,6 +233,7 @@ Options:
   --devtools                      Interact mode with developer tools
   -b, --browser [chromium|firefox|chrome|chrome-beta]
                                   Which browser to use
+  --user-agent TEXT               User-Agent header to use
   --reduced-motion                Emulate 'prefers-reduced-motion' media feature
   --help                          Show this message and exit.
 ```
@@ -281,6 +282,7 @@ Usage: shot-scraper auth [OPTIONS] URL CONTEXT_FILE
 Options:
   -b, --browser [chromium|firefox|chrome|chrome-beta]
                                   Which browser to use
+  --user-agent TEXT               User-Agent header to use
   -h, --help                      Show this message and exit.
 ```
 <!-- [[[end]]] -->
@@ -384,6 +386,7 @@ Options:
   --fail-on-error                 Fail noisily on error
   -b, --browser [chromium|firefox|chrome|chrome-beta]
                                   Which browser to use
+  --user-agent TEXT               User-Agent header to use
   --reduced-motion                Emulate 'prefers-reduced-motion' media feature
   -h, --help                      Show this message and exit.
 ```
@@ -551,6 +554,7 @@ Options:
   -o, --output FILENAME           Save output JSON to this file
   -b, --browser [chromium|firefox|chrome|chrome-beta]
                                   Which browser to use
+  --user-agent TEXT               User-Agent header to use
   --reduced-motion                Emulate 'prefers-reduced-motion' media feature
   -h, --help                      Show this message and exit.
 ```
