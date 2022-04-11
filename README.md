@@ -122,6 +122,27 @@ To capture a rectangle around every element that matches a CSS selector, use `--
 
 You can add `--padding 20` to add 20px of padding around the elements when the shot is taken.
 
+### Specifying elements using JavaScript filters
+
+The `--js-selector` and `--js-selector-all` options can be used to use JavaScript expressions to select elements that cannot be targetted just using CSS selectors.
+
+The options should be passed JavaScript expression that operates on the `el` variable, returning `true` if that element should be included in the screenshot selection.
+
+To take a screenshot of the first paragraph on the page that contains the text "shot-scraper" you could run the following:
+
+    shot-scraper https://github.com/simonw/shot-scraper \
+      --js-selector 'el.tagName == "P" && el.innerText.includes("shot-scraper")'
+
+The `el.tagName == "P"` part is needed here because otherwise the `<html>` element on the page will be the first to match the expression.
+
+The generated JavaScript that will be executed on the page looks like this:
+```javascript
+Array.from(document.getElementsByTagName('*')).find(
+  el => el.tagName == "P" && el.innerText.includes("shot-scraper")
+).classList.add("js-selector-a1f5ba0fc4a4317e58a3bd11a0f16b96");
+```
+The `--js-selector-all` option will select all matching elements, in a similar fashion to the `--selector-all` option described above.
+
 ### Adding a delay
 
 Sometimes a page will not have completely loaded before a screenshot is taken. You can use `--wait X` to wait the specified number of milliseconds after the page load event has fired before taking the screenshot:
@@ -228,6 +249,10 @@ Options:
                                   selector
   --selector-all TEXT             Take shot of all elements matching this CSS
                                   selector
+  --js-selector TEXT              Take shot of first element matching this JS
+                                  (el) expression
+  --js-selector-all TEXT          Take shot of all elements matching this JS
+                                  (el) expression
   -p, --padding INTEGER           When using selectors, add this much padding in
                                   pixels
   -j, --javascript TEXT           Execute this JS prior to taking the shot
@@ -356,6 +381,16 @@ You can use `selector_all:` to capture every element matching a selector, or `se
   selectors_all:
   - .day
   - .entry:nth-of-type(1)
+  padding: 20
+```
+
+The `--js-selector` and `--js-selector-all` options can be provided using the `js_selector:`, `js_selectors:`, `js_selector_all:` and `js_selectors_all:` keys:
+
+```yaml
+- output: js-selector-all.png
+  url: https://github.com/simonw/shot-scraper
+  js_selector: |-
+    el.tagName == "P" && el.innerText.includes("shot-scraper")
   padding: 20
 ```
 
