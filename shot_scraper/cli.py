@@ -689,7 +689,7 @@ def take_shot(
         else:
             page.locator(selector_to_shoot).screenshot(**screenshot_args)
             message = "Screenshot of '{}' on '{}' written to '{}'".format(
-                ", ".join(selectors + selectors_all), url, output
+                ", ".join(list(selectors) + list(selectors_all)), url, output
             )
     else:
         # Whole page
