@@ -295,6 +295,8 @@ Options:
 ```
 <!-- [[[end]]] -->
 
+<a name="multi">
+
 ## Taking multiple screenshots
 
 You can configure multiple screenshots using a YAML file. Create a file called `shots.yml` that looks like this:

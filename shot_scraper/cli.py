@@ -295,6 +295,8 @@ def multi(
     \b
         - output: example.png
           url: http://www.example.com/
+
+    https://github.com/simonw/shot-scraper/blob/main/README.md#multi
     """
     shots = yaml.safe_load(config)
     if shots is None:
