@@ -609,6 +609,7 @@ def take_shot(
 
     # If a single 'selector' turn that into selectors array with one item
     selectors = shot.get("selectors") or []
+    js_selectors = shot.get("js_selectors") or []
     if shot.get("selector"):
         selectors.append(shot["selector"])
     # Attorneys General pluralization for selectors_all
