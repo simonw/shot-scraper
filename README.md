@@ -114,6 +114,12 @@ You can pass `--selector` multiple times. The resulting screenshot will cover th
       -s '#bighead' -s .overband \
       -o bighead-multi-selector.png
 
+To capture a rectangle around every element that matches a CSS selector, use `--selector-all`:
+
+    shot-scraper https://simonwillison.net/ \
+      --selector-all '.day' \
+      -o just-the-day-boxes.png
+
 You can add `--padding 20` to add 20px of padding around the elements when the shot is taken.
 
 ### Adding a delay
@@ -219,6 +225,8 @@ Options:
                                   to the full height of the page
   -o, --output FILE
   -s, --selector TEXT             Take shot of first element matching this CSS
+                                  selector
+  --selector-all TEXT             Take shot of all elements matching this CSS
                                   selector
   -p, --padding INTEGER           When using selectors, add this much padding in
                                   pixels
@@ -328,6 +336,7 @@ To take a screenshot of just the area of a page defined by a CSS selector, add `
 ```
 
 You can pass more than one selector using a `selectors:` list. You can also use `padding:` to specify additional padding:
+
 ```yaml
 - output: bighead-multi-selector.png
   url: https://simonwillison.net/
@@ -336,7 +345,20 @@ You can pass more than one selector using a `selectors:` list. You can also use 
   - .overband
   padding: 20
 ```
+
+You can use `selector_all:` to capture every element matching a selector, or `selectors_all:` to pass a list of such selectors:
+
+```yaml
+- output: selectors-all.png
+  url: https://simonwillison.net/
+  selectors_all:
+  - .day
+  - .entry:nth-of-type(1)
+  padding: 20
+```
+
 To execute JavaScript after the page has loaded but before the screenshot is taken, add a `javascript` key:
+
 ```yaml
 - output: bighead-pink.png
   url: https://simonwillison.net/

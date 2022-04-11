@@ -87,6 +87,12 @@ def cli():
     multiple=True,
 )
 @click.option(
+    "selectors_all",
+    "--selector-all",
+    help="Take shot of all elements matching this CSS selector",
+    multiple=True,
+)
+@click.option(
     "-p",
     "--padding",
     type=int,
@@ -125,6 +131,7 @@ def shot(
     width,
     height,
     selectors,
+    selectors_all,
     padding,
     javascript,
     retina,
@@ -169,6 +176,7 @@ def shot(
     shot = {
         "url": url,
         "selectors": selectors,
+        "selectors_all": selectors_all,
         "javascript": javascript,
         "width": width,
         "height": height,
@@ -596,6 +604,11 @@ def take_shot(
     if shot.get("selector"):
         selectors.append(shot["selector"])
 
+    # Attorneys General pluralization for selectors_all
+    selectors_all = shot.get("selectors_all") or []
+    if shot.get("selector_all"):
+        selectors_all.append(shot["selector_all"])
+
     if not use_existing_page:
         page = context_or_page.new_page()
     else:
@@ -626,13 +639,13 @@ def take_shot(
     if not return_bytes:
         screenshot_args["path"] = output
 
-    if not selectors:
+    if not (selectors or selectors_all):
         screenshot_args["full_page"] = full_page
 
-    if selectors:
+    if selectors or selectors_all:
         # Use JavaScript to create a box around those elements
         selector_javascript, selector_to_shoot = _selector_javascript(
-            selectors, padding
+            selectors, selectors_all, padding
         )
         _evaluate_js(page, selector_javascript)
         if return_bytes:
@@ -652,7 +665,7 @@ def take_shot(
     click.echo(message, err=True)
 
 
-def _selector_javascript(selectors, padding=0):
+def _selector_javascript(selectors, selectors_all, padding=0):
     selector_to_shoot = "shot-scraper-{}".format(secrets.token_hex(8))
     selector_javascript = textwrap.dedent(
         """
@@ -663,6 +676,8 @@ def _selector_javascript(selectors, padding=0):
         let maxBottom = 0;
         let maxRight = 0;
         let els = %s.map(s => document.querySelector(s));
+        // Add the --selector-all elements
+        %s.map(s => els.push(...document.querySelectorAll(s)));
         els.forEach(el => {
             let rect = el.getBoundingClientRect();
             if (rect.top < minTop) {
@@ -701,7 +716,12 @@ def _selector_javascript(selectors, padding=0):
         }, 300);
     });
     """
-        % (padding, json.dumps(selectors), json.dumps(selector_to_shoot))
+        % (
+            padding,
+            json.dumps(selectors),
+            json.dumps(selectors_all),
+            json.dumps(selector_to_shoot),
+        )
     )
     return selector_javascript, "#" + selector_to_shoot
 

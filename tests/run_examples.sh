@@ -24,6 +24,10 @@ shot-scraper https://simonwillison.net/ -s '#bighead' \
 shot-scraper https://simonwillison.net/ \
   -s '#bighead' -s .overband --padding 20 \
   -o examples/bighead-multi-selector.png
+# --selector-all
+shot-scraper https://simonwillison.net/ \
+  --selector-all .big --padding 20 \
+  -o examples/selector-all.png
 # Height and width
 shot-scraper https://simonwillison.net/ -w 400 -h 800 -o examples/simon-narrow.png
 # JPEG quality
@@ -112,6 +116,12 @@ shot-scraper multi empty.yml
   selectors:
   - "#bighead"
   - .overband
+  padding: 20
+- output: selectors-all-from-multi.png
+  url: https://simonwillison.net/
+  selectors_all:
+  - .day
+  - .entry:nth-of-type(1)
   padding: 20
 # Local page on disk
 - url: local.html
