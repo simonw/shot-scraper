@@ -99,6 +99,12 @@ def cli():
     multiple=True,
 )
 @click.option(
+    "js_selectors_all",
+    "--js-selector-all",
+    help="Take shot of all elements matching this JS (el) expression",
+    multiple=True,
+)
+@click.option(
     "-p",
     "--padding",
     type=int,
@@ -139,6 +145,7 @@ def shot(
     selectors,
     selectors_all,
     js_selectors,
+    js_selectors_all,
     padding,
     javascript,
     retina,
@@ -185,6 +192,7 @@ def shot(
         "selectors": selectors,
         "selectors_all": selectors_all,
         "js_selectors": js_selectors,
+        "js_selectors_all": js_selectors_all,
         "javascript": javascript,
         "width": width,
         "height": height,
@@ -607,17 +615,19 @@ def take_shot(
     wait = shot.get("wait")
     padding = shot.get("padding") or 0
 
-    # If a single 'selector' turn that into selectors array with one item
     selectors = shot.get("selectors") or []
+    selectors_all = shot.get("selectors_all") or []
     js_selectors = shot.get("js_selectors") or []
+    js_selectors_all = shot.get("js_selectors_all") or []
+    # If a single 'selector' append to 'selectors' array (and 'js_selectors' etc)
     if shot.get("selector"):
         selectors.append(shot["selector"])
-    # Attorneys General pluralization for selectors_all
-    selectors_all = shot.get("selectors_all") or []
     if shot.get("selector_all"):
         selectors_all.append(shot["selector_all"])
     if shot.get("js_selector"):
         js_selectors.append(shot["js_selector"])
+    if shot.get("js_selector_all"):
+        js_selectors_all.append(shot["js_selector_all"])
 
     if not use_existing_page:
         page = context_or_page.new_page()
@@ -649,13 +659,23 @@ def take_shot(
     if not return_bytes:
         screenshot_args["path"] = output
 
-    if not selectors and not js_selectors and not selectors_all:
+    if (
+        not selectors
+        and not js_selectors
+        and not selectors_all
+        and not js_selectors_all
+    ):
         screenshot_args["full_page"] = full_page
 
-    if js_selectors:
+    if js_selectors or js_selectors_all:
         # Evaluate JavaScript adding classes we can select on
-        js_selector_javascript, extra_selectors = _js_selector_javascript(js_selectors)
+        (
+            js_selector_javascript,
+            extra_selectors,
+            extra_selectors_all,
+        ) = _js_selector_javascript(js_selectors, js_selectors_all)
         selectors.extend(extra_selectors)
+        selectors_all.extend(extra_selectors_all)
         _evaluate_js(page, js_selector_javascript)
 
     if selectors or selectors_all:
@@ -669,7 +689,7 @@ def take_shot(
         else:
             page.locator(selector_to_shoot).screenshot(**screenshot_args)
             message = "Screenshot of '{}' on '{}' written to '{}'".format(
-                ", ".join(selectors), url, output
+                ", ".join(selectors + selectors_all), url, output
             )
     else:
         # Whole page
@@ -681,8 +701,9 @@ def take_shot(
     click.echo(message, err=True)
 
 
-def _js_selector_javascript(js_selectors):
+def _js_selector_javascript(js_selectors, js_selectors_all):
     extra_selectors = []
+    extra_selectors_all = []
     js_blocks = []
     for js_selector in js_selectors:
         klass = "js-selector-{}".format(secrets.token_hex(16))
@@ -698,9 +719,22 @@ def _js_selector_javascript(js_selectors):
                 )
             )
         )
+    for js_selector_all in js_selectors_all:
+        klass = "js-selector-all-{}".format(secrets.token_hex(16))
+        extra_selectors_all.append(".{}".format(klass))
+        js_blocks.append(
+            textwrap.dedent(
+                """
+        Array.from(
+          document.getElementsByTagName('*')
+        ).filter(el => {}).forEach(el => el.classList.add("{}"));
+        """.format(
+                    js_selector_all, klass
+                )
+            )
+        )
     js_selector_javascript = "() => {" + "\n".join(js_blocks) + "}"
-    print(js_selector_javascript, extra_selectors)
-    return js_selector_javascript, extra_selectors
+    return js_selector_javascript, extra_selectors, extra_selectors_all
 
 
 def _selector_javascript(selectors, selectors_all, padding=0):
