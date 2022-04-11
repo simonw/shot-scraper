@@ -438,6 +438,8 @@ Usage: shot-scraper multi [OPTIONS] CONFIG
       - output: example.png
         url: http://www.example.com/
 
+  https://github.com/simonw/shot-scraper/blob/main/README.md#multi
+
 Options:
   -a, --auth FILENAME             Path to JSON authentication context file
   --retina                        Use device scale factor of 2
