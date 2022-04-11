@@ -13,7 +13,7 @@ import yaml
 
 from shot_scraper.utils import filename_for_url, url_or_file_path
 
-BROWSERS = ("chromium", "firefox", "chrome", "chrome-beta")
+BROWSERS = ("chromium", "firefox", "webkit", "chrome", "chrome-beta")
 
 
 def browser_option(fn):
@@ -234,6 +234,8 @@ def _browser_context(
         browser_obj = p.chromium.launch(**browser_kwargs)
     elif browser == "firefox":
         browser_obj = p.firefox.launch(**browser_kwargs)
+    elif browser == "webkit":
+        browser_obj = p.webkit.launch(**browser_kwargs)
     else:
         browser_kwargs["channel"] = browser
         browser_obj = p.chromium.launch(**browser_kwargs)

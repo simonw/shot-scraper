@@ -77,6 +77,8 @@ shot-scraper 'https://www.whatismybrowser.com/detect/what-is-my-user-agent/' \
   -o /tmp/whatismybrowser-default-chromium.png -h 400 -w 800
 shot-scraper 'https://www.whatismybrowser.com/detect/what-is-my-user-agent/' \
   -o /tmp/whatismybrowser-firefox.png -h 400 -w 800 -b firefox
+shot-scraper 'https://www.whatismybrowser.com/detect/what-is-my-user-agent/' \
+  -o /tmp/whatismybrowser-webkit.png -h 400 -w 800 -b webkit
 # And using multi
 echo '# empty file' > empty.yml
 shot-scraper multi empty.yml
