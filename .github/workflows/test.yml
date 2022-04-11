@@ -4,7 +4,7 @@ on: [push]
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     strategy:
       matrix:
         python-version: ["3.7", "3.8", "3.9", "3.10"]
@@ -29,6 +29,7 @@ jobs:
         python -m playwright install-deps
         shot-scraper install
         shot-scraper install -b firefox
+        shot-scraper install -b webkit
     - name: Run tests
       run: |
         pytest

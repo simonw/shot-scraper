@@ -8,3 +8,6 @@ venv
 *.egg-info
 .DS_Store
 examples/
+*.png
+*.jpg
+*.pdf

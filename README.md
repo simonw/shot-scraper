@@ -65,7 +65,7 @@ Usage: shot-scraper install [OPTIONS]
       shot-scraper install -b firefox
 
 Options:
-  -b, --browser [chromium|firefox|chrome|chrome-beta]
+  -b, --browser [chromium|firefox|webkit|chrome|chrome-beta]
                                   Which browser to install
   -h, --help                      Show this message and exit.
 ```
@@ -113,6 +113,12 @@ You can pass `--selector` multiple times. The resulting screenshot will cover th
     shot-scraper https://simonwillison.net/ \
       -s '#bighead' -s .overband \
       -o bighead-multi-selector.png
+
+To capture a rectangle around every element that matches a CSS selector, use `--selector-all`:
+
+    shot-scraper https://simonwillison.net/ \
+      --selector-all '.day' \
+      -o just-the-day-boxes.png
 
 You can add `--padding 20` to add 20px of padding around the elements when the shot is taken.
 
@@ -220,6 +226,8 @@ Options:
   -o, --output FILE
   -s, --selector TEXT             Take shot of first element matching this CSS
                                   selector
+  --selector-all TEXT             Take shot of all elements matching this CSS
+                                  selector
   --js-selector TEXT              Take shot of first element matching this JS
                                   (el) expression
   -p, --padding INTEGER           When using selectors, add this much padding in
@@ -233,8 +241,9 @@ Options:
   -i, --interactive               Interact with the page in a browser before
                                   taking the shot
   --devtools                      Interact mode with developer tools
-  -b, --browser [chromium|firefox|chrome|chrome-beta]
+  -b, --browser [chromium|firefox|webkit|chrome|chrome-beta]
                                   Which browser to use
+  --user-agent TEXT               User-Agent header to use
   --reduced-motion                Emulate 'prefers-reduced-motion' media feature
   --help                          Show this message and exit.
 ```
@@ -281,8 +290,9 @@ Usage: shot-scraper auth [OPTIONS] URL CONTEXT_FILE
       shot-scraper auth https://github.com/ auth.json
 
 Options:
-  -b, --browser [chromium|firefox|chrome|chrome-beta]
+  -b, --browser [chromium|firefox|webkit|chrome|chrome-beta]
                                   Which browser to use
+  --user-agent TEXT               User-Agent header to use
   -h, --help                      Show this message and exit.
 ```
 <!-- [[[end]]] -->
@@ -328,6 +338,7 @@ To take a screenshot of just the area of a page defined by a CSS selector, add `
 ```
 
 You can pass more than one selector using a `selectors:` list. You can also use `padding:` to specify additional padding:
+
 ```yaml
 - output: bighead-multi-selector.png
   url: https://simonwillison.net/
@@ -336,7 +347,20 @@ You can pass more than one selector using a `selectors:` list. You can also use 
   - .overband
   padding: 20
 ```
+
+You can use `selector_all:` to capture every element matching a selector, or `selectors_all:` to pass a list of such selectors:
+
+```yaml
+- output: selectors-all.png
+  url: https://simonwillison.net/
+  selectors_all:
+  - .day
+  - .entry:nth-of-type(1)
+  padding: 20
+```
+
 To execute JavaScript after the page has loaded but before the screenshot is taken, add a `javascript` key:
+
 ```yaml
 - output: bighead-pink.png
   url: https://simonwillison.net/
@@ -384,8 +408,9 @@ Options:
   --retina                        Use device scale factor of 2
   --timeout INTEGER               Wait this many milliseconds before failing
   --fail-on-error                 Fail noisily on error
-  -b, --browser [chromium|firefox|chrome|chrome-beta]
+  -b, --browser [chromium|firefox|webkit|chrome|chrome-beta]
                                   Which browser to use
+  --user-agent TEXT               User-Agent header to use
   --reduced-motion                Emulate 'prefers-reduced-motion' media feature
   -h, --help                      Show this message and exit.
 ```
@@ -551,8 +576,9 @@ Options:
   -i, --input FILENAME            Read input JavaScript from this file
   -a, --auth FILENAME             Path to JSON authentication context file
   -o, --output FILENAME           Save output JSON to this file
-  -b, --browser [chromium|firefox|chrome|chrome-beta]
+  -b, --browser [chromium|firefox|webkit|chrome|chrome-beta]
                                   Which browser to use
+  --user-agent TEXT               User-Agent header to use
   --reduced-motion                Emulate 'prefers-reduced-motion' media feature
   -h, --help                      Show this message and exit.
 ```

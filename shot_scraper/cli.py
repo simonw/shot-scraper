@@ -13,7 +13,7 @@ import yaml
 
 from shot_scraper.utils import filename_for_url, url_or_file_path
 
-BROWSERS = ("chromium", "firefox", "chrome", "chrome-beta")
+BROWSERS = ("chromium", "firefox", "webkit", "chrome", "chrome-beta")
 
 
 def browser_option(fn):
@@ -24,6 +24,11 @@ def browser_option(fn):
         type=click.Choice(BROWSERS, case_sensitive=False),
         help="Which browser to use",
     )(fn)
+    return fn
+
+
+def user_agent_option(fn):
+    click.option("--user-agent", help="User-Agent header to use")(fn)
     return fn
 
 
@@ -82,6 +87,12 @@ def cli():
     multiple=True,
 )
 @click.option(
+    "selectors_all",
+    "--selector-all",
+    help="Take shot of all elements matching this CSS selector",
+    multiple=True,
+)
+@click.option(
     "js_selectors",
     "--js-selector",
     help="Take shot of first element matching this JS (el) expression",
@@ -117,6 +128,7 @@ def cli():
     help="Interact mode with developer tools",
 )
 @browser_option
+@user_agent_option
 @reduced_motion_option
 def shot(
     url,
@@ -125,6 +137,7 @@ def shot(
     width,
     height,
     selectors,
+    selectors_all,
     js_selectors,
     padding,
     javascript,
@@ -135,6 +148,7 @@ def shot(
     interactive,
     devtools,
     browser,
+    user_agent,
     reduced_motion,
 ):
     """
@@ -169,6 +183,7 @@ def shot(
     shot = {
         "url": url,
         "selectors": selectors,
+        "selectors_all": selectors_all,
         "js_selectors": js_selectors,
         "javascript": javascript,
         "width": width,
@@ -189,6 +204,7 @@ def shot(
             devtools=devtools,
             retina=retina,
             browser=browser,
+            user_agent=user_agent,
             timeout=timeout,
             reduced_motion=reduced_motion,
         )
@@ -225,6 +241,7 @@ def _browser_context(
     devtools=False,
     retina=False,
     browser="chromium",
+    user_agent=None,
     timeout=None,
     reduced_motion=False,
 ):
@@ -233,6 +250,8 @@ def _browser_context(
         browser_obj = p.chromium.launch(**browser_kwargs)
     elif browser == "firefox":
         browser_obj = p.firefox.launch(**browser_kwargs)
+    elif browser == "webkit":
+        browser_obj = p.webkit.launch(**browser_kwargs)
     else:
         browser_kwargs["channel"] = browser
         browser_obj = p.chromium.launch(**browser_kwargs)
@@ -243,6 +262,8 @@ def _browser_context(
         context_args["device_scale_factor"] = 2
     if reduced_motion:
         context_args["reduced_motion"] = "reduce"
+    if user_agent is not None:
+        context_args["user_agent"] = user_agent
     context = browser_obj.new_context(**context_args)
     if timeout:
         context.set_default_timeout(timeout)
@@ -265,8 +286,11 @@ def _browser_context(
 )
 @click.option("--fail-on-error", is_flag=True, help="Fail noisily on error")
 @browser_option
+@user_agent_option
 @reduced_motion_option
-def multi(config, auth, retina, timeout, fail_on_error, browser, reduced_motion):
+def multi(
+    config, auth, retina, timeout, fail_on_error, browser, user_agent, reduced_motion
+):
     """
     Take multiple screenshots, defined by a YAML file
 
@@ -291,6 +315,7 @@ def multi(config, auth, retina, timeout, fail_on_error, browser, reduced_motion)
             auth,
             retina=retina,
             browser=browser,
+            user_agent=user_agent,
             timeout=timeout,
             reduced_motion=reduced_motion,
         )
@@ -371,8 +396,11 @@ def accessibility(url, auth, output, javascript, timeout):
     help="Save output JSON to this file",
 )
 @browser_option
+@user_agent_option
 @reduced_motion_option
-def javascript(url, javascript, input, auth, output, browser, reduced_motion):
+def javascript(
+    url, javascript, input, auth, output, browser, user_agent, reduced_motion
+):
     """
     Execute JavaScript against the page and return the result as JSON
 
@@ -403,7 +431,11 @@ def javascript(url, javascript, input, auth, output, browser, reduced_motion):
     url = url_or_file_path(url, _check_and_absolutize)
     with sync_playwright() as p:
         context, browser_obj = _browser_context(
-            p, auth, browser=browser, reduced_motion=reduced_motion
+            p,
+            auth,
+            browser=browser,
+            user_agent=user_agent,
+            reduced_motion=reduced_motion,
         )
         page = context.new_page()
         page.goto(url)
@@ -510,7 +542,8 @@ def install(browser):
     type=click.Path(file_okay=True, writable=True, dir_okay=False, allow_dash=True),
 )
 @browser_option
-def auth(url, context_file, browser):
+@user_agent_option
+def auth(url, context_file, browser, user_agent):
     """
     Open a browser so user can manually authenticate with the specified site,
     then save the resulting authentication context to a file.
@@ -526,6 +559,7 @@ def auth(url, context_file, browser):
             interactive=True,
             devtools=True,
             browser=browser,
+            user_agent=user_agent,
         )
         context = browser_obj.new_context()
         page = context.new_page()
@@ -577,8 +611,10 @@ def take_shot(
     selectors = shot.get("selectors") or []
     if shot.get("selector"):
         selectors.append(shot["selector"])
-
-    js_selectors = shot.get("js_selectors") or []
+    # Attorneys General pluralization for selectors_all
+    selectors_all = shot.get("selectors_all") or []
+    if shot.get("selector_all"):
+        selectors_all.append(shot["selector_all"])
     if shot.get("js_selector"):
         js_selectors.append(shot["js_selector"])
 
@@ -612,7 +648,7 @@ def take_shot(
     if not return_bytes:
         screenshot_args["path"] = output
 
-    if not selectors and not js_selectors:
+    if not selectors and not js_selectors and not selectors_all:
         screenshot_args["full_page"] = full_page
 
     if js_selectors:
@@ -621,10 +657,10 @@ def take_shot(
         selectors.extend(extra_selectors)
         _evaluate_js(page, js_selector_javascript)
 
-    if selectors:
+    if selectors or selectors_all:
         # Use JavaScript to create a box around those elements
         selector_javascript, selector_to_shoot = _selector_javascript(
-            selectors, padding
+            selectors, selectors_all, padding
         )
         _evaluate_js(page, selector_javascript)
         if return_bytes:
@@ -666,7 +702,7 @@ def _js_selector_javascript(js_selectors):
     return js_selector_javascript, extra_selectors
 
 
-def _selector_javascript(selectors, padding=0):
+def _selector_javascript(selectors, selectors_all, padding=0):
     selector_to_shoot = "shot-scraper-{}".format(secrets.token_hex(8))
     selector_javascript = textwrap.dedent(
         """
@@ -677,6 +713,8 @@ def _selector_javascript(selectors, padding=0):
         let maxBottom = 0;
         let maxRight = 0;
         let els = %s.map(s => document.querySelector(s));
+        // Add the --selector-all elements
+        %s.map(s => els.push(...document.querySelectorAll(s)));
         els.forEach(el => {
             let rect = el.getBoundingClientRect();
             if (rect.top < minTop) {
@@ -715,7 +753,12 @@ def _selector_javascript(selectors, padding=0):
         }, 300);
     });
     """
-        % (padding, json.dumps(selectors), json.dumps(selector_to_shoot))
+        % (
+            padding,
+            json.dumps(selectors),
+            json.dumps(selectors_all),
+            json.dumps(selector_to_shoot),
+        )
     )
     return selector_javascript, "#" + selector_to_shoot
 
