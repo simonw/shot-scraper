@@ -681,7 +681,7 @@ def take_shot(
         _evaluate_js(page, js_selector_javascript)
 
     if selectors or selectors_all:
-        # Use JavaScript to create a box around those elements
+        # Use JavaScript to create a box around those elementsdef
         selector_javascript, selector_to_shoot = _selector_javascript(
             selectors, selectors_all, padding
         )
