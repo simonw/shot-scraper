@@ -133,4 +133,4 @@ shot-scraper multi empty.yml
 # Local page on disk
 - url: local.html
   output: local-from-multi.png
-' | shot-scraper multi -)
+' | shot-scraper multi - --fail-on-error)
