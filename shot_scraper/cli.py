@@ -293,11 +293,26 @@ def _browser_context(
     help="Wait this many milliseconds before failing",
 )
 @click.option("--fail-on-error", is_flag=True, help="Fail noisily on error")
+@click.option(
+    "noclobber",
+    "-n",
+    "--no-clobber",
+    is_flag=True,
+    help="Skip images that already exist",
+)
 @browser_option
 @user_agent_option
 @reduced_motion_option
 def multi(
-    config, auth, retina, timeout, fail_on_error, browser, user_agent, reduced_motion
+    config,
+    auth,
+    retina,
+    timeout,
+    fail_on_error,
+    noclobber,
+    browser,
+    user_agent,
+    reduced_motion,
 ):
     """
     Take multiple screenshots, defined by a YAML file
@@ -330,6 +345,12 @@ def multi(
             reduced_motion=reduced_motion,
         )
         for shot in shots:
+            if (
+                noclobber
+                and shot.get("output")
+                and pathlib.Path(shot["output"]).exists()
+            ):
+                continue
             try:
                 take_shot(context, shot)
             except TimeoutError as e:

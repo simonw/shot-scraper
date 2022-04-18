@@ -338,6 +338,8 @@ Then run the tool like so:
 
 This will create two image files, `www-example-com.png` and `w3c.org.png`, containing screenshots of those two URLs.
 
+If you run the tool with the `-n` or `--no-clobber` option any shots where the output file aleady exists will be skipped.
+
 You can set `url:` to a path to a file on disk as well:
 
 ```yaml
@@ -445,6 +447,7 @@ Options:
   --retina                        Use device scale factor of 2
   --timeout INTEGER               Wait this many milliseconds before failing
   --fail-on-error                 Fail noisily on error
+  -n, --no-clobber                Skip images that already exist
   -b, --browser [chromium|firefox|webkit|chrome|chrome-beta]
                                   Which browser to use
   --user-agent TEXT               User-Agent header to use
