@@ -574,7 +574,10 @@ def install(browser):
 )
 @browser_option
 @user_agent_option
-def auth(url, context_file, browser, user_agent):
+@click.option(
+    "--devtools", is_flag=True, help="Open browser DevTools"
+)
+def auth(url, context_file, browser, user_agent, devtools):
     """
     Open a browser so user can manually authenticate with the specified site,
     then save the resulting authentication context to a file.
@@ -588,7 +591,7 @@ def auth(url, context_file, browser, user_agent):
             p,
             auth=None,
             interactive=True,
-            devtools=True,
+            devtools=devtools,
             browser=browser,
             user_agent=user_agent,
         )

@@ -316,6 +316,7 @@ Options:
   -b, --browser [chromium|firefox|webkit|chrome|chrome-beta]
                                   Which browser to use
   --user-agent TEXT               User-Agent header to use
+  --devtools                      Open browser DevTools
   -h, --help                      Show this message and exit.
 ```
 <!-- [[[end]]] -->
