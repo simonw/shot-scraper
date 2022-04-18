@@ -92,8 +92,6 @@ shot-scraper multi empty.yml
 # This one will produce github-com.png
 - url: https://github.com/
   height: 600
-- output: w3c.org.png
-  url: https://www.w3.org/
 - output: bighead-from-multi.png
   url: https://simonwillison.net/
   selector: "#bighead"
