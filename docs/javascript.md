@@ -76,9 +76,9 @@ This example [uses GitHub Actions](https://docs.github.com/en/actions/quickstart
       }"
 ```
 
-## Example: Extracting page content with Readibility.js
+## Example: Extracting page content with Readability.js
 
-[Readibility.js](https://github.com/mozilla/readability) is " standalone version of the readability library used for Firefox Reader View." It lets you parse the content on a web page and extract just the title, content, byline and some other key metadata.
+[Readability.js](https://github.com/mozilla/readability) is " standalone version of the readability library used for Firefox Reader View." It lets you parse the content on a web page and extract just the title, content, byline and some other key metadata.
 
 The following recipe imports the library from the [Skypack CDN](https://www.skypack.dev/), runs it against the current page and returns the results to the console as JSON:
 
