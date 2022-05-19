@@ -120,7 +120,7 @@ Usage: shot-scraper multi [OPTIONS] CONFIG
       - output: example.png
         url: http://www.example.com/
 
-  https://github.com/simonw/shot-scraper/blob/main/README.md#multi
+  https://shot-scraper.datasette.io/en/latest/multi.html
 
 Options:
   -a, --auth FILENAME             Path to JSON authentication context file

@@ -327,7 +327,7 @@ def multi(
         - output: example.png
           url: http://www.example.com/
 
-    https://github.com/simonw/shot-scraper/blob/main/README.md#multi
+    https://shot-scraper.datasette.io/en/latest/multi.html
     """
     shots = yaml.safe_load(config)
     if shots is None:
