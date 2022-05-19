@@ -24,7 +24,7 @@ If you omit the protocol `http://` will be added automatically, and any redirect
 
 The browser window used to take the screenshots defaults to 1280px wide and 780px tall.
 
-You can adjust these with the `--width` and `--height` options:
+You can adjust these with the `--width` and `--height` options (`-w` and `-h` for short):
 
     shot-scraper https://datasette.io/ -o small.png --width 400 --height 800
 
