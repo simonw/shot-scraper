@@ -574,9 +574,7 @@ def install(browser):
 )
 @browser_option
 @user_agent_option
-@click.option(
-    "--devtools", is_flag=True, help="Open browser DevTools"
-)
+@click.option("--devtools", is_flag=True, help="Open browser DevTools")
 def auth(url, context_file, browser, user_agent, devtools):
     """
     Open a browser so user can manually authenticate with the specified site,
