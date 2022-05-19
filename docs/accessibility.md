@@ -1,4 +1,4 @@
-## Dumping out an accessibility tree
+# Dumping out an accessibility tree
 
 The `shot-scraper accessibility` command dumps out the Chromium accessibility tree for the provided URL, as JSON:
 
