@@ -8,6 +8,8 @@ Use `-o filename.json` to write the output to a file instead of displaying it.
 
 Add `--javascript SCRIPT` to execute custom JavaScript before taking the snapshot.
 
+## shot-scraper accessibility --help
+
 Full `--help` for this command:
 
 <!-- [[[cog

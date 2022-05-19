@@ -139,6 +139,43 @@ You can pass the path to an HTML file on disk to take a screenshot of that rende
 
 CSS and images referenced from that file using relative paths will also be included.
 
+## Tips for executing JavaScript
+
+If you are using the `--javascript` option to execute code, that code will be executed after the page load event has fired but before the screenshot is taken.
+
+You can use that code to do things like hide or remove specific page elements, click on links to open menus, or even add annotations to the page such as this [pink arrow example](https://simonwillison.net/2022/Mar/10/shot-scraper/#a-complex-example).
+
+This code hides any element with a `[data-ad-rendered]` attribute and the element with `id="ensNotifyBanner"`:
+
+    document.querySelectorAll(
+        '[data-ad-rendered],#ensNotifyBanner'
+    ).forEach(el => el.style.display = 'none')
+
+You can execute that like so:
+
+```
+shot-scraper https://www.latimes.com/ -o latimes.png --javascript "
+document.querySelectorAll(
+    '[data-ad-rendered],#ensNotifyBanner'
+).forEach(el => el.style.display = 'none')
+"
+```
+
+In some cases you may need to add a pause that executes during your custom JavaScript before the screenshot is taken - for example if you click on a button that triggers a short fading animation.
+
+You can do that using the following pattern:
+```javascript
+new Promise(takeShot => {
+  // Your code goes here
+  // ...
+  setTimeout(() => {
+    // Resolving the promise takes the shot
+    takeShot();
+  }, 1000);
+});
+```
+If your custom code defines a `Promise`, `shot-scraper` will wait for that promise to complete before taking the screenshot. Here the screenshot does not occur until the `takeShot()` function is called.
+
 ## shot-scraper shot --help
 
 Full `--help` for this command:
@@ -215,40 +252,3 @@ Options:
   --help                          Show this message and exit.
 ```
 <!-- [[[end]]] -->
-
-## Tips for executing JavaScript
-
-If you are using the `--javascript` option to execute code, that code will be executed after the page load event has fired but before the screenshot is taken.
-
-You can use that code to do things like hide or remove specific page elements, click on links to open menus, or even add annotations to the page such as this [pink arrow example](https://simonwillison.net/2022/Mar/10/shot-scraper/#a-complex-example).
-
-This code hides any element with a `[data-ad-rendered]` attribute and the element with `id="ensNotifyBanner"`:
-
-    document.querySelectorAll(
-        '[data-ad-rendered],#ensNotifyBanner'
-    ).forEach(el => el.style.display = 'none')
-
-You can execute that like so:
-
-```
-shot-scraper https://www.latimes.com/ -o latimes.png --javascript "
-document.querySelectorAll(
-    '[data-ad-rendered],#ensNotifyBanner'
-).forEach(el => el.style.display = 'none')
-"
-```
-
-In some cases you may need to add a pause that executes during your custom JavaScript before the screenshot is taken - for example if you click on a button that triggers a short fading animation.
-
-You can do that using the following pattern:
-```javascript
-new Promise(takeShot => {
-  // Your code goes here
-  // ...
-  setTimeout(() => {
-    // Resolving the promise takes the shot
-    takeShot();
-  }, 1000);
-});
-```
-If your custom code defines a `Promise`, `shot-scraper` will wait for that promise to complete before taking the screenshot. Here the screenshot does not occur until the `takeShot()` function is called.

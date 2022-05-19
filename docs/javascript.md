@@ -27,6 +27,8 @@ This returns:
 }
 ```
 
+## Using async/await
+
 You can pass an `async` function if you want to use `await`, including to import modules from external URLs. This example loads the [Readability.js](https://github.com/mozilla/readability) library from [Skypack](https://www.skypack.dev/) and uses it to extract the core content of a page:
 
 ```
@@ -57,7 +59,7 @@ Or read it from standard input like this:
 
     echo "document.title" | shot-scraper javascript datasette.io
 
-## Handling JavaScript errors
+## Using this for automated tests
 
 If a JavaScript error occurs, a stack trace will be written to standard error and the tool will terminate with an exit code of 1.
 
@@ -73,6 +75,36 @@ This example [uses GitHub Actions](https://docs.github.com/en/actions/quickstart
         throw 'Wrong title detected';
       }"
 ```
+
+## Example: Extracting page content with Readibility.js
+
+[Readibility.js](https://github.com/mozilla/readability) is " standalone version of the readability library used for Firefox Reader View." It lets you parse the content on a web page and extract just the title, content, byline and some other key metadata.
+
+The following recipe imports the library from the [Skypack CDN](https://www.skypack.dev/), runs it against the current page and returns the results to the console as JSON:
+
+```bash
+shot-scraper javascript https://simonwillison.net/2022/Mar/24/datasette-061/ "
+async () => {
+  const readability = await import('https://cdn.skypack.dev/@mozilla/readability');
+  return (new readability.Readability(document)).parse();
+}"
+```
+The output looks like this:
+```json
+{
+    "title": "Datasette 0.61: The annotated release notes",
+    "byline": null,
+    "dir": null,
+    "lang": "en-gb",
+    "content": "<div id=\"readability-page-1\" class=\"page\"><div id=\"primary\">\n\n\n\n\n<p>I released ... <this is a very long string>",
+    "length": 8625,
+    "excerpt": "I released Datasette 0.61 this morning\u2014closely followed by 0.61.1 to fix a minor bug. Here are the annotated release notes. In preparation for Datasette 1.0, this release includes two potentially \u2026",
+    "siteName": null
+}
+```
+See [Extracting web page content using Readability.js and shot-scraper](https://til.simonwillison.net/shot-scraper/readability) for more.
+
+## shot-scraper javascript \-\-help
 
 Full `--help` for this command:
 
