@@ -1,5 +1,7 @@
 # shot-scraper
 
+A comand-line utility for taking automated screenshots of websites
+
 ```{toctree}
 ---
 maxdepth: 3
