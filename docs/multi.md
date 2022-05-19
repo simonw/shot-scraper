@@ -82,7 +82,7 @@ To execute JavaScript after the page has loaded but before the screenshot is tak
     document.body.style.backgroundColor = 'pink'
 ```
 
-You can include desired `height`, `width`, `quality` and `wait` options on each item as well:
+You can include desired `height`, `width`, `quality`, `wait` and `wait_for` options on each item as well:
 
 ```yaml
 - output: simon-narrow.jpg
@@ -91,6 +91,7 @@ You can include desired `height`, `width`, `quality` and `wait` options on each 
   height: 800
   quality: 80
   wait: 500
+  wait_for: document.querySelector('#bighead')
 ```
 
 Full `--help` for this command:

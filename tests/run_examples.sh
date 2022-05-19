@@ -38,7 +38,7 @@ shot-scraper 'https://www.owlsnearme.com/?place=127871' \
   --selector 'section.secondary' \
   -o examples/owlsnearme-wait.jpg \
   --wait 2000
-# Accessbility
+# Accessibility
 shot-scraper accessibility https://datasette.io/ \
   > examples/datasette-accessibility.json
 shot-scraper accessibility https://simonwillison.net \
@@ -69,11 +69,28 @@ new Promise(done => setInterval(
 ));" -o examples/datasette-io-title-tagline-from-promise.json
 # Different browsers
 shot-scraper 'https://www.whatismybrowser.com/detect/what-is-my-user-agent/' \
-  -o /tmp/whatismybrowser-default-chromium.png -h 400 -w 800
+  -o examples/whatismybrowser-default-chromium.png -h 400 -w 800
 shot-scraper 'https://www.whatismybrowser.com/detect/what-is-my-user-agent/' \
-  -o /tmp/whatismybrowser-firefox.png -h 400 -w 800 -b firefox
+  -o examples/whatismybrowser-firefox.png -h 400 -w 800 -b firefox
 shot-scraper 'https://www.whatismybrowser.com/detect/what-is-my-user-agent/' \
-  -o /tmp/whatismybrowser-webkit.png -h 400 -w 800 -b webkit
+  -o examples/whatismybrowser-webkit.png -h 400 -w 800 -b webkit
+# --wait-for
+echo '<html>
+<body><h1>Here it comes...</h1>
+<script>
+setTimeout(() => {
+  var div = document.createElement("div");
+  div.innerHTML = "DIV after 2 seconds";
+  document.body.appendChild(div);
+}, 2000);
+</script>
+</body>
+</html>' > examples/div-after-2-seconds.html
+shot-scraper examples/div-after-2-seconds.html \
+  -o examples/no-wait.png -w 300 -h 200
+shot-scraper examples/div-after-2-seconds.html \
+  -o examples/wait-for.png -w 300 -h 200 \
+  --wait-for "document.querySelector('div')"
 # And using multi
 echo '# empty file' > empty.yml
 shot-scraper multi empty.yml
@@ -122,4 +139,11 @@ shot-scraper multi empty.yml
 # Local page on disk
 - url: local.html
   output: local-from-multi.png
+# wait_for
+- url: div-after-2-seconds.html
+  output: wait-for-multi.png
+  width: 300
+  height: 200
+  wait_for: |-
+    document.querySelector("div")
 ' | shot-scraper multi - --fail-on-error)

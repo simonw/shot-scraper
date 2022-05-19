@@ -117,6 +117,7 @@ def cli():
 @click.option(
     "--wait", type=int, help="Wait this many milliseconds before taking the screenshot"
 )
+@click.option("--wait-for", help="Wait until this JS expression returns true")
 @click.option(
     "--timeout",
     type=int,
@@ -151,6 +152,7 @@ def shot(
     retina,
     quality,
     wait,
+    wait_for,
     timeout,
     interactive,
     devtools,
@@ -198,6 +200,7 @@ def shot(
         "height": height,
         "quality": quality,
         "wait": wait,
+        "wait_for": wait_for,
         "timeout": timeout,
         "padding": padding,
         "retina": retina,
@@ -637,6 +640,7 @@ def take_shot(
         output = filename_for_url(url, ext="png", file_exists=os.path.exists)
     quality = shot.get("quality")
     wait = shot.get("wait")
+    wait_for = shot.get("wait_for")
     padding = shot.get("padding") or 0
 
     selectors = shot.get("selectors") or []
@@ -673,9 +677,13 @@ def take_shot(
 
     if wait:
         time.sleep(wait / 1000)
+
     javascript = shot.get("javascript")
     if javascript:
         _evaluate_js(page, javascript)
+
+    if wait_for:
+        page.wait_for_function(wait_for)
 
     screenshot_args = {}
     if quality:

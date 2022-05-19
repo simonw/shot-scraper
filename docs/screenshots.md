@@ -73,11 +73,20 @@ Array.from(document.getElementsByTagName('*')).find(
 ```
 The `--js-selector-all` option will select all matching elements, in a similar fashion to the `--selector-all` option described above.
 
-## Adding a delay
+## Waiting for a delay
 
 Sometimes a page will not have completely loaded before a screenshot is taken. You can use `--wait X` to wait the specified number of milliseconds after the page load event has fired before taking the screenshot:
 
     shot-scraper https://simonwillison.net/ --wait 2000
+
+## Waiting until a specific condition
+
+In addition to waiting a specific amount of time, you can also wait until a JavaScript expression returns true using the `--wait-for expression` option.
+
+This example takes the screenshot the moment a `<div>` with an ID of `banner` becomes available in the DOM:
+
+    shot-scraper https://.../ \
+      --wait-for 'document.querySelector("div#content")'
 
 ## Executing custom JavaScript
 
@@ -194,6 +203,7 @@ Options:
   --quality INTEGER               Save as JPEG with this quality, e.g. 80
   --wait INTEGER                  Wait this many milliseconds before taking the
                                   screenshot
+  --wait-for TEXT                 Wait until this JS expression returns true
   --timeout INTEGER               Wait this many milliseconds before failing
   -i, --interactive               Interact with the page in a browser before
                                   taking the shot
