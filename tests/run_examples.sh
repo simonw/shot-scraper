@@ -38,15 +38,6 @@ shot-scraper 'https://www.owlsnearme.com/?place=127871' \
   --selector 'section.secondary' \
   -o examples/owlsnearme-wait.jpg \
   --wait 2000
-# reduced motion (without being set)
-shot-scraper http://f1everything.com/2021 \
-  --selector 'div.SeasonCumulative > div > svg' \
-  -o examples/f1.png
-# reduced motion (with being set)
-shot-scraper http://f1everything.com/2021 \
-  --selector 'div.SeasonCumulative > div > svg' \
-  -o examples/f1-reduced-motion.png \
-  --reduced-motion
 # Accessbility
 shot-scraper accessibility https://datasette.io/ \
   > examples/datasette-accessibility.json
