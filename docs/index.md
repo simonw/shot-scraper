@@ -11,6 +11,7 @@ multi
 javascript
 pdf
 accessibility
+github-actions
 contributing
 ```
 ```{include} ../README.md
