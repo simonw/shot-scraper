@@ -77,6 +77,10 @@ This example [uses GitHub Actions](https://docs.github.com/en/actions/quickstart
 Full `--help` for this command:
 
 <!-- [[[cog
+import cog
+from shot_scraper import cli
+from click.testing import CliRunner
+runner = CliRunner()
 result = runner.invoke(cli.cli, ["javascript", "--help"])
 help = result.output.replace("Usage: cli", "Usage: shot-scraper")
 cog.out(

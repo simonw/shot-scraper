@@ -12,6 +12,10 @@ This will save to `datasette-io.pdf`. You can use `-o` to specify a filename:
 Full `--help` for this command:
 
 <!-- [[[cog
+import cog
+from shot_scraper import cli
+from click.testing import CliRunner
+runner = CliRunner()
 result = runner.invoke(cli.cli, ["pdf", "--help"])
 help = result.output.replace("Usage: cli", "Usage: shot-scraper")
 cog.out(

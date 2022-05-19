@@ -40,7 +40,7 @@ jobs:
         pytest
     - name: Check if cog needs to be run
       run: |
-        cog --check README.md
+        cog --check docs/*.md
     - name: Run test examples
       run: |
         tests/run_examples.sh

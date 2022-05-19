@@ -22,6 +22,10 @@ To take authenticated screenshots you can then use the `-a` or `--auth` options 
 Full `--help` for `shot-scraper auth`:
 
 <!-- [[[cog
+import cog
+from shot_scraper import cli
+from click.testing import CliRunner
+runner = CliRunner()
 result = runner.invoke(cli.cli, ["auth", "--help"])
 help = result.output.replace("Usage: cli", "Usage: shot-scraper")
 cog.out(

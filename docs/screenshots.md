@@ -135,6 +135,10 @@ CSS and images referenced from that file using relative paths will also be inclu
 Full `--help` for this command:
 
 <!-- [[[cog
+import cog
+from shot_scraper import cli
+from click.testing import CliRunner
+runner = CliRunner()
 result = runner.invoke(cli.cli, ["shot", "--help"])
 help = result.output.replace("Usage: cli", "Usage: shot-scraper")
 cog.out(
