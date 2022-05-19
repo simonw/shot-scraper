@@ -83,7 +83,7 @@ Sometimes a page will not have completely loaded before a screenshot is taken. Y
 
 In addition to waiting a specific amount of time, you can also wait until a JavaScript expression returns true using the `--wait-for expression` option.
 
-This example takes the screenshot the moment a `<div>` with an ID of `banner` becomes available in the DOM:
+This example takes the screenshot the moment a `<div>` with an ID of `content` becomes available in the DOM:
 
     shot-scraper https://.../ \
       --wait-for 'document.querySelector("div#content")'
