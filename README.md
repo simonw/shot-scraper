@@ -33,7 +33,7 @@ You can take a screenshot of a web page like this:
 
 This will create a screenshot in a file called `datasette-io.png`.
 
-Many more options are available, see [Taking a screenshot](https://shot-scraper.datasette.io/en/stable/sreenshots.html) for details.
+Many more options are available, see [Taking a screenshot](https://shot-scraper.datasette.io/en/stable/screenshots.html) for details.
 
 ## Examples
 
