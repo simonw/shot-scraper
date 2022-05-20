@@ -1,4 +1,4 @@
-sphinx_rtd_theme
+furo
 sphinx-autobuild
 myst-parser
 cogapp
