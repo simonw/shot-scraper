@@ -98,7 +98,7 @@ You can include desired `height`, `width`, `quality`, `wait` and `wait_for` opti
   wait_for: document.querySelector('#bighead')
 ```
 
-## shot-scraper multi \-\-help
+## `shot-scraper multi --help`
 
 Full `--help` for this command:
 

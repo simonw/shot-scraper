@@ -19,7 +19,7 @@ To take authenticated screenshots you can then use the `-a` or `--auth` options 
     shot-scraper https://datasette-auth-passwords-demo.datasette.io/ \
       -a auth.json -o authed.png
 
-## shot-scraper auth \-\-help
+## `shot-scraper auth --help`
 
 Full `--help` for `shot-scraper auth`:
 

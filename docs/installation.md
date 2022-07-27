@@ -19,7 +19,7 @@ If you want to use other browsers such as Firefox you should install those too:
 % shot-scraper install -b firefox
 ```
 
-## shot-scraper shot \-\-help
+## `shot-scraper shot --help`
 
 Full `--help` for the `shot-scraper install` command:
 <!-- [[[cog
