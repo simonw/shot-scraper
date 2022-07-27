@@ -9,7 +9,7 @@ This will save to `datasette-io.pdf`. You can use `-o` to specify a filename:
     shot-scraper pdf https://datasette.io/tutorials/learn-sql \
       -o learn-sql.pdf
 
-## shot-scraper pdf --help
+## `shot-scraper pdf --help`
 
 Full `--help` for this command:
 
