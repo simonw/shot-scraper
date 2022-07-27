@@ -14,6 +14,10 @@ Then run the tool like so:
 
 This will create two image files, `www-example-com.png` and `w3c.org.png`, containing screenshots of those two URLs.
 
+Use `-` to pass in YAML from standard input:
+
+    echo "- url: http://www.example.com" | shot-scraper multi -
+
 If you run the tool with the `-n` or `--no-clobber` option any shots where the output file aleady exists will be skipped.
 
 You can set `url:` to a path to a file on disk as well:
