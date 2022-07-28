@@ -68,9 +68,9 @@ You can losslessy compress the PNGs generated using `shot-scraper` by running th
       with:
         path: ~/.cargo/
         key: ${{ runner.os }}-cargo
-    - name: Install Oxipng
+    - name: Install Oxipng if it is not installed
       run: |
-        cargo install oxipng
+        which oxipng || cargo install oxipng
 ```
 
 Then after running `shot-scraper` add this step to compress the images:
