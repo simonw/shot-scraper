@@ -511,6 +511,10 @@ def pdf(url, auth, output, javascript, wait, media_screen, landscape):
     Use -o to specify a filename:
 
         shot-scraper pdf https://datasette.io/ -o datasette.pdf
+
+    You can pass a path to a file instead of a URL:
+
+        shot-scraper pdf invoice.html -o invoice.pdf
     """
     url = url_or_file_path(url, _check_and_absolutize)
     if output is None:

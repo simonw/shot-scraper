@@ -9,6 +9,10 @@ This will save to `datasette-io.pdf`. You can use `-o` to specify a filename:
     shot-scraper pdf https://datasette.io/tutorials/learn-sql \
       -o learn-sql.pdf
 
+You can pass the path to a local file on disk instead of a URL:
+
+    shot-scraper pdf invoice.html -o invoice.pdf
+
 ## `shot-scraper pdf --help`
 
 Full `--help` for this command:
@@ -36,6 +40,10 @@ Usage: shot-scraper pdf [OPTIONS] URL
   Use -o to specify a filename:
 
       shot-scraper pdf https://datasette.io/ -o datasette.pdf
+
+  You can pass a path to a file instead of a URL:
+
+      shot-scraper pdf invoice.html -o invoice.pdf
 
 Options:
   -a, --auth FILENAME    Path to JSON authentication context file
