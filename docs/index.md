@@ -1,6 +1,6 @@
 # shot-scraper
 
-A comand-line utility for taking automated screenshots of websites
+A command-line utility for taking automated screenshots of websites
 
 ```{toctree}
 ---
