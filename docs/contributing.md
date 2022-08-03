@@ -10,6 +10,10 @@ Or if you are using `pipenv`:
 
     pipenv shell
 
+Playwright must be installed for the tests to run:
+
+    playwright install
+
 Now install the dependencies and test dependencies:
 
     pip install -e '.[test]'
