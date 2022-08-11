@@ -500,7 +500,37 @@ def javascript(
     "--media-screen", is_flag=True, help="Use screen rather than print styles"
 )
 @click.option("--landscape", is_flag=True, help="Use landscape orientation")
-def pdf(url, auth, output, javascript, wait, media_screen, landscape):
+@click.option(
+    "--format",
+    "format_",
+    type=click.Choice(
+        ["Letter", "Legal", "Tabloid", "Ledger", "A0", "A1", "A2", "A3", "A4", "A5", "A6"],
+        case_sensitive=False,
+    ),
+    help="Which standard paper size to use",
+)
+@click.option("--width", help="PDF width including units, e.g. 10cm")
+@click.option("--height", help="PDF height including units, e.g. 10cm")
+@click.option(
+    "--scale",
+    type=click.FloatRange(min=0.1, max=2.0),
+    help="Scale of the webpage rendering",
+)
+@click.option("--print-background", is_flag=True, help="Print background graphics")
+def pdf(
+    url,
+    auth,
+    output,
+    javascript,
+    wait,
+    media_screen,
+    landscape,
+    format_,
+    width,
+    height,
+    scale,
+    print_background,
+):
     """
     Create a PDF of the specified page
 
@@ -530,6 +560,11 @@ def pdf(url, auth, output, javascript, wait, media_screen, landscape):
 
         kwargs = {
             "landscape": landscape,
+            "format": format_,
+            "width": width,
+            "height": height,
+            "scale": scale,
+            "print_background": print_background,
         }
         if output != "-":
             kwargs["path"] = output
