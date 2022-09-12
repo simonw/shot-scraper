@@ -43,5 +43,5 @@ def test_multi_noclobber(mocker, args, expected_shot_count):
         open("shots.yaml", "w").write(yaml)
         open("example.jpg", "wb").write(b"")
         result = runner.invoke(cli, ["multi", "shots.yaml"] + args, input=yaml)
-        assert result.exit_code == 0
+        assert result.exit_code == 0, str(result.exception)
         assert take_shot.call_count == expected_shot_count
