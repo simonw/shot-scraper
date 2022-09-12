@@ -176,7 +176,7 @@ new Promise(takeShot => {
 ```
 If your custom code defines a `Promise`, `shot-scraper` will wait for that promise to complete before taking the screenshot. Here the screenshot does not occur until the `takeShot()` function is called.
 
-## ``shot-scraper shot --help`
+## `shot-scraper shot --help`
 
 Full `--help` for this command:
 
