@@ -46,13 +46,19 @@ Usage: shot-scraper pdf [OPTIONS] URL
       shot-scraper pdf invoice.html -o invoice.pdf
 
 Options:
-  -a, --auth FILENAME    Path to JSON authentication context file
+  -a, --auth FILENAME             Path to JSON authentication context file
   -o, --output FILE
-  -j, --javascript TEXT  Execute this JS prior to creating the PDF
-  --wait INTEGER         Wait this many milliseconds before taking the
-                         screenshot
-  --media-screen         Use screen rather than print styles
-  --landscape            Use landscape orientation
-  -h, --help             Show this message and exit.
+  -j, --javascript TEXT           Execute this JS prior to creating the PDF
+  --wait INTEGER                  Wait this many milliseconds before taking the
+                                  screenshot
+  --media-screen                  Use screen rather than print styles
+  --landscape                     Use landscape orientation
+  --format [Letter|Legal|Tabloid|Ledger|A0|A1|A2|A3|A4|A5|A6]
+                                  Which standard paper size to use
+  --width TEXT                    PDF width including units, e.g. 10cm
+  --height TEXT                   PDF height including units, e.g. 10cm
+  --scale FLOAT RANGE             Scale of the webpage rendering  [0.1<=x<=2.0]
+  --print-background              Print background graphics
+  -h, --help                      Show this message and exit.
 ```
 <!-- [[[end]]] -->
