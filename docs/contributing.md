@@ -14,6 +14,10 @@ Now install the dependencies and test dependencies:
 
     pip install -e '.[test]'
 
+Then you'll need to install the Playwright browsers too:
+
+    shot-scraper install
+
 To run the tests:
 
     pytest
