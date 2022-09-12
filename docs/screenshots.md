@@ -260,6 +260,7 @@ Options:
   -i, --interactive               Interact with the page in a browser before
                                   taking the shot
   --devtools                      Interact mode with developer tools
+  --log-requests FILENAME         Log details of all requests to this file
   -b, --browser [chromium|firefox|webkit|chrome|chrome-beta]
                                   Which browser to use
   --user-agent TEXT               User-Agent header to use
