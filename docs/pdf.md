@@ -59,6 +59,6 @@ Options:
   --height TEXT                   PDF height including units, e.g. 10cm
   --scale FLOAT RANGE             Scale of the webpage rendering  [0.1<=x<=2.0]
   --print-background              Print background graphics
-  -h, --help                      Show this message and exit.
+  --help                          Show this message and exit.
 ```
 <!-- [[[end]]] -->

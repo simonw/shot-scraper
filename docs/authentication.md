@@ -49,6 +49,6 @@ Options:
                                   Which browser to use
   --user-agent TEXT               User-Agent header to use
   --devtools                      Open browser DevTools
-  -h, --help                      Show this message and exit.
+  --help                          Show this message and exit.
 ```
 <!-- [[[end]]] -->

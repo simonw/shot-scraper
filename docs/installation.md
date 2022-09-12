@@ -49,6 +49,6 @@ Usage: shot-scraper install [OPTIONS]
 Options:
   -b, --browser [chromium|firefox|webkit|chrome|chrome-beta]
                                   Which browser to install
-  -h, --help                      Show this message and exit.
+  --help                          Show this message and exit.
 ```
 <!-- [[[end]]] -->
