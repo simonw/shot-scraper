@@ -13,7 +13,7 @@ shot-scraper https://www.example.com/ -o - > examples/from-stdout-example.png
 echo '<html><h1>This is a page on disk</h1><p>...</p></html>' > examples/local.html
 shot-scraper examples/local.html -o examples/local.png
 # Full page
-shot-scraper https://github.com/ -o examples/github.com.png
+shot-scraper https://github.com/ -o examples/github.com.png --log-requests examples/github-log.txt
 # Using a selector
 shot-scraper https://simonwillison.net/ -s '#bighead' -o examples/bighead.png
 # Selector and JavaScript

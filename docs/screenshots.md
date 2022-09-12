@@ -131,6 +131,21 @@ This will output:
       # And after you hit <enter>...
     Screenshot of 'https://simonwillison.net/' written to 'after-interaction.png'
 
+## Logging all requests
+
+It can sometimes be useful to see a list of all of the requests that the browser made while it was rendering a page.
+
+Use `--log-requests` to output newline-delimited JSON representing each request, including requests for images and other assets.
+
+Pass `-` to output the list to standard output, or use a filename to write to a file on disk.
+
+The output looks like this:
+
+    % shot-scraper https://datasette.io/ --log-requests -
+    {"method": "GET", "url": "https://datasette.io/", "size": 34324, "timing": {"startTime": 1663014971542.291, "domainLookupStart": 0.525, "domainLookupEnd": 162.555, "connectStart": 162.555, "secureConnectionStart": 174.871, "connectEnd": 593.444, "requestStart": 593.755, "responseStart": 929.623, "responseEnd": 933.232}}
+    {"method": "GET", "url": "https://datasette.io/static/site.css", "size": 3952, "timing": {"startTime": 1663014972482.3188, "domainLookupStart": -1, "domainLookupEnd": -1, "connectStart": -1, "secureConnectionStart": -1, "connectEnd": -1, "requestStart": 0.433, "responseStart": 81.263, "responseEnd": 82.535}}
+    ...
+
 ## Taking screenshots of local HTML files
 
 You can pass the path to an HTML file on disk to take a screenshot of that rendered file:

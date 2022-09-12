@@ -134,6 +134,11 @@ def cli():
     is_flag=True,
     help="Interact mode with developer tools",
 )
+@click.option(
+    "--log-requests",
+    type=click.File("w"),
+    help="Log details of all requests to this file",
+)
 @browser_option
 @user_agent_option
 @reduced_motion_option
@@ -156,6 +161,7 @@ def shot(
     timeout,
     interactive,
     devtools,
+    log_requests,
     browser,
     user_agent,
     reduced_motion,
@@ -235,11 +241,17 @@ def shot(
                     shot,
                     return_bytes=True,
                     use_existing_page=use_existing_page,
+                    log_requests=log_requests,
                 )
                 sys.stdout.buffer.write(shot)
             else:
                 shot["output"] = str(output)
-                shot = take_shot(context, shot, use_existing_page=use_existing_page)
+                shot = take_shot(
+                    context,
+                    shot,
+                    use_existing_page=use_existing_page,
+                    log_requests=log_requests,
+                )
         except TimeoutError as e:
             raise click.ClickException(str(e))
         browser_obj.close()
@@ -504,7 +516,19 @@ def javascript(
     "--format",
     "format_",
     type=click.Choice(
-        ["Letter", "Legal", "Tabloid", "Ledger", "A0", "A1", "A2", "A3", "A4", "A5", "A6"],
+        [
+            "Letter",
+            "Legal",
+            "Tabloid",
+            "Ledger",
+            "A0",
+            "A1",
+            "A2",
+            "A3",
+            "A4",
+            "A5",
+            "A6",
+        ],
         case_sensitive=False,
     ),
     help="Which standard paper size to use",
@@ -667,6 +691,7 @@ def take_shot(
     shot,
     return_bytes=False,
     use_existing_page=False,
+    log_requests=None,
 ):
     url = shot.get("url") or ""
     if not url:
@@ -698,6 +723,22 @@ def take_shot(
 
     if not use_existing_page:
         page = context_or_page.new_page()
+        if log_requests:
+
+            def on_response(response):
+                log_requests.write(
+                    json.dumps(
+                        {
+                            "method": response.request.method,
+                            "url": response.url,
+                            "size": len(response.body()),
+                            "timing": response.request.timing,
+                        }
+                    )
+                    + "\n"
+                )
+
+            page.on("response", on_response)
     else:
         page = context_or_page
 
