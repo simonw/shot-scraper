@@ -45,7 +45,7 @@ def reduced_motion_option(fn):
     cls=DefaultGroup,
     default="shot",
     default_if_no_args=True,
-    context_settings=dict(help_option_names=["--help", "-h"]),
+    context_settings=dict(help_option_names=["--help"]),
 )
 @click.version_option()
 def cli():
