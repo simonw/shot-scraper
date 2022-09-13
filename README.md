@@ -11,7 +11,8 @@ For background on this project see [shot-scraper: automated screenshots for docu
 
 ## Documentation
 
-Full documentation can be found at [shot-scraper.datasette.io](https://shot-scraper.datasette.io)
+- [Full documentation for shot-scraper](https://shot-scraper.datasette.io/)
+- [Release notes](https://github.com/simonw/shot-scraper/releases)
 
 ## Get started with GitHub Actions
 
