@@ -726,12 +726,20 @@ def take_shot(
         if log_requests:
 
             def on_response(response):
+                try:
+                    body = response.body()
+                    size = len(body)
+                except Error as ex:
+                    if "Network.getResponseBody" in ex.message:
+                        size = None
+                    else:
+                        raise
                 log_requests.write(
                     json.dumps(
                         {
                             "method": response.request.method,
                             "url": response.url,
-                            "size": len(response.body()),
+                            "size": size,
                             "timing": response.request.timing,
                         }
                     )

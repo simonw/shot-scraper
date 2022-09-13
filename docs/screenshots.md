@@ -146,6 +146,8 @@ The output looks like this:
     {"method": "GET", "url": "https://datasette.io/static/site.css", "size": 3952, "timing": {"startTime": 1663014972482.3188, "domainLookupStart": -1, "domainLookupEnd": -1, "connectStart": -1, "secureConnectionStart": -1, "connectEnd": -1, "requestStart": 0.433, "responseStart": 81.263, "responseEnd": 82.535}}
     ...
 
+Note that the `size` field here will be the size of the response in bytes, but in some circumstances this will not be available and it will be returned as `"size": null`.
+
 ## Taking screenshots of local HTML files
 
 You can pass the path to an HTML file on disk to take a screenshot of that rendered file:
