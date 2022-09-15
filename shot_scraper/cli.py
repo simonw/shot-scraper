@@ -729,11 +729,8 @@ def take_shot(
                 try:
                     body = response.body()
                     size = len(body)
-                except Error as ex:
-                    if "Network.getResponseBody" in ex.message:
-                        size = None
-                    else:
-                        raise
+                except Error:
+                    size = None
                 log_requests.write(
                     json.dumps(
                         {
