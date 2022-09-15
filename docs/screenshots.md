@@ -140,12 +140,13 @@ Use `--log-requests` to output newline-delimited JSON representing each request,
 Pass `-` to output the list to standard output, or use a filename to write to a file on disk.
 
 The output looks like this:
-
-    % shot-scraper https://datasette.io/ --log-requests -
-    {"method": "GET", "url": "https://datasette.io/", "size": 34324, "timing": {"startTime": 1663014971542.291, "domainLookupStart": 0.525, "domainLookupEnd": 162.555, "connectStart": 162.555, "secureConnectionStart": 174.871, "connectEnd": 593.444, "requestStart": 593.755, "responseStart": 929.623, "responseEnd": 933.232}}
-    {"method": "GET", "url": "https://datasette.io/static/site.css", "size": 3952, "timing": {"startTime": 1663014972482.3188, "domainLookupStart": -1, "domainLookupEnd": -1, "connectStart": -1, "secureConnectionStart": -1, "connectEnd": -1, "requestStart": 0.433, "responseStart": 81.263, "responseEnd": 82.535}}
-    ...
-
+```
+% shot-scraper http://datasette.io/ --log-requests -
+{"method": "GET", "url": "http://datasette.io/", "status": 302, "size": null, "timing": {"startTime": 1663211674984.7068, "domainLookupStart": 0.698, "domainLookupEnd": 1.897, "connectStart": 1.897, "secureConnectionStart": -1, "connectEnd": 18.726, "requestStart": 18.86, "responseStart": 99.75, "responseEnd": 101.75000000162981}}
+{"method": "GET", "url": "https://datasette.io/", "status": 200, "size": 34592, "timing": {"startTime": 1663211675085.51, "domainLookupStart": 0.187, "domainLookupEnd": 0.197, "connectStart": 0.197, "secureConnectionStart": 15.719, "connectEnd": 63.854, "requestStart": 64.098, "responseStart": 390.231, "responseEnd": 399.268}}
+{"method": "GET", "url": "https://datasette.io/static/site.css", "status": 200, "size": 3952, "timing": {"startTime": 1663211675486.027, "domainLookupStart": -1, "domainLookupEnd": -1, "connectStart": -1, "secureConnectionStart": -1, "connectEnd": -1, "requestStart": 0.408, "responseStart": 99.407, "responseEnd": 100.433}}
+...
+```
 Note that the `size` field here will be the size of the response in bytes, but in some circumstances this will not be available and it will be returned as `"size": null`.
 
 ## Taking screenshots of local HTML files

@@ -736,6 +736,7 @@ def take_shot(
                         {
                             "method": response.request.method,
                             "url": response.url,
+                            "status": response.status,
                             "size": size,
                             "timing": response.request.timing,
                         }
