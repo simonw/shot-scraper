@@ -164,6 +164,9 @@ Options:
                                   Which browser to use
   --user-agent TEXT               User-Agent header to use
   --reduced-motion                Emulate 'prefers-reduced-motion' media feature
+  --system-browser                Use web browser installed by the system
+  --browser-args TEXT             Browser command-line arguments
+  --ignore-https-errors           Ignore HTTPS errors
   --help                          Show this message and exit.
 ```
 <!-- [[[end]]] -->

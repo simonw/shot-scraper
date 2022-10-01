@@ -48,6 +48,9 @@ Options:
   -b, --browser [chromium|firefox|webkit|chrome|chrome-beta]
                                   Which browser to use
   --user-agent TEXT               User-Agent header to use
+  --system-browser                Use web browser installed by the system
+  --browser-args TEXT             Browser command-line arguments
+  --ignore-https-errors           Ignore HTTPS errors
   --devtools                      Open browser DevTools
   --help                          Show this message and exit.
 ```
