@@ -12,6 +12,7 @@ For background on this project see [shot-scraper: automated screenshots for docu
 ## Documentation
 
 - [Full documentation for shot-scraper](https://shot-scraper.datasette.io/)
+- [Tutorial: Automating screenshots for the Datasette documentation using shot-scraper](https://simonwillison.net/2022/Oct/14/automating-screenshots/)
 - [Release notes](https://github.com/simonw/shot-scraper/releases)
 
 ## Get started with GitHub Actions
