@@ -20,7 +20,11 @@ Use `-` to pass in YAML from standard input:
 
 If you run the tool with the `-n` or `--no-clobber` option any shots where the output file aleady exists will be skipped.
 
-You can set `url:` to a path to a file on disk as well:
+You can specify a subset of screenshots to take by specifying output files that you would like to create. For example, to take just the shots of `one.png` and `three.png` that are defined in `shots.yml` run this:
+
+    shot-scraper multi shots.yml -o one.png -o three.png
+
+The `url:` can be set to a path to a file on disk as well:
 
 ```yaml
 - output: index.png
@@ -34,7 +38,6 @@ Use `--retina` to take all screenshots at retina resolution instead, doubling th
 Use `--fail-on-error` to fail noisily on error (may be helpful in CI):
 
     shot-scraper multi shots.yml --fail-on-error
-
 
 To take a screenshot of just the area of a page defined by a CSS selector, add `selector` to the YAML block:
 
@@ -135,6 +138,7 @@ Options:
   --timeout INTEGER               Wait this many milliseconds before failing
   --fail-on-error                 Fail noisily on error
   -n, --no-clobber                Skip images that already exist
+  -o, --output TEXT               Just take shots matching these output files
   -b, --browser [chromium|firefox|webkit|chrome|chrome-beta]
                                   Which browser to use
   --user-agent TEXT               User-Agent header to use

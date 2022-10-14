@@ -315,6 +315,13 @@ def _browser_context(
     is_flag=True,
     help="Skip images that already exist",
 )
+@click.option(
+    "outputs",
+    "-o",
+    "--output",
+    help="Just take shots matching these output files",
+    multiple=True,
+)
 @browser_option
 @user_agent_option
 @reduced_motion_option
@@ -325,6 +332,7 @@ def multi(
     timeout,
     fail_on_error,
     noclobber,
+    outputs,
     browser,
     user_agent,
     reduced_motion,
@@ -365,6 +373,8 @@ def multi(
                 and shot.get("output")
                 and pathlib.Path(shot["output"]).exists()
             ):
+                continue
+            if outputs and shot.get("output") not in outputs:
                 continue
             try:
                 take_shot(context, shot)
