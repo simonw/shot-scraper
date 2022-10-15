@@ -628,6 +628,82 @@ def pdf(
 
 
 @cli.command()
+@click.argument("url")
+@click.option(
+    "-a",
+    "--auth",
+    type=click.File("r"),
+    help="Path to JSON authentication context file",
+)
+@click.option(
+    "-o",
+    "--output",
+    type=click.Path(file_okay=True, writable=True, dir_okay=False, allow_dash=True),
+    default="-",
+)
+@click.option("-j", "--javascript", help="Execute this JS prior to saving the HTML")
+@click.option(
+    "-s",
+    "--selector",
+    help="Return outerHTML of first element matching this CSS selector",
+)
+@click.option(
+    "--wait", type=int, help="Wait this many milliseconds before taking the snapshot"
+)
+@browser_option
+@user_agent_option
+def html(
+    url,
+    auth,
+    output,
+    javascript,
+    selector,
+    wait,
+    browser,
+    user_agent,
+):
+    """
+    Output the final HTML of the specified page
+
+    Usage:
+
+        shot-scraper html https://datasette.io/
+
+    Use -o to specify a filename:
+
+        shot-scraper html https://datasette.io/ -o index.html
+    """
+    url = url_or_file_path(url, _check_and_absolutize)
+    if output is None:
+        output = filename_for_url(url, ext="html", file_exists=os.path.exists)
+    with sync_playwright() as p:
+        context, browser_obj = _browser_context(
+            p, auth, browser=browser, user_agent=user_agent
+        )
+        page = context.new_page()
+        page.goto(url)
+        if wait:
+            time.sleep(wait / 1000)
+        if javascript:
+            _evaluate_js(page, javascript)
+
+        if selector:
+            html = page.query_selector(selector).evaluate("el => el.outerHTML")
+        else:
+            html = page.content()
+
+        if output == "-":
+            sys.stdout.write(html)
+        else:
+            open(output, "w").write(html)
+            click.echo(
+                "HTML snapshot of '{}' written to '{}'".format(url, output), err=True
+            )
+
+        browser_obj.close()
+
+
+@cli.command()
 @click.option(
     "--browser",
     "-b",

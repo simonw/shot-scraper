@@ -1,0 +1,54 @@
+# Dumping the HTML of a page
+
+The `shot-scraper html` command dumps out the final HTML of a page after all JavaScript has run.
+
+    shot-scraper html https://datasette.io/
+
+Use `-o filename.html` to write the output to a file instead of displaying it.
+
+Add `--javascript SCRIPT` to execute custom JavaScript before taking the HTML snapshot.
+
+Use `-s SELECTOR` to capture just the HTML of a specific element on the page, based on a CSS selector.
+
+## `shot-scraper html --help`
+
+Full `--help` for this command:
+
+<!-- [[[cog
+import cog
+from shot_scraper import cli
+from click.testing import CliRunner
+runner = CliRunner()
+result = runner.invoke(cli.cli, ["html", "--help"])
+help = result.output.replace("Usage: cli", "Usage: shot-scraper")
+cog.out(
+    "```\n{}\n```\n".format(help.strip())
+)
+]]] -->
+```
+Usage: shot-scraper html [OPTIONS] URL
+
+  Output the final HTML of the specified page
+
+  Usage:
+
+      shot-scraper html https://datasette.io/
+
+  Use -o to specify a filename:
+
+      shot-scraper html https://datasette.io/ -o index.html
+
+Options:
+  -a, --auth FILENAME             Path to JSON authentication context file
+  -o, --output FILE
+  -j, --javascript TEXT           Execute this JS prior to saving the HTML
+  -s, --selector TEXT             Return outerHTML of first element matching
+                                  this CSS selector
+  --wait INTEGER                  Wait this many milliseconds before taking the
+                                  snapshot
+  -b, --browser [chromium|firefox|webkit|chrome|chrome-beta]
+                                  Which browser to use
+  --user-agent TEXT               User-Agent header to use
+  --help                          Show this message and exit.
+```
+<!-- [[[end]]] -->

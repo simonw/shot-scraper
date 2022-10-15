@@ -12,6 +12,7 @@ authentication
 multi
 javascript
 pdf
+html
 accessibility
 github-actions
 recipes

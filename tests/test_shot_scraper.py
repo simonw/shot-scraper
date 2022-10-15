@@ -47,6 +47,20 @@ def test_multi_noclobber(mocker, args, expected_shot_count):
         assert take_shot.call_count == expected_shot_count
 
 
+TEST_HTML = """
+<!DOCTYPE html>
+<html>
+<head>
+<title>Test title</title>
+</head>
+<body>
+<h1>Test</h1>
+<p>Paragraph 1</p>
+</body>
+</html>
+"""
+
+
 @pytest.mark.parametrize(
     "args,expected",
     (
@@ -60,21 +74,42 @@ def test_multi_noclobber(mocker, args, expected_shot_count):
 def test_javascript(args, expected):
     runner = CliRunner()
     with runner.isolated_filesystem():
-        open("index.html", "w").write(
-            textwrap.dedent(
-                """
-        <!doctype html>
-        <html>
-        <head>
-        <title>Test title</title>
-        </head>
-        <body>
-        <h1>Test</h1>
-        </body>
-        </html>
-        """
-            )
-        )
+        open("index.html", "w").write(TEST_HTML)
         result = runner.invoke(cli, ["javascript", "index.html"] + args)
         assert result.exit_code == 0, str(result.exception)
         assert result.output == expected
+
+
+@pytest.mark.parametrize(
+    "args,expected",
+    (
+        ([], TEST_HTML),
+        (
+            ["-j", "document.body.removeChild(document.querySelector('h1'))"],
+            (
+                "<!DOCTYPE html><html><head><title>Test title</title></head>"
+                "<body><p>Paragraph 1</p></body></html>"
+            ),
+        ),
+        (
+            [
+                "-j",
+                "document.querySelector('h1').innerText = navigator.userAgent",
+                "--user-agent",
+                "boo",
+            ],
+            (
+                "<!DOCTYPE html><html><head><title>Test title</title></head>"
+                "<body><h1>boo</h1><p>Paragraph 1</p></body></html>"
+            ),
+        ),
+    ),
+)
+def test_html(args, expected):
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        open("index.html", "w").write(TEST_HTML)
+        result = runner.invoke(cli, ["html", "index.html"] + args)
+        assert result.exit_code == 0, result.output
+        # Whitespace is not preserved
+        assert result.output.replace("\n", "") == expected.replace("\n", "")
