@@ -14,6 +14,7 @@ javascript
 pdf
 accessibility
 github-actions
+recipes
 contributing
 ```
 ```{include} ../README.md
