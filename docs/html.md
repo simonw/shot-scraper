@@ -6,9 +6,24 @@ The `shot-scraper html` command dumps out the final HTML of a page after all Jav
 
 Use `-o filename.html` to write the output to a file instead of displaying it.
 
+    shot-scraper html https://datasette.io/ -o index.html
+
 Add `--javascript SCRIPT` to execute custom JavaScript before taking the HTML snapshot.
 
-Use `-s SELECTOR` to capture just the HTML of a specific element on the page, based on a CSS selector.
+    shot-scraper html https://datasette.io/ \
+      --javascript "document.querySelector('h1').innerText = 'Hello, world!'"
+
+## Retrieving the HTML for a specific element
+
+You can use the `-s SELECTOR` option to capture just the HTML for one specific element on the page, identified using a CSS selector:
+
+    shot-scraper html https://datasette.io/ -s h1
+
+This outputs:
+
+    <h1>
+      <img class="datasette-logo" src="/static/datasette-logo.svg" alt="Datasette">
+    </h1>
 
 ## `shot-scraper html --help`
 
