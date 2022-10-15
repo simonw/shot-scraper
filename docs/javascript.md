@@ -12,6 +12,14 @@ This returns a JSON string:
 ```json
 "Datasette: An open source multi-tool for exploring and publishing data"
 ```
+To return a raw string instead, use the `-r` or `--raw` options:
+
+    shot-scraper javascript https://datasette.io/ "document.title" -r
+
+Output:
+
+    Datasette: An open source multi-tool for exploring and publishing data
+
 To return a JSON object, wrap an object literal in parenthesis:
 
     shot-scraper javascript https://datasette.io/ "({
@@ -50,6 +58,8 @@ To use functions such as `setInterval()`, for example if you need to delay the s
         });
       }, 1000
     ));"
+
+## Running JavaScript from a file
 
 You can also save JavaScript to a file and execute it like this:
 
@@ -149,6 +159,7 @@ Options:
   -i, --input FILENAME            Read input JavaScript from this file
   -a, --auth FILENAME             Path to JSON authentication context file
   -o, --output FILENAME           Save output JSON to this file
+  -r, --raw                       Output JSON strings as raw text
   -b, --browser [chromium|firefox|webkit|chrome|chrome-beta]
                                   Which browser to use
   --user-agent TEXT               User-Agent header to use

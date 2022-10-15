@@ -451,11 +451,17 @@ def accessibility(url, auth, output, javascript, timeout):
     default="-",
     help="Save output JSON to this file",
 )
+@click.option(
+    "-r",
+    "--raw",
+    is_flag=True,
+    help="Output JSON strings as raw text",
+)
 @browser_option
 @user_agent_option
 @reduced_motion_option
 def javascript(
-    url, javascript, input, auth, output, browser, user_agent, reduced_motion
+    url, javascript, input, auth, output, raw, browser, user_agent, reduced_motion
 ):
     """
     Execute JavaScript against the page and return the result as JSON
@@ -497,6 +503,9 @@ def javascript(
         page.goto(url)
         result = _evaluate_js(page, javascript)
         browser_obj.close()
+    if raw:
+        output.write(str(result))
+        return
     output.write(json.dumps(result, indent=4, default=str))
     output.write("\n")
 

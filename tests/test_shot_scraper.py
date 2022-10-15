@@ -45,3 +45,36 @@ def test_multi_noclobber(mocker, args, expected_shot_count):
         result = runner.invoke(cli, ["multi", "shots.yaml"] + args, input=yaml)
         assert result.exit_code == 0, str(result.exception)
         assert take_shot.call_count == expected_shot_count
+
+
+@pytest.mark.parametrize(
+    "args,expected",
+    (
+        (["document.title"], '"Test title"\n'),
+        (["document.title", "-r"], "Test title"),
+        (["document.title", "--raw"], "Test title"),
+        (["4 * 5"], "20\n"),
+        (["4 * 5", "--raw"], "20"),
+    ),
+)
+def test_javascript(args, expected):
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        open("index.html", "w").write(
+            textwrap.dedent(
+                """
+        <!doctype html>
+        <html>
+        <head>
+        <title>Test title</title>
+        </head>
+        <body>
+        <h1>Test</h1>
+        </body>
+        </html>
+        """
+            )
+        )
+        result = runner.invoke(cli, ["javascript", "index.html"] + args)
+        assert result.exit_code == 0, str(result.exception)
+        assert result.output == expected
