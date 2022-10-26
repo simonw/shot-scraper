@@ -10,7 +10,7 @@ import sys
 import textwrap
 import time
 import yaml
-from distutils import spawn
+from shutil import which
 
 from shot_scraper.utils import filename_for_url, url_or_file_path
 
@@ -302,7 +302,7 @@ def _browser_context(
 ):
     browser_kwargs = dict(headless=not interactive, devtools=devtools)
     if system_browser:
-        browser_kwargs['executable_path'] = spawn.find_executable(browser)
+        browser_kwargs['executable_path'] = which(browser)
     if browser_args:
         browser_kwargs["args"] = browser_args.split(' ')
     if browser == "chromium":
