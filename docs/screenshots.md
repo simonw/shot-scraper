@@ -36,6 +36,10 @@ To take a screenshot of a specific element on the page, use `--selector` or `-s`
 
     shot-scraper https://simonwillison.net/ -s '#bighead'
 
+This produces `simonwillison-net.png` containing this image:
+
+<img src="https://raw.githubusercontent.com/simonw/shot-scraper-screenshot/main/shot-selector.png" alt="Just the header section from my blog">
+
 When using `--selector` the height and width, if provided, will set the size of the browser window when the page is loaded but the resulting screenshot will still be the same dimensions as the element on the page.
 
 You can pass `--selector` multiple times. The resulting screenshot will cover the smallest area of the page that contains all of the elements you specified, for example:
