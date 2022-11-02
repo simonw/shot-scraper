@@ -103,6 +103,13 @@ def test_javascript(args, expected):
                 "<body><h1>boo</h1><p>Paragraph 1</p></body></html>"
             ),
         ),
+        (
+            [
+                "-s",
+                "h1",
+            ],
+            ("<h1>Test</h1>"),
+        ),
     ),
 )
 def test_html(args, expected):
