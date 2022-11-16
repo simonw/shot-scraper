@@ -34,6 +34,22 @@ This returns:
   "tagline": "An open source multi-tool for exploring and publishing data"
 }
 ```
+## Running more than one statement
+
+You can use `() => { ... }` function syntax to run multiple statements, returning a result at the end of your function.
+
+This example raises an error if no paragraphs are found.
+
+```bash
+shot-scraper javascript https://www.example.com/ "
+() => {
+  var paragraphs = document.querySelectorAll('p');
+  if (paragraphs.length == 0) {
+    throw 'No paragraphs found';
+  }
+  return Array.from(paragraphs, el => el.innerText);
+}"
+```
 
 ## Using async/await
 
