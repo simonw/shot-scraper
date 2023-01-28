@@ -143,6 +143,7 @@ Options:
                                   Which browser to use
   --user-agent TEXT               User-Agent header to use
   --reduced-motion                Emulate 'prefers-reduced-motion' media feature
+  --log-console                   Write console.log() to stderr
   --help                          Show this message and exit.
 ```
 <!-- [[[end]]] -->

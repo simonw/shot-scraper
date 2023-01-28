@@ -37,6 +37,7 @@ Options:
   -o, --output FILENAME
   -j, --javascript TEXT  Execute this JS prior to taking the snapshot
   --timeout INTEGER      Wait this many milliseconds before failing
+  --log-console          Write console.log() to stderr
   --help                 Show this message and exit.
 ```
 <!-- [[[end]]] -->

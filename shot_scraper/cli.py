@@ -16,6 +16,10 @@ from shot_scraper.utils import filename_for_url, url_or_file_path
 BROWSERS = ("chromium", "firefox", "webkit", "chrome", "chrome-beta")
 
 
+def console_log(msg):
+    click.echo(msg, err=True)
+
+
 def browser_option(fn):
     click.option(
         "--browser",
@@ -29,6 +33,13 @@ def browser_option(fn):
 
 def user_agent_option(fn):
     click.option("--user-agent", help="User-Agent header to use")(fn)
+    return fn
+
+
+def log_console_option(fn):
+    click.option("--log-console", is_flag=True, help="Write console.log() to stderr")(
+        fn
+    )
     return fn
 
 
@@ -139,6 +150,7 @@ def cli():
     type=click.File("w"),
     help="Log details of all requests to this file",
 )
+@log_console_option
 @browser_option
 @user_agent_option
 @reduced_motion_option
@@ -162,6 +174,7 @@ def shot(
     interactive,
     devtools,
     log_requests,
+    log_console,
     browser,
     user_agent,
     reduced_motion,
@@ -242,6 +255,7 @@ def shot(
                     return_bytes=True,
                     use_existing_page=use_existing_page,
                     log_requests=log_requests,
+                    log_console=log_console,
                 )
                 sys.stdout.buffer.write(shot)
             else:
@@ -251,6 +265,7 @@ def shot(
                     shot,
                     use_existing_page=use_existing_page,
                     log_requests=log_requests,
+                    log_console=log_console,
                 )
         except TimeoutError as e:
             raise click.ClickException(str(e))
@@ -325,6 +340,7 @@ def _browser_context(
 @browser_option
 @user_agent_option
 @reduced_motion_option
+@log_console_option
 def multi(
     config,
     auth,
@@ -336,6 +352,7 @@ def multi(
     browser,
     user_agent,
     reduced_motion,
+    log_console,
 ):
     """
     Take multiple screenshots, defined by a YAML file
@@ -377,7 +394,7 @@ def multi(
             if outputs and shot.get("output") not in outputs:
                 continue
             try:
-                take_shot(context, shot)
+                take_shot(context, shot, log_console=log_console)
             except TimeoutError as e:
                 if fail_on_error:
                     raise click.ClickException(str(e))
@@ -407,7 +424,8 @@ def multi(
     type=int,
     help="Wait this many milliseconds before failing",
 )
-def accessibility(url, auth, output, javascript, timeout):
+@log_console_option
+def accessibility(url, auth, output, javascript, timeout, log_console):
     """
     Dump the Chromium accessibility tree for the specifed page
 
@@ -419,6 +437,8 @@ def accessibility(url, auth, output, javascript, timeout):
     with sync_playwright() as p:
         context, browser_obj = _browser_context(p, auth, timeout=timeout)
         page = context.new_page()
+        if log_console:
+            page.on("console", console_log)
         page.goto(url)
         if javascript:
             _evaluate_js(page, javascript)
@@ -460,8 +480,18 @@ def accessibility(url, auth, output, javascript, timeout):
 @browser_option
 @user_agent_option
 @reduced_motion_option
+@log_console_option
 def javascript(
-    url, javascript, input, auth, output, raw, browser, user_agent, reduced_motion
+    url,
+    javascript,
+    input,
+    auth,
+    output,
+    raw,
+    browser,
+    user_agent,
+    reduced_motion,
+    log_console,
 ):
     """
     Execute JavaScript against the page and return the result as JSON
@@ -500,6 +530,8 @@ def javascript(
             reduced_motion=reduced_motion,
         )
         page = context.new_page()
+        if log_console:
+            page.on("console", console_log)
         page.goto(url)
         result = _evaluate_js(page, javascript)
         browser_obj.close()
@@ -560,6 +592,7 @@ def javascript(
     help="Scale of the webpage rendering",
 )
 @click.option("--print-background", is_flag=True, help="Print background graphics")
+@log_console_option
 def pdf(
     url,
     auth,
@@ -573,6 +606,7 @@ def pdf(
     height,
     scale,
     print_background,
+    log_console,
 ):
     """
     Create a PDF of the specified page
@@ -595,6 +629,8 @@ def pdf(
     with sync_playwright() as p:
         context, browser_obj = _browser_context(p, auth)
         page = context.new_page()
+        if log_console:
+            page.on("console", console_log)
         page.goto(url)
         if wait:
             time.sleep(wait / 1000)
@@ -650,6 +686,7 @@ def pdf(
 @click.option(
     "--wait", type=int, help="Wait this many milliseconds before taking the snapshot"
 )
+@log_console_option
 @browser_option
 @user_agent_option
 def html(
@@ -659,6 +696,7 @@ def html(
     javascript,
     selector,
     wait,
+    log_console,
     browser,
     user_agent,
 ):
@@ -681,6 +719,8 @@ def html(
             p, auth, browser=browser, user_agent=user_agent
         )
         page = context.new_page()
+        if log_console:
+            page.on("console", console_log)
         page.goto(url)
         if wait:
             time.sleep(wait / 1000)
@@ -736,7 +776,8 @@ def install(browser):
 @browser_option
 @user_agent_option
 @click.option("--devtools", is_flag=True, help="Open browser DevTools")
-def auth(url, context_file, browser, user_agent, devtools):
+@log_console_option
+def auth(url, context_file, browser, user_agent, devtools, log_console):
     """
     Open a browser so user can manually authenticate with the specified site,
     then save the resulting authentication context to a file.
@@ -756,6 +797,8 @@ def auth(url, context_file, browser, user_agent, devtools):
         )
         context = browser_obj.new_context()
         page = context.new_page()
+        if log_console:
+            page.on("console", console_log)
         page.goto(url)
         click.echo("Hit <enter> after you have signed in:", err=True)
         input()
@@ -787,6 +830,7 @@ def take_shot(
     return_bytes=False,
     use_existing_page=False,
     log_requests=None,
+    log_console=False,
 ):
     url = shot.get("url") or ""
     if not url:
@@ -842,6 +886,9 @@ def take_shot(
             page.on("response", on_response)
     else:
         page = context_or_page
+
+    if log_console:
+        page.on("console", console_log)
 
     viewport = {}
     full_page = True

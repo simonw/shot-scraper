@@ -268,6 +268,7 @@ Options:
                                   taking the shot
   --devtools                      Interact mode with developer tools
   --log-requests FILENAME         Log details of all requests to this file
+  --log-console                   Write console.log() to stderr
   -b, --browser [chromium|firefox|webkit|chrome|chrome-beta]
                                   Which browser to use
   --user-agent TEXT               User-Agent header to use
