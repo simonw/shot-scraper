@@ -198,6 +198,34 @@ new Promise(takeShot => {
 ```
 If your custom code defines a `Promise`, `shot-scraper` will wait for that promise to complete before taking the screenshot. Here the screenshot does not occur until the `takeShot()` function is called.
 
+## Viewing console.log() output
+
+Almost all of the `shot-scraper` commands accept a `--log-console` option, which will cause them to output any calls to `console.log()` to standard error while the command is running.
+
+This includes both `console.log()` calls in the existing page JavaScript, as well as any calls to that method that you include in your own custom JavaScript.
+
+For example, running `--log-console` while taking a screenshot of the Facebook homepage will show this warning message, which Facebook logs to the developer tools console to help protect people from social engineering attacks:
+
+```
+% shot-scraper shot facebook.com --log-console
+
+ .d8888b.  888                       888
+d88P  Y88b 888                       888
+Y88b.      888                       888    This is a browser feature intended for
+ "Y888b.   888888  .d88b.  88888b.   888    developers. If someone told you to copy-paste
+    "Y88b. 888    d88""88b 888 "88b  888    something here to enable a Facebook feature
+      "888 888    888  888 888  888  Y8P    or "hack" someone's account, it is a
+Y88b  d88P Y88b.  Y88..88P 888 d88P         scam and will give them access to your
+ "Y8888P"   "Y888  "Y88P"  88888P"   888    Facebook account.
+                           888
+                           888
+                           888
+
+See https://www.facebook.com/selfxss for more information.
+
+Screenshot of 'http://facebook.com' written to 'facebook-com.png'
+```
+
 ## `shot-scraper shot --help`
 
 Full `--help` for this command:
