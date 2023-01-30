@@ -43,6 +43,16 @@ def log_console_option(fn):
     return fn
 
 
+def skip_fail_options(fn):
+    click.option("--skip", is_flag=True, help="Skip pages that return HTTP errors")(fn)
+    click.option(
+        "--fail",
+        is_flag=True,
+        help="Fail with an error code if a page returns an HTTP error",
+    )(fn)
+    return fn
+
+
 def reduced_motion_option(fn):
     click.option(
         "--reduced-motion",
@@ -154,6 +164,7 @@ def cli():
 @browser_option
 @user_agent_option
 @reduced_motion_option
+@skip_fail_options
 def shot(
     url,
     auth,
@@ -178,6 +189,8 @@ def shot(
     browser,
     user_agent,
     reduced_motion,
+    skip,
+    fail,
 ):
     """
     Take a single screenshot of a page or portion of a page.
@@ -266,6 +279,8 @@ def shot(
                     use_existing_page=use_existing_page,
                     log_requests=log_requests,
                     log_console=log_console,
+                    skip=skip,
+                    fail=fail,
                 )
         except TimeoutError as e:
             raise click.ClickException(str(e))
@@ -341,6 +356,7 @@ def _browser_context(
 @user_agent_option
 @reduced_motion_option
 @log_console_option
+@skip_fail_options
 def multi(
     config,
     auth,
@@ -353,6 +369,8 @@ def multi(
     user_agent,
     reduced_motion,
     log_console,
+    skip,
+    fail,
 ):
     """
     Take multiple screenshots, defined by a YAML file
@@ -394,7 +412,9 @@ def multi(
             if outputs and shot.get("output") not in outputs:
                 continue
             try:
-                take_shot(context, shot, log_console=log_console)
+                take_shot(
+                    context, shot, log_console=log_console, skip=skip, fail=fail,
+                )
             except TimeoutError as e:
                 if fail_on_error:
                     raise click.ClickException(str(e))
@@ -813,10 +833,6 @@ def auth(url, context_file, browser, user_agent, devtools, log_console):
         pathlib.Path(context_file).chmod(0o600)
 
 
-class ShotError(Exception):
-    pass
-
-
 def _check_and_absolutize(filepath):
     path = pathlib.Path(filepath)
     if path.exists():
@@ -831,10 +847,15 @@ def take_shot(
     use_existing_page=False,
     log_requests=None,
     log_console=False,
+    skip=False,
+    fail=False,
 ):
     url = shot.get("url") or ""
     if not url:
-        raise ShotError("url is required")
+        raise click.ClickException("url is required")
+
+    if skip and fail:
+        raise click.ClickException("--skip and --fail cannot be used together")
 
     url = url_or_file_path(url, file_exists=_check_and_absolutize)
 
@@ -901,7 +922,16 @@ def take_shot(
         if shot.get("height"):
             full_page = False
 
-    page.goto(url)
+    response = page.goto(url)
+    # Check if page was a 404 or 500 or other error
+    if str(response.status)[0] in ("4", "5"):
+        if skip:
+            click.echo(
+                "{} error for {}, skipping".format(response.status, url), err=True
+            )
+            return
+        elif fail:
+            raise click.ClickException("{} error for {}".format(response.status, url))
 
     if wait:
         time.sleep(wait / 1000)

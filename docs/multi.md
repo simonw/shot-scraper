@@ -144,6 +144,9 @@ Options:
   --user-agent TEXT               User-Agent header to use
   --reduced-motion                Emulate 'prefers-reduced-motion' media feature
   --log-console                   Write console.log() to stderr
+  --fail                          Fail with an error code if a page returns an
+                                  HTTP error
+  --skip                          Skip pages that return HTTP errors
   --help                          Show this message and exit.
 ```
 <!-- [[[end]]] -->

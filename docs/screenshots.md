@@ -301,6 +301,9 @@ Options:
                                   Which browser to use
   --user-agent TEXT               User-Agent header to use
   --reduced-motion                Emulate 'prefers-reduced-motion' media feature
+  --fail                          Fail with an error code if a page returns an
+                                  HTTP error
+  --skip                          Skip pages that return HTTP errors
   --help                          Show this message and exit.
 ```
 <!-- [[[end]]] -->
