@@ -35,10 +35,6 @@ Use `--retina` to take all screenshots at retina resolution instead, doubling th
 
     shot-scraper multi shots.yml --retina
 
-Use `--fail-on-error` to fail noisily on error (may be helpful in CI):
-
-    shot-scraper multi shots.yml --fail-on-error
-
 To take a screenshot of just the area of a page defined by a CSS selector, add `selector` to the YAML block:
 
 ```yaml

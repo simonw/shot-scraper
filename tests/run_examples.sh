@@ -146,4 +146,4 @@ shot-scraper multi empty.yml
   height: 200
   wait_for: |-
     document.querySelector("div")
-' | shot-scraper multi - --fail-on-error)
+' | shot-scraper multi - --fail)
