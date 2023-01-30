@@ -53,6 +53,23 @@ def skip_fail_options(fn):
     return fn
 
 
+def skip_or_fail(response, skip, fail):
+    if skip and fail:
+        raise click.ClickException("--skip and --fail cannot be used together")
+    if str(response.status)[0] in ("4", "5"):
+        if skip:
+            click.echo(
+                "{} error for {}, skipping".format(response.status, response.url),
+                err=True,
+            )
+            # Exit with a 0 status code
+            raise SystemExit
+        elif fail:
+            raise click.ClickException(
+                "{} error for {}".format(response.status, response.url)
+            )
+
+
 def reduced_motion_option(fn):
     click.option(
         "--reduced-motion",
@@ -413,7 +430,11 @@ def multi(
                 continue
             try:
                 take_shot(
-                    context, shot, log_console=log_console, skip=skip, fail=fail,
+                    context,
+                    shot,
+                    log_console=log_console,
+                    skip=skip,
+                    fail=fail,
                 )
             except TimeoutError as e:
                 if fail_on_error:
@@ -445,7 +466,8 @@ def multi(
     help="Wait this many milliseconds before failing",
 )
 @log_console_option
-def accessibility(url, auth, output, javascript, timeout, log_console):
+@skip_fail_options
+def accessibility(url, auth, output, javascript, timeout, log_console, skip, fail):
     """
     Dump the Chromium accessibility tree for the specifed page
 
@@ -459,7 +481,8 @@ def accessibility(url, auth, output, javascript, timeout, log_console):
         page = context.new_page()
         if log_console:
             page.on("console", console_log)
-        page.goto(url)
+        response = page.goto(url)
+        skip_or_fail(response, skip, fail)
         if javascript:
             _evaluate_js(page, javascript)
         snapshot = page.accessibility.snapshot()
@@ -501,6 +524,7 @@ def accessibility(url, auth, output, javascript, timeout, log_console):
 @user_agent_option
 @reduced_motion_option
 @log_console_option
+@skip_fail_options
 def javascript(
     url,
     javascript,
@@ -512,6 +536,8 @@ def javascript(
     user_agent,
     reduced_motion,
     log_console,
+    skip,
+    fail,
 ):
     """
     Execute JavaScript against the page and return the result as JSON
@@ -552,7 +578,8 @@ def javascript(
         page = context.new_page()
         if log_console:
             page.on("console", console_log)
-        page.goto(url)
+        response = page.goto(url)
+        skip_or_fail(response, skip, fail)
         result = _evaluate_js(page, javascript)
         browser_obj.close()
     if raw:
@@ -613,6 +640,7 @@ def javascript(
 )
 @click.option("--print-background", is_flag=True, help="Print background graphics")
 @log_console_option
+@skip_fail_options
 def pdf(
     url,
     auth,
@@ -627,6 +655,8 @@ def pdf(
     scale,
     print_background,
     log_console,
+    skip,
+    fail,
 ):
     """
     Create a PDF of the specified page
@@ -651,7 +681,8 @@ def pdf(
         page = context.new_page()
         if log_console:
             page.on("console", console_log)
-        page.goto(url)
+        response = page.goto(url)
+        skip_or_fail(response, skip, fail)
         if wait:
             time.sleep(wait / 1000)
         if javascript:
@@ -709,6 +740,7 @@ def pdf(
 @log_console_option
 @browser_option
 @user_agent_option
+@skip_fail_options
 def html(
     url,
     auth,
@@ -719,6 +751,8 @@ def html(
     log_console,
     browser,
     user_agent,
+    skip,
+    fail,
 ):
     """
     Output the final HTML of the specified page
@@ -741,7 +775,8 @@ def html(
         page = context.new_page()
         if log_console:
             page.on("console", console_log)
-        page.goto(url)
+        response = page.goto(url)
+        skip_or_fail(response, skip, fail)
         if wait:
             time.sleep(wait / 1000)
         if javascript:

@@ -65,6 +65,9 @@ Options:
   -b, --browser [chromium|firefox|webkit|chrome|chrome-beta]
                                   Which browser to use
   --user-agent TEXT               User-Agent header to use
+  --fail                          Fail with an error code if a page returns an
+                                  HTTP error
+  --skip                          Skip pages that return HTTP errors
   --help                          Show this message and exit.
 ```
 <!-- [[[end]]] -->

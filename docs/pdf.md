@@ -60,6 +60,9 @@ Options:
   --scale FLOAT RANGE             Scale of the webpage rendering  [0.1<=x<=2.0]
   --print-background              Print background graphics
   --log-console                   Write console.log() to stderr
+  --fail                          Fail with an error code if a page returns an
+                                  HTTP error
+  --skip                          Skip pages that return HTTP errors
   --help                          Show this message and exit.
 ```
 <!-- [[[end]]] -->
