@@ -136,7 +136,6 @@ Options:
   -a, --auth FILENAME             Path to JSON authentication context file
   --retina                        Use device scale factor of 2
   --timeout INTEGER               Wait this many milliseconds before failing
-  --fail-on-error                 Fail noisily on error
   -n, --no-clobber                Skip images that already exist
   -o, --output TEXT               Just take shots matching these output files
   -b, --browser [chromium|firefox|webkit|chrome|chrome-beta]

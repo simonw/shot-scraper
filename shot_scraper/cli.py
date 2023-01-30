@@ -354,7 +354,11 @@ def _browser_context(
     type=int,
     help="Wait this many milliseconds before failing",
 )
-@click.option("--fail-on-error", is_flag=True, help="Fail noisily on error")
+# Hidden because will be removed if I release shot-scraper 2.0
+# See https://github.com/simonw/shot-scraper/issues/103
+@click.option(
+    "--fail-on-error", is_flag=True, help="Fail noisily on error", hidden=True
+)
 @click.option(
     "noclobber",
     "-n",
@@ -437,7 +441,7 @@ def multi(
                     fail=fail,
                 )
             except TimeoutError as e:
-                if fail_on_error:
+                if fail or fail_on_error:
                     raise click.ClickException(str(e))
                 else:
                     click.echo(str(e), err=True)
