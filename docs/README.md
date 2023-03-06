@@ -1,4 +1,6 @@
-# shot-scraper
+# Welcome
+
+## `Shot-Scraper`
 
 A command-line utility for taking automated screenshots of websites
 
@@ -9,9 +11,10 @@ pip install shot-scraper
 shot-scraper install
 shot-scraper https://github.com/simonw/shot-scraper -h 900
 ```
+
 Produces this screenshot in a file called `github-com-simonw-shot-scraper.png`:
 
-<img src="https://raw.githubusercontent.com/simonw/shot-scraper-screenshot/main/shot.png" alt="A screenshot of the shot-scraper page on GitHub">
+![A screenshot of the shot-scraper page on GitHub](https://raw.githubusercontent.com/simonw/shot-scraper-screenshot/main/shot.png)
 
 **Contents**
 
@@ -30,5 +33,6 @@ accessibility
 github-actions
 contributing
 ```
-```{include} ../README.md
+
+```{include}
 ```
