@@ -120,6 +120,13 @@ The `--retina` option sets a device scale factor of 2. This means that an image 
 
 This example will produce an image that is 800px wide and 1200px high.
 
+## Transparent background
+
+The `--omit-background` option instructs the browser to ignore the default background all for the capture of a page with a transparent background. Does not work with JPG images or when `quality` is set.
+
+    shot-scraper https://simonwillison.net/ -o simon.png \
+      --width 400 --height 600 --omit-background
+
 ## Interacting with the page
 
 Sometimes it's useful to be able to manually interact with a page before the screenshot is captured.
