@@ -122,7 +122,7 @@ This example will produce an image that is 800px wide and 1200px high.
 
 ## Transparent background
 
-The `--omit-background` option instructs the browser to ignore the default background all for the capture of a page with a transparent background. Does not work with JPG images or when `quality` is set.
+The `--omit-background` option instructs the browser to ignore the default background, allowing for the capture of a page with a transparent background. Does not work with JPG images or when `quality` is set.
 
     shot-scraper https://simonwillison.net/ -o simon.png \
       --width 400 --height 600 --omit-background
