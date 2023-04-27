@@ -4,6 +4,7 @@
 [![Changelog](https://img.shields.io/github/v/release/simonw/shot-scraper?include_prereleases&label=changelog)](https://github.com/simonw/shot-scraper/releases)
 [![Tests](https://github.com/simonw/shot-scraper/workflows/Test/badge.svg)](https://github.com/simonw/shot-scraper/actions?query=workflow%3ATest)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/simonw/shot-scraper/blob/master/LICENSE)
+[![discord](https://img.shields.io/discord/823971286308356157?label=discord)](https://discord.gg/EE7Hx4Kbny)
 
 A command-line utility for taking automated screenshots of websites
 
