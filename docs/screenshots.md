@@ -294,6 +294,10 @@ Options:
                                   pixels
   -j, --javascript TEXT           Execute this JS prior to taking the shot
   --retina                        Use device scale factor of 2
+  --omit-background               Omit the default browser background from the
+                                  shot, making it possible take advantage of
+                                  transparence. Does not work with JPEGs or when
+                                  using --quality.
   --quality INTEGER               Save as JPEG with this quality, e.g. 80
   --wait INTEGER                  Wait this many milliseconds before taking the
                                   screenshot
