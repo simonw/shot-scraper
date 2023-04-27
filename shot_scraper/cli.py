@@ -876,10 +876,14 @@ def auth(url, context_file, browser, user_agent, devtools, log_console):
 
 
 def _check_and_absolutize(filepath):
-    path = pathlib.Path(filepath)
-    if path.exists():
-        return path.absolute()
-    return False
+    try:
+        path = pathlib.Path(filepath)
+        if path.exists():
+            return path.absolute()
+        return False
+    except OSError:
+        # On Windows, instantiating a Path object on `http://` or `https://` will raise an exception
+        return False
 
 
 def take_shot(
