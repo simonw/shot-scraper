@@ -151,6 +151,7 @@ def cli():
 )
 @click.option("-j", "--javascript", help="Execute this JS prior to taking the shot")
 @click.option("--retina", is_flag=True, help="Use device scale factor of 2")
+@click.option("--omit-background", is_flag=True, help="Omit the default browser background from the shot, making it possible take advantage of transparence. Does not work with JPEGs or when using --quality.")
 @click.option("--quality", type=int, help="Save as JPEG with this quality, e.g. 80")
 @click.option(
     "--wait", type=int, help="Wait this many milliseconds before taking the screenshot"
@@ -195,6 +196,7 @@ def shot(
     padding,
     javascript,
     retina,
+    omit_background,
     quality,
     wait,
     wait_for,
@@ -252,6 +254,7 @@ def shot(
         "wait_for": wait_for,
         "timeout": timeout,
         "padding": padding,
+        "omit_background": omit_background,
         "retina": retina,
     }
     interactive = interactive or devtools
@@ -902,6 +905,7 @@ def take_shot(
     if not output and not return_bytes:
         output = filename_for_url(url, ext="png", file_exists=os.path.exists)
     quality = shot.get("quality")
+    omit_background = shot.get("omit_background")
     wait = shot.get("wait")
     wait_for = shot.get("wait_for")
     padding = shot.get("padding") or 0
@@ -985,6 +989,8 @@ def take_shot(
     screenshot_args = {}
     if quality:
         screenshot_args.update({"quality": quality, "type": "jpeg"})
+    if omit_background:
+        screenshot_args.update({"omit_background": True})
     if not return_bytes:
         screenshot_args["path"] = output
 
