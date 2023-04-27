@@ -527,6 +527,21 @@ def accessibility(url, auth, output, javascript, timeout, log_console, skip, fai
     is_flag=True,
     help="Output JSON strings as raw text",
 )
+@click.option(
+    'next_',
+    "--next",
+    help="JavaScript to run to find next page",
+)
+@click.option(
+    "--next-delay",
+    type=int,
+    help="Milliseconds to wait before following --next",
+)
+@click.option(
+    "--next-limit",
+    type=int,
+    help="Maximum number of --after pages",
+)
 @browser_option
 @user_agent_option
 @reduced_motion_option
@@ -539,6 +554,9 @@ def javascript(
     auth,
     output,
     raw,
+    next_,
+    next_delay,
+    next_limit,
     browser,
     user_agent,
     reduced_motion,
@@ -574,6 +592,7 @@ def javascript(
     if not javascript:
         javascript = input.read()
     url = url_or_file_path(url, _check_and_absolutize)
+    next_count = 0
     with sync_playwright() as p:
         context, browser_obj = _browser_context(
             p,
@@ -585,9 +604,27 @@ def javascript(
         page = context.new_page()
         if log_console:
             page.on("console", console_log)
-        response = page.goto(url)
-        skip_or_fail(response, skip, fail)
-        result = _evaluate_js(page, javascript)
+        result = []
+        while url:
+            response = page.goto(url)
+            skip_or_fail(response, skip, fail)
+            evaluated = _evaluate_js(page, javascript)
+            if next_:
+                result.extend(evaluated)
+            else:
+                result = evaluated
+            next_count += 1
+            if next_:
+                if next_limit is not None and next_count >= next_limit:
+                    raise click.ClickException(
+                        f"Reached --after-limit of {next_limit} pages"
+                    )
+                url = _evaluate_js(page, next_)
+                print(url)
+                if next_delay:
+                    time.sleep(next_delay / 1000)
+            else:
+                url = None
         browser_obj.close()
     if raw:
         output.write(str(result))
