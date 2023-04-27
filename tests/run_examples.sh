@@ -33,7 +33,7 @@ shot-scraper https://simonwillison.net/ -w 400 -h 800 -o examples/simon-narrow.p
 # Omit background
 shot-scraper https://simonwillison.net/ \
   -h 800 -o examples/simonwillison-transparent.png \
-  --javascript "document.getElementsByTagName('body').style.backgroundColor='transparent'" \
+  --javascript "document.querySelector('body').style.backgroundColor='transparent'" \
   --omit-background
 # JPEG quality
 shot-scraper https://simonwillison.net/ \
