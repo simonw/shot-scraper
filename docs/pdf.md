@@ -63,6 +63,7 @@ Options:
   --fail                          Fail with an error code if a page returns an
                                   HTTP error
   --skip                          Skip pages that return HTTP errors
+  --silent                        Do not output any messages
   --help                          Show this message and exit.
 ```
 <!-- [[[end]]] -->

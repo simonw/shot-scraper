@@ -43,6 +43,11 @@ def log_console_option(fn):
     return fn
 
 
+def silent_option(fn):
+    click.option("--silent", is_flag=True, help="Do not output any messages")(fn)
+    return fn
+
+
 def skip_fail_options(fn):
     click.option("--skip", is_flag=True, help="Skip pages that return HTTP errors")(fn)
     click.option(
@@ -187,6 +192,7 @@ def cli():
 @user_agent_option
 @reduced_motion_option
 @skip_fail_options
+@silent_option
 def shot(
     url,
     auth,
@@ -214,6 +220,7 @@ def shot(
     reduced_motion,
     skip,
     fail,
+    silent,
 ):
     """
     Take a single screenshot of a page or portion of a page.
@@ -293,6 +300,7 @@ def shot(
                     use_existing_page=use_existing_page,
                     log_requests=log_requests,
                     log_console=log_console,
+                    silent=silent,
                 )
                 sys.stdout.buffer.write(shot)
             else:
@@ -305,6 +313,7 @@ def shot(
                     log_console=log_console,
                     skip=skip,
                     fail=fail,
+                    silent=silent,
                 )
         except TimeoutError as e:
             raise click.ClickException(str(e))
@@ -652,6 +661,7 @@ def javascript(
 @click.option("--print-background", is_flag=True, help="Print background graphics")
 @log_console_option
 @skip_fail_options
+@silent_option
 def pdf(
     url,
     auth,
@@ -668,6 +678,7 @@ def pdf(
     log_console,
     skip,
     fail,
+    silent,
 ):
     """
     Create a PDF of the specified page
@@ -717,10 +728,8 @@ def pdf(
 
         if output == "-":
             sys.stdout.buffer.write(pdf)
-        else:
-            click.echo(
-                "Screenshot of '{}' written to '{}'".format(url, output), err=True
-            )
+        elif not silent:
+            click.echo("PDF of '{}' written to '{}'".format(url, output), err=True)
 
         browser_obj.close()
 
@@ -752,6 +761,7 @@ def pdf(
 @browser_option
 @user_agent_option
 @skip_fail_options
+@silent_option
 def html(
     url,
     auth,
@@ -764,6 +774,7 @@ def html(
     user_agent,
     skip,
     fail,
+    silent,
 ):
     """
     Output the final HTML of the specified page
@@ -802,9 +813,11 @@ def html(
             sys.stdout.write(html)
         else:
             open(output, "w").write(html)
-            click.echo(
-                "HTML snapshot of '{}' written to '{}'".format(url, output), err=True
-            )
+            if not silent:
+                click.echo(
+                    "HTML snapshot of '{}' written to '{}'".format(url, output),
+                    err=True,
+                )
 
         browser_obj.close()
 
@@ -899,6 +912,7 @@ def take_shot(
     log_console=False,
     skip=False,
     fail=False,
+    silent=False,
 ):
     url = shot.get("url") or ""
     if not url:
@@ -1049,7 +1063,8 @@ def take_shot(
         else:
             page.screenshot(**screenshot_args)
             message = "Screenshot of '{}' written to '{}'".format(url, output)
-    click.echo(message, err=True)
+    if not silent:
+        click.echo(message, err=True)
 
 
 def _js_selector_javascript(js_selectors, js_selectors_all):
