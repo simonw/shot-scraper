@@ -394,6 +394,7 @@ def _browser_context(
 @reduced_motion_option
 @log_console_option
 @skip_fail_options
+@silent_option
 def multi(
     config,
     auth,
@@ -408,6 +409,7 @@ def multi(
     log_console,
     skip,
     fail,
+    silent,
 ):
     """
     Take multiple screenshots, defined by a YAML file
@@ -455,6 +457,7 @@ def multi(
                     log_console=log_console,
                     skip=skip,
                     fail=fail,
+                    silent=silent,
                 )
             except TimeoutError as e:
                 if fail or fail_on_error:
