@@ -151,7 +151,11 @@ def cli():
 )
 @click.option("-j", "--javascript", help="Execute this JS prior to taking the shot")
 @click.option("--retina", is_flag=True, help="Use device scale factor of 2")
-@click.option("--omit-background", is_flag=True, help="Omit the default browser background from the shot, making it possible take advantage of transparence. Does not work with JPEGs or when using --quality.")
+@click.option(
+    "--omit-background",
+    is_flag=True,
+    help="Omit the default browser background from the shot, making it possible take advantage of transparence. Does not work with JPEGs or when using --quality.",
+)
 @click.option("--quality", type=int, help="Save as JPEG with this quality, e.g. 80")
 @click.option(
     "--wait", type=int, help="Wait this many milliseconds before taking the screenshot"
