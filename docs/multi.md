@@ -43,6 +43,55 @@ To take a screenshot of just the area of a page defined by a CSS selector, add `
   selector: "#bighead"
 ```
 
+Use `--macro` to run JavaScript before every shot is taken:
+
+    shot-scraper multi shots.yml --macro macros.yaml
+
+Macros can be a `script` or a `function`:
+
+* `script` is executed immediately
+* `function` exposes a function that can be called in your `javascript` block:
+
+Sample `macros.yaml`:
+
+```yaml
+- type: script
+  javascript: |
+    function (){
+        console.log("This runs before the shot is taken")
+    }
+
+- type: function
+  name: sayHello
+  javascript: |
+    function (){
+        console.log("Hello World")
+    }
+
+```
+
+Sample `shots.yaml`:
+
+```yaml
+- output: demo.png
+  url: https://example.com
+  width: 1920
+  height: 1080
+  javascript: |
+    function(){
+      console.log("Taking a shot");
+      sayHello();
+    }
+```
+
+Expected output (if using `--log-console`):
+
+```
+This runs before the shot is taken
+Taking a shot
+Hello World
+```
+
 You can pass more than one selector using a `selectors:` list. You can also use `padding:` to specify additional padding:
 
 ```yaml

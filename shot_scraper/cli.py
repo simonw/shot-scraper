@@ -389,6 +389,11 @@ def _browser_context(
     help="Just take shots matching these output files",
     multiple=True,
 )
+@click.option(
+    "--macro",
+    type=click.File("r"),
+    help="Apply the macros contained in this file to all shots",
+)
 @browser_option
 @user_agent_option
 @reduced_motion_option
@@ -403,6 +408,7 @@ def multi(
     fail_on_error,
     noclobber,
     outputs,
+    macro,
     browser,
     user_agent,
     reduced_motion,
@@ -426,6 +432,14 @@ def multi(
 
     https://shot-scraper.datasette.io/en/stable/multi.html
     """
+    # Load macros config
+    macroConfig = []
+    if macro:
+        macroConfig = yaml.safe_load(macro)
+    if not isinstance(macroConfig, list):
+        raise click.ClickException("Macro file must contain a list")
+
+    # Load shots config
     shots = yaml.safe_load(config)
     if shots is None:
         shots = []
@@ -451,6 +465,7 @@ def multi(
             if outputs and shot.get("output") not in outputs:
                 continue
             try:
+                shot['macros'] = macroConfig
                 take_shot(
                     context,
                     shot,
@@ -1003,6 +1018,17 @@ def take_shot(
 
     if wait:
         time.sleep(wait / 1000)
+
+    macros = shot.get("macros")
+    if macros:
+        for macro in macros:
+            if macro['type'] == 'script':
+                _evaluate_js(page, macro['javascript'])
+            elif macro['type'] == 'function':
+                _evaluate_js(page, "function(){{ window.{} = {} }}".format(macro['name'], macro['javascript']))
+            else:
+                raise click.ClickException("Invalid macro type: '{}'".format(macro['type']))
+
 
     javascript = shot.get("javascript")
     if javascript:
