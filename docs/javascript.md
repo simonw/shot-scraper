@@ -185,6 +185,7 @@ Options:
   --fail                          Fail with an error code if a page returns an
                                   HTTP error
   --skip                          Skip pages that return HTTP errors
+  --bypass-csp                    Bypass Content-Security-Policy
   --help                          Show this message and exit.
 ```
 <!-- [[[end]]] -->
