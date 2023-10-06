@@ -32,6 +32,7 @@ from subprocess import PIPE, Popen
 # ones.
 extensions = [
     "myst_parser",
+    "sphinx_copybutton",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -174,3 +175,8 @@ texinfo_documents = [
         "Miscellaneous",
     )
 ]
+
+
+# -- Options for Sphinx-copybutton -------------------------------------------
+
+copybutton_exclude = '.linenos, .gp, .go'
