@@ -990,16 +990,20 @@ def take_shot(
         if shot.get("height"):
             full_page = False
 
-    response = page.goto(url)
-    # Check if page was a 404 or 500 or other error
-    if str(response.status)[0] in ("4", "5"):
-        if skip:
-            click.echo(
-                "{} error for {}, skipping".format(response.status, url), err=True
-            )
-            return
-        elif fail:
-            raise click.ClickException("{} error for {}".format(response.status, url))
+    if not use_existing_page:
+        # Load page and check for errors
+        response = page.goto(url)
+        # Check if page was a 404 or 500 or other error
+        if str(response.status)[0] in ("4", "5"):
+            if skip:
+                click.echo(
+                    "{} error for {}, skipping".format(response.status, url), err=True
+                )
+                return
+            elif fail:
+                raise click.ClickException(
+                    "{} error for {}".format(response.status, url)
+                )
 
     if wait:
         time.sleep(wait / 1000)
