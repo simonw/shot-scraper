@@ -59,7 +59,9 @@ def skip_fail_options(fn):
 
 
 def bypass_csp_option(fn):
-    click.option("--bypass-csp", is_flag=True, help="Bypass Content-Security-Policy")(fn)
+    click.option("--bypass-csp", is_flag=True, help="Bypass Content-Security-Policy")(
+        fn
+    )
     return fn
 
 
@@ -502,7 +504,9 @@ def multi(
 @log_console_option
 @skip_fail_options
 @bypass_csp_option
-def accessibility(url, auth, output, javascript, timeout, log_console, skip, fail, bypass_csp):
+def accessibility(
+    url, auth, output, javascript, timeout, log_console, skip, fail, bypass_csp
+):
     """
     Dump the Chromium accessibility tree for the specifed page
 
@@ -512,7 +516,9 @@ def accessibility(url, auth, output, javascript, timeout, log_console, skip, fai
     """
     url = url_or_file_path(url, _check_and_absolutize)
     with sync_playwright() as p:
-        context, browser_obj = _browser_context(p, auth, timeout=timeout, bypass_csp=bypass_csp)
+        context, browser_obj = _browser_context(
+            p, auth, timeout=timeout, bypass_csp=bypass_csp
+        )
         page = context.new_page()
         if log_console:
             page.on("console", console_log)
@@ -814,7 +820,11 @@ def html(
         output = filename_for_url(url, ext="html", file_exists=os.path.exists)
     with sync_playwright() as p:
         context, browser_obj = _browser_context(
-            p, auth, browser=browser, user_agent=user_agent, bypass_csp=bypass_csp,
+            p,
+            auth,
+            browser=browser,
+            user_agent=user_agent,
+            bypass_csp=bypass_csp,
         )
         page = context.new_page()
         if log_console:

@@ -179,4 +179,4 @@ texinfo_documents = [
 
 # -- Options for Sphinx-copybutton -------------------------------------------
 
-copybutton_exclude = '.linenos, .gp, .go'
+copybutton_exclude = ".linenos, .gp, .go"
