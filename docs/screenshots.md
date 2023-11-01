@@ -205,6 +205,8 @@ new Promise(takeShot => {
 ```
 If your custom code defines a `Promise`, `shot-scraper` will wait for that promise to complete before taking the screenshot. Here the screenshot does not occur until the `takeShot()` function is called.
 
+If you see errors relating to CSP headers such as "Failed to fetch dynamically imported module" you can work around them using {ref}`the --bypass-csp option<bypass-csp>`.
+
 ## Viewing console.log() output
 
 Almost all of the `shot-scraper` commands accept a `--log-console` option, which will cause them to output any calls to `console.log()` to standard error while the command is running.

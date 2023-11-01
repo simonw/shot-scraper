@@ -76,6 +76,37 @@ To use functions such as `setInterval()`, for example if you need to delay the s
       }, 1000
     ));"
 
+(bypass-csp)=
+## Bypassing Content Security Policy headers
+
+Some websites use [Content Security Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP) (CSP) headers to prevent additional JavaScript from executing on the page, as a security measure.
+
+When using `shot-scraper` this can prevent some JavaScript features from working. You might see error messages that look like this:
+```bash
+shot-scraper javascript github.com "
+  async () => {
+    await import('https://cdn.jsdelivr.net/npm/left-pad/+esm');
+    return 'content-security-policy ignored' }
+"
+```
+Output:
+```
+Error: TypeError: Failed to fetch dynamically imported module:
+https://cdn.jsdelivr.net/npm/left-pad/+esm
+```
+You can use the `--bypass-csp` option to have `shot-scraper` run the browser in a mode that ignores these headers:
+```bash
+shot-scraper javascript github.com "
+  async () => {
+    await import('https://cdn.jsdelivr.net/npm/left-pad/+esm');
+    return 'content-security-policy ignored' }
+" --bypass-csp
+```
+Output:
+```
+"content-security-policy ignored"
+```
+
 ## Running JavaScript from a file
 
 You can also save JavaScript to a file and execute it like this:
