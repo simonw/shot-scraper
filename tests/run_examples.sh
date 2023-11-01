@@ -152,3 +152,5 @@ shot-scraper multi empty.yml
   wait_for: |-
     document.querySelector("div")
 ' | shot-scraper multi - --fail)
+# --bypass-csp
+shot-scraper javascript github.com "async () => { await import('https://cdn.jsdelivr.net/npm/left-pad/+esm'); return 'content-security-policy ignored' }" -o examples/github-csp.json --bypass-csp

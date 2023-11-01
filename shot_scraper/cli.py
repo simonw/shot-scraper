@@ -58,6 +58,11 @@ def skip_fail_options(fn):
     return fn
 
 
+def bypass_csp_option(fn):
+    click.option("--bypass-csp", is_flag=True, help="Bypass Content-Security-Policy")(fn)
+    return fn
+
+
 def skip_or_fail(response, skip, fail):
     if skip and fail:
         raise click.ClickException("--skip and --fail cannot be used together")
@@ -192,6 +197,7 @@ def cli():
 @user_agent_option
 @reduced_motion_option
 @skip_fail_options
+@bypass_csp_option
 @silent_option
 def shot(
     url,
@@ -220,6 +226,7 @@ def shot(
     reduced_motion,
     skip,
     fail,
+    bypass_csp,
     silent,
 ):
     """
@@ -281,6 +288,7 @@ def shot(
             user_agent=user_agent,
             timeout=timeout,
             reduced_motion=reduced_motion,
+            bypass_csp=bypass_csp,
         )
         if interactive or devtools:
             use_existing_page = True
@@ -330,6 +338,7 @@ def _browser_context(
     user_agent=None,
     timeout=None,
     reduced_motion=False,
+    bypass_csp=False,
 ):
     browser_kwargs = dict(headless=not interactive, devtools=devtools)
     if browser == "chromium":
@@ -350,6 +359,8 @@ def _browser_context(
         context_args["reduced_motion"] = "reduce"
     if user_agent is not None:
         context_args["user_agent"] = user_agent
+    if bypass_csp:
+        context_args["bypass_csp"] = bypass_csp
     context = browser_obj.new_context(**context_args)
     if timeout:
         context.set_default_timeout(timeout)
@@ -490,7 +501,8 @@ def multi(
 )
 @log_console_option
 @skip_fail_options
-def accessibility(url, auth, output, javascript, timeout, log_console, skip, fail):
+@bypass_csp_option
+def accessibility(url, auth, output, javascript, timeout, log_console, skip, fail, bypass_csp):
     """
     Dump the Chromium accessibility tree for the specifed page
 
@@ -500,7 +512,7 @@ def accessibility(url, auth, output, javascript, timeout, log_console, skip, fai
     """
     url = url_or_file_path(url, _check_and_absolutize)
     with sync_playwright() as p:
-        context, browser_obj = _browser_context(p, auth, timeout=timeout)
+        context, browser_obj = _browser_context(p, auth, timeout=timeout, bypass_csp=bypass_csp)
         page = context.new_page()
         if log_console:
             page.on("console", console_log)
@@ -548,6 +560,7 @@ def accessibility(url, auth, output, javascript, timeout, log_console, skip, fai
 @reduced_motion_option
 @log_console_option
 @skip_fail_options
+@bypass_csp_option
 def javascript(
     url,
     javascript,
@@ -561,6 +574,7 @@ def javascript(
     log_console,
     skip,
     fail,
+    bypass_csp,
 ):
     """
     Execute JavaScript against the page and return the result as JSON
@@ -597,6 +611,7 @@ def javascript(
             browser=browser,
             user_agent=user_agent,
             reduced_motion=reduced_motion,
+            bypass_csp=bypass_csp,
         )
         page = context.new_page()
         if log_console:
@@ -664,6 +679,7 @@ def javascript(
 @click.option("--print-background", is_flag=True, help="Print background graphics")
 @log_console_option
 @skip_fail_options
+@bypass_csp_option
 @silent_option
 def pdf(
     url,
@@ -681,6 +697,7 @@ def pdf(
     log_console,
     skip,
     fail,
+    bypass_csp,
     silent,
 ):
     """
@@ -702,7 +719,7 @@ def pdf(
     if output is None:
         output = filename_for_url(url, ext="pdf", file_exists=os.path.exists)
     with sync_playwright() as p:
-        context, browser_obj = _browser_context(p, auth)
+        context, browser_obj = _browser_context(p, auth, bypass_csp=bypass_csp)
         page = context.new_page()
         if log_console:
             page.on("console", console_log)
@@ -764,6 +781,7 @@ def pdf(
 @browser_option
 @user_agent_option
 @skip_fail_options
+@bypass_csp_option
 @silent_option
 def html(
     url,
@@ -777,6 +795,7 @@ def html(
     user_agent,
     skip,
     fail,
+    bypass_csp,
     silent,
 ):
     """
@@ -795,7 +814,7 @@ def html(
         output = filename_for_url(url, ext="html", file_exists=os.path.exists)
     with sync_playwright() as p:
         context, browser_obj = _browser_context(
-            p, auth, browser=browser, user_agent=user_agent
+            p, auth, browser=browser, user_agent=user_agent, bypass_csp=bypass_csp,
         )
         page = context.new_page()
         if log_console:
