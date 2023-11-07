@@ -127,7 +127,7 @@ def cli():
 @click.option(
     "-d",
     "--device",
-    help="playwright device name. Specify device name will override width height and retina option.",
+    help="Device name. Specify device name will override width height and retina option.",
 )
 @click.option(
     "-o",
@@ -391,6 +391,7 @@ def _browser_context(
     help="Path to JSON authentication context file",
 )
 @click.option("--retina", is_flag=True, help="Use device scale factor of 2")
+@click.option("--device", help="Device name. Specify device name will override retina option")
 @click.option(
     "--timeout",
     type=int,
@@ -425,6 +426,7 @@ def multi(
     config,
     auth,
     retina,
+    device,
     timeout,
     fail_on_error,
     noclobber,
@@ -466,6 +468,7 @@ def multi(
             user_agent=user_agent,
             timeout=timeout,
             reduced_motion=reduced_motion,
+            device=device
         )
         for shot in shots:
             if (
