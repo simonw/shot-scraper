@@ -12,7 +12,7 @@ def filename_for_url(url, ext=None, file_exists=file_exists_never):
     ext = ext or "png"
     bits = urllib.parse.urlparse(url)
     filename = (bits.netloc + bits.path).replace(".", "-").replace("/", "-").rstrip("-")
-    # Remove any characters outside of the allowed range
+    # Remove any characters outside the allowed range
     base_filename = disallowed_re.sub("", filename).lstrip("-")
     filename = base_filename + "." + ext
     suffix = 0
