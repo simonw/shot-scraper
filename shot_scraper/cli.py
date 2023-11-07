@@ -125,6 +125,11 @@ def cli():
     help="Height of browser window and shot - defaults to the full height of the page",
 )
 @click.option(
+    "-d",
+    "--device",
+    help="playwright device name. Specify device name will override width height and retina option.",
+)
+@click.option(
     "-o",
     "--output",
     type=click.Path(file_okay=True, writable=True, dir_okay=False, allow_dash=True),
@@ -207,6 +212,7 @@ def shot(
     output,
     width,
     height,
+    device,
     selectors,
     selectors_all,
     js_selectors,
@@ -269,6 +275,7 @@ def shot(
         "javascript": javascript,
         "width": width,
         "height": height,
+        "device": device,
         "quality": quality,
         "wait": wait,
         "wait_for": wait_for,
@@ -291,6 +298,7 @@ def shot(
             timeout=timeout,
             reduced_motion=reduced_motion,
             bypass_csp=bypass_csp,
+            device=device,
         )
         if interactive or devtools:
             use_existing_page = True
@@ -341,6 +349,7 @@ def _browser_context(
     timeout=None,
     reduced_motion=False,
     bypass_csp=False,
+    device=None,
 ):
     browser_kwargs = dict(headless=not interactive, devtools=devtools)
     if browser == "chromium":
@@ -363,6 +372,10 @@ def _browser_context(
         context_args["user_agent"] = user_agent
     if bypass_csp:
         context_args["bypass_csp"] = bypass_csp
+    if device:
+        if device not in p.devices:
+            raise click.BadParameter("Invalid device name, please refer to playwright.devices")
+        context_args.update(p.devices[device])
     context = browser_obj.new_context(**context_args)
     if timeout:
         context.set_default_timeout(timeout)
@@ -1008,9 +1021,10 @@ def take_shot(
     if log_console:
         page.on("console", console_log)
 
-    viewport = {}
     full_page = True
-    if shot.get("width") or shot.get("height"):
+    if shot.get("device"):
+        full_page = False
+    elif shot.get("width") or shot.get("height"):
         viewport = {
             "width": shot.get("width") or 1280,
             "height": shot.get("height") or 720,
