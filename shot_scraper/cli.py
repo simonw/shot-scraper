@@ -130,6 +130,11 @@ def cli():
     help="Device name. Specify device name will override width height and retina option.",
 )
 @click.option(
+    "device_ratio",
+    "--device-ratio",
+    help="Ratio string(i.e 16:9), use with --device option."
+)
+@click.option(
     "-o",
     "--output",
     type=click.Path(file_okay=True, writable=True, dir_okay=False, allow_dash=True),
@@ -213,6 +218,7 @@ def shot(
     width,
     height,
     device,
+    device_ratio,
     selectors,
     selectors_all,
     js_selectors,
@@ -299,6 +305,7 @@ def shot(
             reduced_motion=reduced_motion,
             bypass_csp=bypass_csp,
             device=device,
+            device_ratio=device_ratio,
         )
         if interactive or devtools:
             use_existing_page = True
@@ -350,6 +357,7 @@ def _browser_context(
     reduced_motion=False,
     bypass_csp=False,
     device=None,
+    device_ratio=None,
 ):
     browser_kwargs = dict(headless=not interactive, devtools=devtools)
     if browser == "chromium":
@@ -375,7 +383,11 @@ def _browser_context(
     if device:
         if device not in p.devices:
             raise click.BadParameter("Invalid device name, please refer to playwright.devices")
-        context_args.update(p.devices[device])
+        device_spec = {**p.devices[device]}
+        if device_ratio:
+            rw, rh = map(int, device_ratio.split(":"))
+            device_spec["viewport"]["height"] = int(device_spec["viewport"]["width"] * rh / rw)
+        context_args.update(device_spec)
     context = browser_obj.new_context(**context_args)
     if timeout:
         context.set_default_timeout(timeout)
