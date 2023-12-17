@@ -31,6 +31,16 @@ def browser_option(fn):
     return fn
 
 
+def browser_args_option(fn):
+    click.option(
+        "--browser-args",
+        "-B",
+        multiple=True,
+        help="Additional arguments to pass to the browser",
+    )(fn)
+    return fn
+
+
 def user_agent_option(fn):
     click.option("--user-agent", help="User-Agent header to use")(fn)
     return fn
@@ -196,6 +206,7 @@ def cli():
 )
 @log_console_option
 @browser_option
+@browser_args_option
 @user_agent_option
 @reduced_motion_option
 @skip_fail_options
@@ -224,6 +235,7 @@ def shot(
     log_requests,
     log_console,
     browser,
+    browser_args,
     user_agent,
     reduced_motion,
     skip,
@@ -287,6 +299,7 @@ def shot(
             devtools=devtools,
             retina=retina,
             browser=browser,
+            browser_args=browser_args,
             user_agent=user_agent,
             timeout=timeout,
             reduced_motion=reduced_motion,
@@ -337,12 +350,13 @@ def _browser_context(
     devtools=False,
     retina=False,
     browser="chromium",
+    browser_args=None,
     user_agent=None,
     timeout=None,
     reduced_motion=False,
     bypass_csp=False,
 ):
-    browser_kwargs = dict(headless=not interactive, devtools=devtools)
+    browser_kwargs = dict(headless=not interactive, devtools=devtools, args=browser_args)
     if browser == "chromium":
         browser_obj = p.chromium.launch(**browser_kwargs)
     elif browser == "firefox":
@@ -403,6 +417,7 @@ def _browser_context(
     multiple=True,
 )
 @browser_option
+@browser_args_option
 @user_agent_option
 @reduced_motion_option
 @log_console_option
@@ -417,6 +432,7 @@ def multi(
     noclobber,
     outputs,
     browser,
+    browser_args,
     user_agent,
     reduced_motion,
     log_console,
@@ -450,6 +466,7 @@ def multi(
             auth,
             retina=retina,
             browser=browser,
+            browser_args=browser_args,
             user_agent=user_agent,
             timeout=timeout,
             reduced_motion=reduced_motion,
@@ -562,6 +579,7 @@ def accessibility(
     help="Output JSON strings as raw text",
 )
 @browser_option
+@browser_args_option
 @user_agent_option
 @reduced_motion_option
 @log_console_option
@@ -575,6 +593,7 @@ def javascript(
     output,
     raw,
     browser,
+    browser_args,
     user_agent,
     reduced_motion,
     log_console,
@@ -615,6 +634,7 @@ def javascript(
             p,
             auth,
             browser=browser,
+            browser_args=browser_args,
             user_agent=user_agent,
             reduced_motion=reduced_motion,
             bypass_csp=bypass_csp,
@@ -785,6 +805,7 @@ def pdf(
 )
 @log_console_option
 @browser_option
+@browser_args_option
 @user_agent_option
 @skip_fail_options
 @bypass_csp_option
@@ -798,6 +819,7 @@ def html(
     wait,
     log_console,
     browser,
+    browser_args,
     user_agent,
     skip,
     fail,
@@ -823,6 +845,7 @@ def html(
             p,
             auth,
             browser=browser,
+            browser_args=browser_args,
             user_agent=user_agent,
             bypass_csp=bypass_csp,
         )
@@ -885,10 +908,11 @@ def install(browser):
     type=click.Path(file_okay=True, writable=True, dir_okay=False, allow_dash=True),
 )
 @browser_option
+@browser_args_option
 @user_agent_option
 @click.option("--devtools", is_flag=True, help="Open browser DevTools")
 @log_console_option
-def auth(url, context_file, browser, user_agent, devtools, log_console):
+def auth(url, context_file, browser, browser_args, user_agent, devtools, log_console):
     """
     Open a browser so user can manually authenticate with the specified site,
     then save the resulting authentication context to a file.
@@ -904,6 +928,7 @@ def auth(url, context_file, browser, user_agent, devtools, log_console):
             interactive=True,
             devtools=devtools,
             browser=browser,
+            browser_args=browser_args,
             user_agent=user_agent,
         )
         context = browser_obj.new_context()

@@ -64,6 +64,7 @@ Options:
   --log-console                   Write console.log() to stderr
   -b, --browser [chromium|firefox|webkit|chrome|chrome-beta]
                                   Which browser to use
+  -B, --browser-args TEXT         Additional arguments to pass to the browser
   --user-agent TEXT               User-Agent header to use
   --fail                          Fail with an error code if a page returns an
                                   HTTP error

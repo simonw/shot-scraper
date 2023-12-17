@@ -49,6 +49,7 @@ Usage: shot-scraper auth [OPTIONS] URL CONTEXT_FILE
 Options:
   -b, --browser [chromium|firefox|webkit|chrome|chrome-beta]
                                   Which browser to use
+  -B, --browser-args TEXT         Additional arguments to pass to the browser
   --user-agent TEXT               User-Agent header to use
   --devtools                      Open browser DevTools
   --log-console                   Write console.log() to stderr

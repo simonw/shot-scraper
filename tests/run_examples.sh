@@ -79,6 +79,13 @@ shot-scraper 'https://www.whatismybrowser.com/detect/what-is-my-user-agent/' \
   -o examples/whatismybrowser-firefox.png -h 400 -w 800 -b firefox
 shot-scraper 'https://www.whatismybrowser.com/detect/what-is-my-user-agent/' \
   -o examples/whatismybrowser-webkit.png -h 400 -w 800 -b webkit
+# Default font-render-hinting
+shot-scraper https://shot-scraper.datasette.io/en/stable/screenshots.html \
+  -w 800 -h 600 -o examples/font-hinting-default.png
+# Add browser argument for font-render-hinting
+shot-scraper https://shot-scraper.datasette.io/en/stable/screenshots.html \
+  -w 800 -h 600 -o examples/font-hinting-none.png \
+  --browser-args "--font-render-hinting=none"
 # --wait-for
 echo '<html>
 <body><h1>Here it comes...</h1>

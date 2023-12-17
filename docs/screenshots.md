@@ -160,6 +160,20 @@ The output looks like this:
 ```
 Note that the `size` field here will be the size of the response in bytes, but in some circumstances this will not be available and it will be returned as `"size": null`.
 
+## Browser arguments
+
+Additional arguments to pass to the browser instance. The list of Chromium flags can be found [here](https://peter.sh/experiments/chromium-command-line-switches/).
+
+For example, to remove font render hinting:
+
+    shot-scraper https://simonwillison.net/ -o no-hinting.png \
+      --height 800 --browser-args "--font-render-hinting=none"
+
+To add multiple arguments, add `--browser-args` for each argument:
+
+    shot-scraper https://simonwillison.net/ -o no-hinting-no-gpu.png \
+      --height 800 --browser-args "--font-render-hinting=none" --browser-args "--disable-gpu"
+
 ## Taking screenshots of local HTML files
 
 You can pass the path to an HTML file on disk to take a screenshot of that rendered file:
@@ -312,6 +326,7 @@ Options:
   --log-console                   Write console.log() to stderr
   -b, --browser [chromium|firefox|webkit|chrome|chrome-beta]
                                   Which browser to use
+  -B, --browser-args TEXT         Additional arguments to pass to the browser
   --user-agent TEXT               User-Agent header to use
   --reduced-motion                Emulate 'prefers-reduced-motion' media feature
   --fail                          Fail with an error code if a page returns an
