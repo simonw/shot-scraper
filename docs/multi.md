@@ -31,9 +31,21 @@ The `url:` can be set to a path to a file on disk as well:
   url: index.html
 ```
 
+Use the `--scale-factor` option to capture all screenshots at a specific scale factor, which effectively simulates different device pixel ratios. This setting is useful for testing high-definition displays or emulating screens with various pixel densities.
+
+For example, setting `--scale-factor 3` results in screenshots with a CSS pixel ratio of 3, which is ideal for emulating a high-resolution display, such as Apple's iPhone 12 screens.
+
+To take screenshots with a scale factor of 3 (tripled resolution), run the following command:
+
+    shot-scraper multi shots.yml --scale-factor 3
+
+This will multiply both the width and height of all screenshots by 3, resulting in images with a higher level of detail, suitable for scenarios where you need to capture the screen as it would appear on a high-DPI display.
+
 Use `--retina` to take all screenshots at retina resolution instead, doubling the dimensions of the files:
 
     shot-scraper multi shots.yml --retina
+
+Note: The `--retina` option should not be used in conjunction with the `--scale-factor` flag as they are mutually exclusive. If both are provided, the command will raise an error to prevent conflicts.
 
 To take a screenshot of just the area of a page defined by a CSS selector, add `selector` to the YAML block:
 
@@ -130,7 +142,10 @@ Usage: shot-scraper multi [OPTIONS] CONFIG
 
 Options:
   -a, --auth FILENAME             Path to JSON authentication context file
-  --retina                        Use device scale factor of 2
+  --scale-factor FLOAT            Device scale factor. Cannot be used together
+                                  with '--retina'.
+  --retina                        Use device scale factor of 2. Cannot be used
+                                  together with '--scale-factor'.
   --timeout INTEGER               Wait this many milliseconds before failing
   -n, --no-clobber                Skip images that already exist
   -o, --output TEXT               Just take shots matching these output files
