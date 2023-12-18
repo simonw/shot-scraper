@@ -42,7 +42,7 @@ shot-scraper https://simonwillison.net/ \
 shot-scraper 'https://www.owlsnearme.com/?place=127871' \
   --selector 'section.secondary' \
   -o examples/owlsnearme-wait.jpg \
-  --wait 2000
+  --wait-for "!!document.querySelector('section.secondary')"
 # Accessibility
 shot-scraper accessibility https://datasette.io/ \
   > examples/datasette-accessibility.json
