@@ -154,3 +154,9 @@ shot-scraper multi empty.yml
 ' | shot-scraper multi - --fail)
 # --bypass-csp
 shot-scraper javascript github.com "async () => { await import('https://cdn.jsdelivr.net/npm/left-pad/+esm'); return 'content-security-policy ignored' }" -o examples/github-csp.json --bypass-csp
+# --retina
+shot-scraper https://simonwillison.net/ -h 400 -w 800 \
+  -o examples/simonwillison-retina.png --retina
+# --scale-factor
+shot-scraper https://simonwillison.net/ -h 915 -w 412 \
+  -o examples/simonwillison-scale-factor-pixel-six.png --scale-factor 2.625

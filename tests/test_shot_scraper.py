@@ -120,3 +120,45 @@ def test_html(args, expected):
         assert result.exit_code == 0, result.output
         # Whitespace is not preserved
         assert result.output.replace("\n", "") == expected.replace("\n", "")
+
+
+@pytest.mark.parametrize(
+    "command,args,expected",
+    [
+        (
+            "shot",
+            ["--retina", "--scale-factor", 3],
+            "Error: --retina and --scale-factor cannot be used together\n",
+        ),
+        (
+            "multi",
+            ["--retina", "--scale-factor", 3],
+            "Error: --retina and --scale-factor cannot be used together\n",
+        ),
+        (
+            "shot",
+            ["--scale-factor", 0],
+            "Error: --scale-factor must be positive\n",
+        ),
+        (
+            "multi",
+            ["--scale-factor", 0],
+            "Error: --scale-factor must be positive\n",
+        ),
+        (
+            "shot",
+            ["--scale-factor", -3],
+            "Error: --scale-factor must be positive\n",
+        ),
+        (
+            "multi",
+            ["--scale-factor", -3],
+            "Error: --scale-factor must be positive\n",
+        ),
+    ],
+)
+def test_error_on_invalid_scale_factors(command, args, expected):
+    runner = CliRunner()
+    result = runner.invoke(cli, [command, "-"] + args)
+    assert result.exit_code == 1
+    assert result.output == expected
