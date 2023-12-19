@@ -38,11 +38,6 @@ shot-scraper https://simonwillison.net/ \
 # JPEG quality
 shot-scraper https://simonwillison.net/ \
   -h 800 -o examples/simonwillison-quality-80.jpg --quality 80
-# Selector with a wait
-shot-scraper 'https://www.owlsnearme.com/?place=127871' \
-  --selector 'section.secondary' \
-  -o examples/owlsnearme-wait.jpg \
-  --wait-for "!!document.querySelector('section.secondary')"
 # Accessibility
 shot-scraper accessibility https://datasette.io/ \
   > examples/datasette-accessibility.json
@@ -103,6 +98,11 @@ shot-scraper examples/div-after-2-seconds.html \
 shot-scraper examples/div-after-2-seconds.html \
   -o examples/wait-for.png -w 300 -h 200 \
   --wait-for "document.querySelector('div')"
+# Selector with a wait
+shot-scraper examples/div-after-2-seconds.html \
+  --selector 'div' \
+  -o examples/wait.png -w 300 -h 200 \
+  --wait 2100
 # And using multi
 echo '# empty file' > empty.yml
 shot-scraper multi empty.yml
@@ -158,6 +158,12 @@ shot-scraper multi empty.yml
   height: 200
   wait_for: |-
     document.querySelector("div")
+# wait
+- url: div-after-2-seconds.html
+  output: wait-multi.png
+  width: 300
+  height: 200
+  wait: 2100
 ' | shot-scraper multi - --fail)
 # --bypass-csp
 shot-scraper javascript github.com "async () => { await import('https://cdn.jsdelivr.net/npm/left-pad/+esm'); return 'content-security-policy ignored' }" -o examples/github-csp.json --bypass-csp
