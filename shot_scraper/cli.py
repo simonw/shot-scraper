@@ -10,6 +10,7 @@ import sys
 import textwrap
 import time
 import yaml
+from shutil import which
 
 from shot_scraper.utils import filename_for_url, url_or_file_path
 
@@ -90,6 +91,25 @@ def reduced_motion_option(fn):
     )(fn)
     return fn
 
+def system_browser_option(fn):
+    click.option(
+        "--system-browser",
+        is_flag=True,
+        help="Use web browser installed by the system"
+    )(fn)
+    return fn
+
+def browser_args_option(fn):
+    click.option("--browser-args", help="Browser command-line arguments")(fn)
+    return fn
+
+def ignore_https_errors_option(fn):
+    click.option(
+        "--ignore-https-errors",
+        is_flag=True,
+        help="Ignore HTTPS errors"
+    )(fn)
+    return fn
 
 @click.group(
     cls=DefaultGroup,
@@ -201,6 +221,9 @@ def cli():
 @skip_fail_options
 @bypass_csp_option
 @silent_option
+@system_browser_option
+@browser_args_option
+@ignore_https_errors_option
 def shot(
     url,
     auth,
@@ -230,6 +253,9 @@ def shot(
     fail,
     bypass_csp,
     silent,
+    system_browser,
+    browser_args,
+    ignore_https_errors,
 ):
     """
     Take a single screenshot of a page or portion of a page.
@@ -291,6 +317,9 @@ def shot(
             timeout=timeout,
             reduced_motion=reduced_motion,
             bypass_csp=bypass_csp,
+            system_browser=system_browser,
+            browser_args=browser_args,
+            ignore_https_errors=ignore_https_errors,
         )
         if interactive or devtools:
             use_existing_page = True
@@ -341,8 +370,15 @@ def _browser_context(
     timeout=None,
     reduced_motion=False,
     bypass_csp=False,
+    system_browser=False,
+    browser_args=None,
+    ignore_https_errors=None,
 ):
     browser_kwargs = dict(headless=not interactive, devtools=devtools)
+    if system_browser:
+        browser_kwargs['executable_path'] = which(browser)
+    if browser_args:
+        browser_kwargs["args"] = browser_args.split(' ')
     if browser == "chromium":
         browser_obj = p.chromium.launch(**browser_kwargs)
     elif browser == "firefox":
@@ -363,6 +399,8 @@ def _browser_context(
         context_args["user_agent"] = user_agent
     if bypass_csp:
         context_args["bypass_csp"] = bypass_csp
+    if ignore_https_errors is not None:
+        context_args["ignore_https_errors"] = ignore_https_errors
     context = browser_obj.new_context(**context_args)
     if timeout:
         context.set_default_timeout(timeout)
@@ -408,6 +446,9 @@ def _browser_context(
 @log_console_option
 @skip_fail_options
 @silent_option
+@system_browser_option
+@browser_args_option
+@ignore_https_errors_option
 def multi(
     config,
     auth,
@@ -423,6 +464,9 @@ def multi(
     skip,
     fail,
     silent,
+    system_browser,
+    browser_args,
+    ignore_https_errors,
 ):
     """
     Take multiple screenshots, defined by a YAML file
@@ -453,6 +497,9 @@ def multi(
             user_agent=user_agent,
             timeout=timeout,
             reduced_motion=reduced_motion,
+            system_browser=system_browser,
+            browser_args=browser_args,
+            ignore_https_errors=ignore_https_errors,
         )
         for shot in shots:
             if (
@@ -564,9 +611,9 @@ def accessibility(
 @browser_option
 @user_agent_option
 @reduced_motion_option
-@log_console_option
-@skip_fail_options
-@bypass_csp_option
+@system_browser_option
+@browser_args_option
+@ignore_https_errors_option
 def javascript(
     url,
     javascript,
@@ -581,6 +628,9 @@ def javascript(
     skip,
     fail,
     bypass_csp,
+    system_browser,
+    browser_args,
+    ignore_https_errors,
 ):
     """
     Execute JavaScript against the page and return the result as JSON
@@ -618,6 +668,9 @@ def javascript(
             user_agent=user_agent,
             reduced_motion=reduced_motion,
             bypass_csp=bypass_csp,
+            system_browser=system_browser,
+            browser_args=browser_args,
+            ignore_https_errors=ignore_https_errors,
         )
         page = context.new_page()
         if log_console:
@@ -886,9 +939,12 @@ def install(browser):
 )
 @browser_option
 @user_agent_option
+@system_browser_option
+@browser_args_option
+@ignore_https_errors_option
 @click.option("--devtools", is_flag=True, help="Open browser DevTools")
 @log_console_option
-def auth(url, context_file, browser, user_agent, devtools, log_console):
+def auth(url, context_file, browser, user_agent, devtools, log_console, system_browser, browser_args, ignore_https_errors):
     """
     Open a browser so user can manually authenticate with the specified site,
     then save the resulting authentication context to a file.
@@ -905,6 +961,9 @@ def auth(url, context_file, browser, user_agent, devtools, log_console):
             devtools=devtools,
             browser=browser,
             user_agent=user_agent,
+            system_browser=system_browser,
+            browser_args=browser_args,
+            ignore_https_errors=ignore_https_errors,
         )
         context = browser_obj.new_context()
         page = context.new_page()

@@ -319,6 +319,9 @@ Options:
   --skip                          Skip pages that return HTTP errors
   --bypass-csp                    Bypass Content-Security-Policy
   --silent                        Do not output any messages
+  --system-browser                Use web browser installed by the system
+  --browser-args TEXT             Browser command-line arguments
+  --ignore-https-errors           Ignore HTTPS errors
   --help                          Show this message and exit.
 ```
 <!-- [[[end]]] -->
