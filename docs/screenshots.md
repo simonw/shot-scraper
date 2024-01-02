@@ -120,6 +120,13 @@ The `--retina` option sets a device scale factor of 2. This means that an image 
 
 This example will produce an image that is 800px wide and 1200px high.
 
+## Transparent background
+
+The `--omit-background` option instructs the browser to ignore the default background, allowing for the capture of a page with a transparent background. Does not work with JPG images or when `quality` is set.
+
+    shot-scraper https://simonwillison.net/ -o simon.png \
+      --width 400 --height 600 --omit-background
+
 ## Interacting with the page
 
 Sometimes it's useful to be able to manually interact with a page before the screenshot is captured.
@@ -198,6 +205,36 @@ new Promise(takeShot => {
 ```
 If your custom code defines a `Promise`, `shot-scraper` will wait for that promise to complete before taking the screenshot. Here the screenshot does not occur until the `takeShot()` function is called.
 
+If you see errors relating to CSP headers such as "Failed to fetch dynamically imported module" you can work around them using {ref}`the --bypass-csp option<bypass-csp>`.
+
+## Viewing console.log() output
+
+Almost all of the `shot-scraper` commands accept a `--log-console` option, which will cause them to output any calls to `console.log()` to standard error while the command is running.
+
+This includes both `console.log()` calls in the existing page JavaScript, as well as any calls to that method that you include in your own custom JavaScript.
+
+For example, running `--log-console` while taking a screenshot of the Facebook homepage will show this warning message, which Facebook logs to the developer tools console to help protect people from social engineering attacks:
+
+```
+% shot-scraper shot facebook.com --log-console
+
+ .d8888b.  888                       888
+d88P  Y88b 888                       888
+Y88b.      888                       888    This is a browser feature intended for
+ "Y888b.   888888  .d88b.  88888b.   888    developers. If someone told you to copy-paste
+    "Y88b. 888    d88""88b 888 "88b  888    something here to enable a Facebook feature
+      "888 888    888  888 888  888  Y8P    or "hack" someone's account, it is a
+Y88b  d88P Y88b.  Y88..88P 888 d88P         scam and will give them access to your
+ "Y8888P"   "Y888  "Y88P"  88888P"   888    Facebook account.
+                           888
+                           888
+                           888
+
+See https://www.facebook.com/selfxss for more information.
+
+Screenshot of 'http://facebook.com' written to 'facebook-com.png'
+```
+
 ## `shot-scraper shot --help`
 
 Full `--help` for this command:
@@ -259,6 +296,10 @@ Options:
                                   pixels
   -j, --javascript TEXT           Execute this JS prior to taking the shot
   --retina                        Use device scale factor of 2
+  --omit-background               Omit the default browser background from the
+                                  shot, making it possible take advantage of
+                                  transparence. Does not work with JPEGs or when
+                                  using --quality.
   --quality INTEGER               Save as JPEG with this quality, e.g. 80
   --wait INTEGER                  Wait this many milliseconds before taking the
                                   screenshot
@@ -268,10 +309,16 @@ Options:
                                   taking the shot
   --devtools                      Interact mode with developer tools
   --log-requests FILENAME         Log details of all requests to this file
+  --log-console                   Write console.log() to stderr
   -b, --browser [chromium|firefox|webkit|chrome|chrome-beta]
                                   Which browser to use
   --user-agent TEXT               User-Agent header to use
   --reduced-motion                Emulate 'prefers-reduced-motion' media feature
+  --fail                          Fail with an error code if a page returns an
+                                  HTTP error
+  --skip                          Skip pages that return HTTP errors
+  --bypass-csp                    Bypass Content-Security-Policy
+  --silent                        Do not output any messages
   --system-browser                Use web browser installed by the system
   --browser-args TEXT             Browser command-line arguments
   --ignore-https-errors           Ignore HTTPS errors

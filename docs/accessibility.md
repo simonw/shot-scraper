@@ -37,6 +37,10 @@ Options:
   -o, --output FILENAME
   -j, --javascript TEXT  Execute this JS prior to taking the snapshot
   --timeout INTEGER      Wait this many milliseconds before failing
+  --log-console          Write console.log() to stderr
+  --fail                 Fail with an error code if a page returns an HTTP error
+  --skip                 Skip pages that return HTTP errors
+  --bypass-csp           Bypass Content-Security-Policy
   --help                 Show this message and exit.
 ```
 <!-- [[[end]]] -->

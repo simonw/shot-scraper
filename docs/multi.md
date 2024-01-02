@@ -35,10 +35,6 @@ Use `--retina` to take all screenshots at retina resolution instead, doubling th
 
     shot-scraper multi shots.yml --retina
 
-Use `--fail-on-error` to fail noisily on error (may be helpful in CI):
-
-    shot-scraper multi shots.yml --fail-on-error
-
 To take a screenshot of just the area of a page defined by a CSS selector, add `selector` to the YAML block:
 
 ```yaml
@@ -136,13 +132,17 @@ Options:
   -a, --auth FILENAME             Path to JSON authentication context file
   --retina                        Use device scale factor of 2
   --timeout INTEGER               Wait this many milliseconds before failing
-  --fail-on-error                 Fail noisily on error
   -n, --no-clobber                Skip images that already exist
   -o, --output TEXT               Just take shots matching these output files
   -b, --browser [chromium|firefox|webkit|chrome|chrome-beta]
                                   Which browser to use
   --user-agent TEXT               User-Agent header to use
   --reduced-motion                Emulate 'prefers-reduced-motion' media feature
+  --log-console                   Write console.log() to stderr
+  --fail                          Fail with an error code if a page returns an
+                                  HTTP error
+  --skip                          Skip pages that return HTTP errors
+  --silent                        Do not output any messages
   --system-browser                Use web browser installed by the system
   --browser-args TEXT             Browser command-line arguments
   --ignore-https-errors           Ignore HTTPS errors

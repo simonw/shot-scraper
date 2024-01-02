@@ -4,7 +4,9 @@ If you want to take screenshots of a site that has some form of authentication, 
 
 You can do that using the `shot-scraper auth` command:
 
-    shot-scraper auth https://datasette-auth-passwords-demo.datasette.io/-/login auth.json
+    shot-scraper auth \
+      https://datasette-auth-passwords-demo.datasette.io/-/login \
+      auth.json
 
 (For this demo, use username = `root` and password = `password!`)
 
@@ -52,6 +54,7 @@ Options:
   --browser-args TEXT             Browser command-line arguments
   --ignore-https-errors           Ignore HTTPS errors
   --devtools                      Open browser DevTools
+  --log-console                   Write console.log() to stderr
   --help                          Show this message and exit.
 ```
 <!-- [[[end]]] -->

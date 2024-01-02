@@ -17,6 +17,10 @@ from shot_scraper.utils import filename_for_url, url_or_file_path
 BROWSERS = ("chromium", "firefox", "webkit", "chrome", "chrome-beta")
 
 
+def console_log(msg):
+    click.echo(msg, err=True)
+
+
 def browser_option(fn):
     click.option(
         "--browser",
@@ -31,6 +35,52 @@ def browser_option(fn):
 def user_agent_option(fn):
     click.option("--user-agent", help="User-Agent header to use")(fn)
     return fn
+
+
+def log_console_option(fn):
+    click.option("--log-console", is_flag=True, help="Write console.log() to stderr")(
+        fn
+    )
+    return fn
+
+
+def silent_option(fn):
+    click.option("--silent", is_flag=True, help="Do not output any messages")(fn)
+    return fn
+
+
+def skip_fail_options(fn):
+    click.option("--skip", is_flag=True, help="Skip pages that return HTTP errors")(fn)
+    click.option(
+        "--fail",
+        is_flag=True,
+        help="Fail with an error code if a page returns an HTTP error",
+    )(fn)
+    return fn
+
+
+def bypass_csp_option(fn):
+    click.option("--bypass-csp", is_flag=True, help="Bypass Content-Security-Policy")(
+        fn
+    )
+    return fn
+
+
+def skip_or_fail(response, skip, fail):
+    if skip and fail:
+        raise click.ClickException("--skip and --fail cannot be used together")
+    if str(response.status)[0] in ("4", "5"):
+        if skip:
+            click.echo(
+                "{} error for {}, skipping".format(response.status, response.url),
+                err=True,
+            )
+            # Exit with a 0 status code
+            raise SystemExit
+        elif fail:
+            raise click.ClickException(
+                "{} error for {}".format(response.status, response.url)
+            )
 
 
 def reduced_motion_option(fn):
@@ -133,6 +183,11 @@ def cli():
 )
 @click.option("-j", "--javascript", help="Execute this JS prior to taking the shot")
 @click.option("--retina", is_flag=True, help="Use device scale factor of 2")
+@click.option(
+    "--omit-background",
+    is_flag=True,
+    help="Omit the default browser background from the shot, making it possible take advantage of transparence. Does not work with JPEGs or when using --quality.",
+)
 @click.option("--quality", type=int, help="Save as JPEG with this quality, e.g. 80")
 @click.option(
     "--wait", type=int, help="Wait this many milliseconds before taking the screenshot"
@@ -159,9 +214,13 @@ def cli():
     type=click.File("w"),
     help="Log details of all requests to this file",
 )
+@log_console_option
 @browser_option
 @user_agent_option
 @reduced_motion_option
+@skip_fail_options
+@bypass_csp_option
+@silent_option
 @system_browser_option
 @browser_args_option
 @ignore_https_errors_option
@@ -178,6 +237,7 @@ def shot(
     padding,
     javascript,
     retina,
+    omit_background,
     quality,
     wait,
     wait_for,
@@ -185,9 +245,14 @@ def shot(
     interactive,
     devtools,
     log_requests,
+    log_console,
     browser,
     user_agent,
     reduced_motion,
+    skip,
+    fail,
+    bypass_csp,
+    silent,
     system_browser,
     browser_args,
     ignore_https_errors,
@@ -235,6 +300,7 @@ def shot(
         "wait_for": wait_for,
         "timeout": timeout,
         "padding": padding,
+        "omit_background": omit_background,
         "retina": retina,
     }
     interactive = interactive or devtools
@@ -250,6 +316,7 @@ def shot(
             user_agent=user_agent,
             timeout=timeout,
             reduced_motion=reduced_motion,
+            bypass_csp=bypass_csp,
             system_browser=system_browser,
             browser_args=browser_args,
             ignore_https_errors=ignore_https_errors,
@@ -271,6 +338,8 @@ def shot(
                     return_bytes=True,
                     use_existing_page=use_existing_page,
                     log_requests=log_requests,
+                    log_console=log_console,
+                    silent=silent,
                 )
                 sys.stdout.buffer.write(shot)
             else:
@@ -280,6 +349,10 @@ def shot(
                     shot,
                     use_existing_page=use_existing_page,
                     log_requests=log_requests,
+                    log_console=log_console,
+                    skip=skip,
+                    fail=fail,
+                    silent=silent,
                 )
         except TimeoutError as e:
             raise click.ClickException(str(e))
@@ -296,6 +369,7 @@ def _browser_context(
     user_agent=None,
     timeout=None,
     reduced_motion=False,
+    bypass_csp=False,
     system_browser=False,
     browser_args=None,
     ignore_https_errors=None,
@@ -323,6 +397,8 @@ def _browser_context(
         context_args["reduced_motion"] = "reduce"
     if user_agent is not None:
         context_args["user_agent"] = user_agent
+    if bypass_csp:
+        context_args["bypass_csp"] = bypass_csp
     if ignore_https_errors is not None:
         context_args["ignore_https_errors"] = ignore_https_errors
     context = browser_obj.new_context(**context_args)
@@ -345,7 +421,11 @@ def _browser_context(
     type=int,
     help="Wait this many milliseconds before failing",
 )
-@click.option("--fail-on-error", is_flag=True, help="Fail noisily on error")
+# Hidden because will be removed if I release shot-scraper 2.0
+# See https://github.com/simonw/shot-scraper/issues/103
+@click.option(
+    "--fail-on-error", is_flag=True, help="Fail noisily on error", hidden=True
+)
 @click.option(
     "noclobber",
     "-n",
@@ -363,6 +443,9 @@ def _browser_context(
 @browser_option
 @user_agent_option
 @reduced_motion_option
+@log_console_option
+@skip_fail_options
+@silent_option
 @system_browser_option
 @browser_args_option
 @ignore_https_errors_option
@@ -377,6 +460,10 @@ def multi(
     browser,
     user_agent,
     reduced_motion,
+    log_console,
+    skip,
+    fail,
+    silent,
     system_browser,
     browser_args,
     ignore_https_errors,
@@ -424,9 +511,16 @@ def multi(
             if outputs and shot.get("output") not in outputs:
                 continue
             try:
-                take_shot(context, shot)
+                take_shot(
+                    context,
+                    shot,
+                    log_console=log_console,
+                    skip=skip,
+                    fail=fail,
+                    silent=silent,
+                )
             except TimeoutError as e:
-                if fail_on_error:
+                if fail or fail_on_error:
                     raise click.ClickException(str(e))
                 else:
                     click.echo(str(e), err=True)
@@ -454,7 +548,12 @@ def multi(
     type=int,
     help="Wait this many milliseconds before failing",
 )
-def accessibility(url, auth, output, javascript, timeout):
+@log_console_option
+@skip_fail_options
+@bypass_csp_option
+def accessibility(
+    url, auth, output, javascript, timeout, log_console, skip, fail, bypass_csp
+):
     """
     Dump the Chromium accessibility tree for the specifed page
 
@@ -464,9 +563,14 @@ def accessibility(url, auth, output, javascript, timeout):
     """
     url = url_or_file_path(url, _check_and_absolutize)
     with sync_playwright() as p:
-        context, browser_obj = _browser_context(p, auth, timeout=timeout)
+        context, browser_obj = _browser_context(
+            p, auth, timeout=timeout, bypass_csp=bypass_csp
+        )
         page = context.new_page()
-        page.goto(url)
+        if log_console:
+            page.on("console", console_log)
+        response = page.goto(url)
+        skip_or_fail(response, skip, fail)
         if javascript:
             _evaluate_js(page, javascript)
         snapshot = page.accessibility.snapshot()
@@ -511,7 +615,22 @@ def accessibility(url, auth, output, javascript, timeout):
 @browser_args_option
 @ignore_https_errors_option
 def javascript(
-    url, javascript, input, auth, output, raw, browser, user_agent, reduced_motion, system_browser, browser_args, ignore_https_errors,
+    url,
+    javascript,
+    input,
+    auth,
+    output,
+    raw,
+    browser,
+    user_agent,
+    reduced_motion,
+    log_console,
+    skip,
+    fail,
+    bypass_csp,
+    system_browser,
+    browser_args,
+    ignore_https_errors,
 ):
     """
     Execute JavaScript against the page and return the result as JSON
@@ -548,12 +667,16 @@ def javascript(
             browser=browser,
             user_agent=user_agent,
             reduced_motion=reduced_motion,
+            bypass_csp=bypass_csp,
             system_browser=system_browser,
             browser_args=browser_args,
             ignore_https_errors=ignore_https_errors,
         )
         page = context.new_page()
-        page.goto(url)
+        if log_console:
+            page.on("console", console_log)
+        response = page.goto(url)
+        skip_or_fail(response, skip, fail)
         result = _evaluate_js(page, javascript)
         browser_obj.close()
     if raw:
@@ -613,6 +736,10 @@ def javascript(
     help="Scale of the webpage rendering",
 )
 @click.option("--print-background", is_flag=True, help="Print background graphics")
+@log_console_option
+@skip_fail_options
+@bypass_csp_option
+@silent_option
 def pdf(
     url,
     auth,
@@ -626,6 +753,11 @@ def pdf(
     height,
     scale,
     print_background,
+    log_console,
+    skip,
+    fail,
+    bypass_csp,
+    silent,
 ):
     """
     Create a PDF of the specified page
@@ -646,9 +778,12 @@ def pdf(
     if output is None:
         output = filename_for_url(url, ext="pdf", file_exists=os.path.exists)
     with sync_playwright() as p:
-        context, browser_obj = _browser_context(p, auth)
+        context, browser_obj = _browser_context(p, auth, bypass_csp=bypass_csp)
         page = context.new_page()
-        page.goto(url)
+        if log_console:
+            page.on("console", console_log)
+        response = page.goto(url)
+        skip_or_fail(response, skip, fail)
         if wait:
             time.sleep(wait / 1000)
         if javascript:
@@ -672,10 +807,8 @@ def pdf(
 
         if output == "-":
             sys.stdout.buffer.write(pdf)
-        else:
-            click.echo(
-                "Screenshot of '{}' written to '{}'".format(url, output), err=True
-            )
+        elif not silent:
+            click.echo("PDF of '{}' written to '{}'".format(url, output), err=True)
 
         browser_obj.close()
 
@@ -703,8 +836,12 @@ def pdf(
 @click.option(
     "--wait", type=int, help="Wait this many milliseconds before taking the snapshot"
 )
+@log_console_option
 @browser_option
 @user_agent_option
+@skip_fail_options
+@bypass_csp_option
+@silent_option
 def html(
     url,
     auth,
@@ -712,8 +849,13 @@ def html(
     javascript,
     selector,
     wait,
+    log_console,
     browser,
     user_agent,
+    skip,
+    fail,
+    bypass_csp,
+    silent,
 ):
     """
     Output the final HTML of the specified page
@@ -731,10 +873,17 @@ def html(
         output = filename_for_url(url, ext="html", file_exists=os.path.exists)
     with sync_playwright() as p:
         context, browser_obj = _browser_context(
-            p, auth, browser=browser, user_agent=user_agent
+            p,
+            auth,
+            browser=browser,
+            user_agent=user_agent,
+            bypass_csp=bypass_csp,
         )
         page = context.new_page()
-        page.goto(url)
+        if log_console:
+            page.on("console", console_log)
+        response = page.goto(url)
+        skip_or_fail(response, skip, fail)
         if wait:
             time.sleep(wait / 1000)
         if javascript:
@@ -749,9 +898,11 @@ def html(
             sys.stdout.write(html)
         else:
             open(output, "w").write(html)
-            click.echo(
-                "HTML snapshot of '{}' written to '{}'".format(url, output), err=True
-            )
+            if not silent:
+                click.echo(
+                    "HTML snapshot of '{}' written to '{}'".format(url, output),
+                    err=True,
+                )
 
         browser_obj.close()
 
@@ -792,7 +943,8 @@ def install(browser):
 @browser_args_option
 @ignore_https_errors_option
 @click.option("--devtools", is_flag=True, help="Open browser DevTools")
-def auth(url, context_file, browser, user_agent, devtools, system_browser, browser_args, ignore_https_errors):
+@log_console_option
+def auth(url, context_file, browser, user_agent, devtools, log_console, system_browser, browser_args, ignore_https_errors):
     """
     Open a browser so user can manually authenticate with the specified site,
     then save the resulting authentication context to a file.
@@ -815,6 +967,8 @@ def auth(url, context_file, browser, user_agent, devtools, system_browser, brows
         )
         context = browser_obj.new_context()
         page = context.new_page()
+        if log_console:
+            page.on("console", console_log)
         page.goto(url)
         click.echo("Hit <enter> after you have signed in:", err=True)
         input()
@@ -829,15 +983,15 @@ def auth(url, context_file, browser, user_agent, devtools, system_browser, brows
         pathlib.Path(context_file).chmod(0o600)
 
 
-class ShotError(Exception):
-    pass
-
-
 def _check_and_absolutize(filepath):
-    path = pathlib.Path(filepath)
-    if path.exists():
-        return path.absolute()
-    return False
+    try:
+        path = pathlib.Path(filepath)
+        if path.exists():
+            return path.absolute()
+        return False
+    except OSError:
+        # On Windows, instantiating a Path object on `http://` or `https://` will raise an exception
+        return False
 
 
 def take_shot(
@@ -846,10 +1000,17 @@ def take_shot(
     return_bytes=False,
     use_existing_page=False,
     log_requests=None,
+    log_console=False,
+    skip=False,
+    fail=False,
+    silent=False,
 ):
     url = shot.get("url") or ""
     if not url:
-        raise ShotError("url is required")
+        raise click.ClickException("url is required")
+
+    if skip and fail:
+        raise click.ClickException("--skip and --fail cannot be used together")
 
     url = url_or_file_path(url, file_exists=_check_and_absolutize)
 
@@ -857,6 +1018,7 @@ def take_shot(
     if not output and not return_bytes:
         output = filename_for_url(url, ext="png", file_exists=os.path.exists)
     quality = shot.get("quality")
+    omit_background = shot.get("omit_background")
     wait = shot.get("wait")
     wait_for = shot.get("wait_for")
     padding = shot.get("padding") or 0
@@ -902,6 +1064,9 @@ def take_shot(
     else:
         page = context_or_page
 
+    if log_console:
+        page.on("console", console_log)
+
     viewport = {}
     full_page = True
     if shot.get("width") or shot.get("height"):
@@ -913,7 +1078,20 @@ def take_shot(
         if shot.get("height"):
             full_page = False
 
-    page.goto(url)
+    if not use_existing_page:
+        # Load page and check for errors
+        response = page.goto(url)
+        # Check if page was a 404 or 500 or other error
+        if str(response.status)[0] in ("4", "5"):
+            if skip:
+                click.echo(
+                    "{} error for {}, skipping".format(response.status, url), err=True
+                )
+                return
+            elif fail:
+                raise click.ClickException(
+                    "{} error for {}".format(response.status, url)
+                )
 
     if wait:
         time.sleep(wait / 1000)
@@ -928,6 +1106,8 @@ def take_shot(
     screenshot_args = {}
     if quality:
         screenshot_args.update({"quality": quality, "type": "jpeg"})
+    if omit_background:
+        screenshot_args.update({"omit_background": True})
     if not return_bytes:
         screenshot_args["path"] = output
 
@@ -978,7 +1158,8 @@ def take_shot(
         else:
             page.screenshot(**screenshot_args)
             message = "Screenshot of '{}' written to '{}'".format(url, output)
-    click.echo(message, err=True)
+    if not silent:
+        click.echo(message, err=True)
 
 
 def _js_selector_javascript(js_selectors, js_selectors_all):

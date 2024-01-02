@@ -61,9 +61,15 @@ Options:
                                   this CSS selector
   --wait INTEGER                  Wait this many milliseconds before taking the
                                   snapshot
+  --log-console                   Write console.log() to stderr
   -b, --browser [chromium|firefox|webkit|chrome|chrome-beta]
                                   Which browser to use
   --user-agent TEXT               User-Agent header to use
+  --fail                          Fail with an error code if a page returns an
+                                  HTTP error
+  --skip                          Skip pages that return HTTP errors
+  --bypass-csp                    Bypass Content-Security-Policy
+  --silent                        Do not output any messages
   --help                          Show this message and exit.
 ```
 <!-- [[[end]]] -->

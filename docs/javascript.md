@@ -34,13 +34,30 @@ This returns:
   "tagline": "An open source multi-tool for exploring and publishing data"
 }
 ```
+## Running more than one statement
+
+You can use `() => { ... }` function syntax to run multiple statements, returning a result at the end of your function.
+
+This example raises an error if no paragraphs are found.
+
+```bash
+shot-scraper javascript https://www.example.com/ "
+() => {
+  var paragraphs = document.querySelectorAll('p');
+  if (paragraphs.length == 0) {
+    throw 'No paragraphs found';
+  }
+  return Array.from(paragraphs, el => el.innerText);
+}"
+```
 
 ## Using async/await
 
 You can pass an `async` function if you want to use `await`, including to import modules from external URLs. This example loads the [Readability.js](https://github.com/mozilla/readability) library from [Skypack](https://www.skypack.dev/) and uses it to extract the core content of a page:
 
 ```
-shot-scraper javascript https://simonwillison.net/2022/Mar/14/scraping-web-pages-shot-scraper/ "
+shot-scraper javascript \
+  https://simonwillison.net/2022/Mar/14/scraping-web-pages-shot-scraper/ "
 async () => {
   const readability = await import('https://cdn.skypack.dev/@mozilla/readability');
   return (new readability.Readability(document)).parse();
@@ -58,6 +75,37 @@ To use functions such as `setInterval()`, for example if you need to delay the s
         });
       }, 1000
     ));"
+
+(bypass-csp)=
+## Bypassing Content Security Policy headers
+
+Some websites use [Content Security Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP) (CSP) headers to prevent additional JavaScript from executing on the page, as a security measure.
+
+When using `shot-scraper` this can prevent some JavaScript features from working. You might see error messages that look like this:
+```bash
+shot-scraper javascript github.com "
+  async () => {
+    await import('https://cdn.jsdelivr.net/npm/left-pad/+esm');
+    return 'content-security-policy ignored' }
+"
+```
+Output:
+```
+Error: TypeError: Failed to fetch dynamically imported module:
+https://cdn.jsdelivr.net/npm/left-pad/+esm
+```
+You can use the `--bypass-csp` option to have `shot-scraper` run the browser in a mode that ignores these headers:
+```bash
+shot-scraper javascript github.com "
+  async () => {
+    await import('https://cdn.jsdelivr.net/npm/left-pad/+esm');
+    return 'content-security-policy ignored' }
+" --bypass-csp
+```
+Output:
+```
+"content-security-policy ignored"
+```
 
 ## Running JavaScript from a file
 
@@ -164,6 +212,11 @@ Options:
                                   Which browser to use
   --user-agent TEXT               User-Agent header to use
   --reduced-motion                Emulate 'prefers-reduced-motion' media feature
+  --log-console                   Write console.log() to stderr
+  --fail                          Fail with an error code if a page returns an
+                                  HTTP error
+  --skip                          Skip pages that return HTTP errors
+  --bypass-csp                    Bypass Content-Security-Policy
   --system-browser                Use web browser installed by the system
   --browser-args TEXT             Browser command-line arguments
   --ignore-https-errors           Ignore HTTPS errors

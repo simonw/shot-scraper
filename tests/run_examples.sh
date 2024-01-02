@@ -30,6 +30,11 @@ shot-scraper https://simonwillison.net/ \
   -o examples/selector-all.png
 # Height and width
 shot-scraper https://simonwillison.net/ -w 400 -h 800 -o examples/simon-narrow.png
+# Omit background
+shot-scraper https://simonwillison.net/ \
+  -h 800 -o examples/simonwillison-transparent.png \
+  --javascript "document.querySelector('body').style.backgroundColor='transparent'" \
+  --omit-background
 # JPEG quality
 shot-scraper https://simonwillison.net/ \
   -h 800 -o examples/simonwillison-quality-80.jpg --quality 80
@@ -146,4 +151,6 @@ shot-scraper multi empty.yml
   height: 200
   wait_for: |-
     document.querySelector("div")
-' | shot-scraper multi - --fail-on-error)
+' | shot-scraper multi - --fail)
+# --bypass-csp
+shot-scraper javascript github.com "async () => { await import('https://cdn.jsdelivr.net/npm/left-pad/+esm'); return 'content-security-policy ignored' }" -o examples/github-csp.json --bypass-csp

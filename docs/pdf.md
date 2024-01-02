@@ -59,6 +59,12 @@ Options:
   --height TEXT                   PDF height including units, e.g. 10cm
   --scale FLOAT RANGE             Scale of the webpage rendering  [0.1<=x<=2.0]
   --print-background              Print background graphics
+  --log-console                   Write console.log() to stderr
+  --fail                          Fail with an error code if a page returns an
+                                  HTTP error
+  --skip                          Skip pages that return HTTP errors
+  --bypass-csp                    Bypass Content-Security-Policy
+  --silent                        Do not output any messages
   --help                          Show this message and exit.
 ```
 <!-- [[[end]]] -->
