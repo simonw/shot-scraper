@@ -16,6 +16,8 @@ from shot_scraper.utils import filename_for_url, url_or_file_path
 BROWSERS = ("chromium", "firefox", "webkit", "chrome", "chrome-beta")
 
 
+
+
 def console_log(msg):
     click.echo(msg, err=True)
 
@@ -230,6 +232,7 @@ def shot(
     fail,
     bypass_csp,
     silent,
+    browser_instance=None
 ):
     """
     Take a single screenshot of a page or portion of a page.
@@ -278,6 +281,35 @@ def shot(
         "retina": retina,
     }
     interactive = interactive or devtools
+
+    if browser_instance:
+        try:
+            if output == "-":
+                shot = take_shot(
+                    context,
+                    shot,
+                    return_bytes=True,
+                    use_existing_page=use_existing_page,
+                    log_requests=log_requests,
+                    log_console=log_console,
+                    silent=silent,
+                )
+                sys.stdout.buffer.write(shot)
+            else:
+                shot["output"] = str(output)
+                shot = take_shot(
+                    context,
+                    shot,
+                    use_existing_page=use_existing_page,
+                    log_requests=log_requests,
+                    log_console=log_console,
+                    skip=skip,
+                    fail=fail,
+                    silent=silent,
+                )
+        except TimeoutError as e:
+            raise click.ClickException(str(e))
+
     with sync_playwright() as p:
         use_existing_page = False
         context, browser_obj = _browser_context(
