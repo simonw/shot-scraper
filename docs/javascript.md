@@ -210,6 +210,7 @@ Options:
   -r, --raw                       Output JSON strings as raw text
   -b, --browser [chromium|firefox|webkit|chrome|chrome-beta]
                                   Which browser to use
+  -B, --browser-args TEXT         Additional arguments to pass to the browser
   --user-agent TEXT               User-Agent header to use
   --reduced-motion                Emulate 'prefers-reduced-motion' media feature
   --log-console                   Write console.log() to stderr
