@@ -319,6 +319,8 @@ Options:
   --skip                          Skip pages that return HTTP errors
   --bypass-csp                    Bypass Content-Security-Policy
   --silent                        Do not output any messages
+  --auth-password TEXT            Password for HTTP Basic authentication
+  --auth-username TEXT            Username for HTTP Basic authentication
   --help                          Show this message and exit.
 ```
 <!-- [[[end]]] -->

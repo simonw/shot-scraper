@@ -65,6 +65,12 @@ def bypass_csp_option(fn):
     return fn
 
 
+def http_auth_options(fn):
+    click.option("--auth-username", help="Username for HTTP Basic authentication")(fn)
+    click.option("--auth-password", help="Password for HTTP Basic authentication")(fn)
+    return fn
+
+
 def skip_or_fail(response, skip, fail):
     if skip and fail:
         raise click.ClickException("--skip and --fail cannot be used together")
@@ -201,6 +207,7 @@ def cli():
 @skip_fail_options
 @bypass_csp_option
 @silent_option
+@http_auth_options
 def shot(
     url,
     auth,
@@ -230,6 +237,8 @@ def shot(
     fail,
     bypass_csp,
     silent,
+    auth_username,
+    auth_password,
 ):
     """
     Take a single screenshot of a page or portion of a page.
@@ -291,6 +300,8 @@ def shot(
             timeout=timeout,
             reduced_motion=reduced_motion,
             bypass_csp=bypass_csp,
+            auth_username=auth_username,
+            auth_password=auth_password,
         )
         if interactive or devtools:
             use_existing_page = True
@@ -341,6 +352,8 @@ def _browser_context(
     timeout=None,
     reduced_motion=False,
     bypass_csp=False,
+    auth_username=None,
+    auth_password=None,
 ):
     browser_kwargs = dict(headless=not interactive, devtools=devtools)
     if browser == "chromium":
@@ -363,6 +376,11 @@ def _browser_context(
         context_args["user_agent"] = user_agent
     if bypass_csp:
         context_args["bypass_csp"] = bypass_csp
+    if auth_username and auth_password:
+        context_args["http_credentials"] = {
+            "username": auth_username,
+            "password": auth_password,
+        }
     context = browser_obj.new_context(**context_args)
     if timeout:
         context.set_default_timeout(timeout)
@@ -408,6 +426,7 @@ def _browser_context(
 @log_console_option
 @skip_fail_options
 @silent_option
+@http_auth_options
 def multi(
     config,
     auth,
@@ -423,6 +442,8 @@ def multi(
     skip,
     fail,
     silent,
+    auth_username,
+    auth_password,
 ):
     """
     Take multiple screenshots, defined by a YAML file
@@ -453,6 +474,8 @@ def multi(
             user_agent=user_agent,
             timeout=timeout,
             reduced_motion=reduced_motion,
+            auth_username=auth_username,
+            auth_password=auth_password,
         )
         for shot in shots:
             if (
@@ -504,8 +527,19 @@ def multi(
 @log_console_option
 @skip_fail_options
 @bypass_csp_option
+@http_auth_options
 def accessibility(
-    url, auth, output, javascript, timeout, log_console, skip, fail, bypass_csp
+    url,
+    auth,
+    output,
+    javascript,
+    timeout,
+    log_console,
+    skip,
+    fail,
+    bypass_csp,
+    auth_username,
+    auth_password,
 ):
     """
     Dump the Chromium accessibility tree for the specifed page
@@ -517,7 +551,12 @@ def accessibility(
     url = url_or_file_path(url, _check_and_absolutize)
     with sync_playwright() as p:
         context, browser_obj = _browser_context(
-            p, auth, timeout=timeout, bypass_csp=bypass_csp
+            p,
+            auth,
+            timeout=timeout,
+            bypass_csp=bypass_csp,
+            auth_username=auth_username,
+            auth_password=auth_password,
         )
         page = context.new_page()
         if log_console:
@@ -567,6 +606,7 @@ def accessibility(
 @log_console_option
 @skip_fail_options
 @bypass_csp_option
+@http_auth_options
 def javascript(
     url,
     javascript,
@@ -581,6 +621,8 @@ def javascript(
     skip,
     fail,
     bypass_csp,
+    auth_username,
+    auth_password,
 ):
     """
     Execute JavaScript against the page and return the result as JSON
@@ -618,6 +660,8 @@ def javascript(
             user_agent=user_agent,
             reduced_motion=reduced_motion,
             bypass_csp=bypass_csp,
+            auth_username=auth_username,
+            auth_password=auth_password,
         )
         page = context.new_page()
         if log_console:
@@ -687,6 +731,7 @@ def javascript(
 @skip_fail_options
 @bypass_csp_option
 @silent_option
+@http_auth_options
 def pdf(
     url,
     auth,
@@ -705,6 +750,8 @@ def pdf(
     fail,
     bypass_csp,
     silent,
+    auth_username,
+    auth_password,
 ):
     """
     Create a PDF of the specified page
@@ -725,7 +772,13 @@ def pdf(
     if output is None:
         output = filename_for_url(url, ext="pdf", file_exists=os.path.exists)
     with sync_playwright() as p:
-        context, browser_obj = _browser_context(p, auth, bypass_csp=bypass_csp)
+        context, browser_obj = _browser_context(
+            p,
+            auth,
+            bypass_csp=bypass_csp,
+            auth_username=auth_username,
+            auth_password=auth_password,
+        )
         page = context.new_page()
         if log_console:
             page.on("console", console_log)
@@ -789,6 +842,7 @@ def pdf(
 @skip_fail_options
 @bypass_csp_option
 @silent_option
+@http_auth_options
 def html(
     url,
     auth,
@@ -803,6 +857,8 @@ def html(
     fail,
     bypass_csp,
     silent,
+    auth_username,
+    auth_password,
 ):
     """
     Output the final HTML of the specified page
@@ -825,6 +881,8 @@ def html(
             browser=browser,
             user_agent=user_agent,
             bypass_csp=bypass_csp,
+            auth_username=auth_username,
+            auth_password=auth_password,
         )
         page = context.new_page()
         if log_console:

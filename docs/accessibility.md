@@ -41,6 +41,8 @@ Options:
   --fail                 Fail with an error code if a page returns an HTTP error
   --skip                 Skip pages that return HTTP errors
   --bypass-csp           Bypass Content-Security-Policy
+  --auth-password TEXT   Password for HTTP Basic authentication
+  --auth-username TEXT   Username for HTTP Basic authentication
   --help                 Show this message and exit.
 ```
 <!-- [[[end]]] -->

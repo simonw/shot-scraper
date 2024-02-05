@@ -143,6 +143,8 @@ Options:
                                   HTTP error
   --skip                          Skip pages that return HTTP errors
   --silent                        Do not output any messages
+  --auth-password TEXT            Password for HTTP Basic authentication
+  --auth-username TEXT            Username for HTTP Basic authentication
   --help                          Show this message and exit.
 ```
 <!-- [[[end]]] -->
