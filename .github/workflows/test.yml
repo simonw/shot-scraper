@@ -42,5 +42,5 @@ jobs:
     - name: Archive examples
       uses: actions/upload-artifact@v4
       with:
-        name: examples
+        name: examples-${{ matrix.python-version }}
         path: examples/*
