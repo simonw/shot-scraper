@@ -97,6 +97,32 @@ def skip_or_fail(response, skip, fail):
             )
 
 
+def scale_factor_options(fn):
+    click.option(
+        "--retina",
+        is_flag=True,
+        help="Use device scale factor of 2. Cannot be used together with '--scale-factor'.",
+    )(fn)
+    click.option(
+        "--scale-factor",
+        type=float,
+        help="Device scale factor. Cannot be used together with '--retina'.",
+    )(fn)
+    return fn
+
+
+def normalize_scale_factor(retina, scale_factor):
+    if retina and scale_factor:
+        raise click.ClickException(
+            "--retina and --scale-factor cannot be used together"
+        )
+    if scale_factor is not None and scale_factor <= 0.0:
+        raise click.ClickException("--scale-factor must be positive")
+    if retina:
+        scale_factor = 2
+    return scale_factor
+
+
 def reduced_motion_option(fn):
     click.option(
         "--reduced-motion",
@@ -177,7 +203,7 @@ def cli():
     default=0,
 )
 @click.option("-j", "--javascript", help="Execute this JS prior to taking the shot")
-@click.option("--retina", is_flag=True, help="Use device scale factor of 2")
+@scale_factor_options
 @click.option(
     "--omit-background",
     is_flag=True,
@@ -231,6 +257,7 @@ def shot(
     padding,
     javascript,
     retina,
+    scale_factor,
     omit_background,
     quality,
     wait,
@@ -280,6 +307,9 @@ def shot(
     if output is None:
         ext = "jpg" if quality else None
         output = filename_for_url(url, ext=ext, file_exists=os.path.exists)
+
+    scale_factor = normalize_scale_factor(retina, scale_factor)
+
     shot = {
         "url": url,
         "selectors": selectors,
@@ -295,7 +325,7 @@ def shot(
         "timeout": timeout,
         "padding": padding,
         "omit_background": omit_background,
-        "retina": retina,
+        "scale_factor": scale_factor,
     }
     interactive = interactive or devtools
     with sync_playwright() as p:
@@ -305,7 +335,7 @@ def shot(
             auth,
             interactive=interactive,
             devtools=devtools,
-            retina=retina,
+            scale_factor=scale_factor,
             browser=browser,
             browser_args=browser_args,
             user_agent=user_agent,
@@ -358,7 +388,7 @@ def _browser_context(
     auth,
     interactive=False,
     devtools=False,
-    retina=False,
+    scale_factor=None,
     browser="chromium",
     browser_args=None,
     user_agent=None,
@@ -383,8 +413,8 @@ def _browser_context(
     context_args = {}
     if auth:
         context_args["storage_state"] = json.load(auth)
-    if retina:
-        context_args["device_scale_factor"] = 2
+    if scale_factor:
+        context_args["device_scale_factor"] = scale_factor
     if reduced_motion:
         context_args["reduced_motion"] = "reduce"
     if user_agent is not None:
@@ -410,7 +440,7 @@ def _browser_context(
     type=click.File("r"),
     help="Path to JSON authentication context file",
 )
-@click.option("--retina", is_flag=True, help="Use device scale factor of 2")
+@scale_factor_options
 @click.option(
     "--timeout",
     type=int,
@@ -447,6 +477,7 @@ def multi(
     config,
     auth,
     retina,
+    scale_factor,
     timeout,
     fail_on_error,
     noclobber,
@@ -477,6 +508,7 @@ def multi(
 
     https://shot-scraper.datasette.io/en/stable/multi.html
     """
+    scale_factor = normalize_scale_factor(retina, scale_factor)
     shots = yaml.safe_load(config)
     if shots is None:
         shots = []
@@ -486,7 +518,7 @@ def multi(
         context, browser_obj = _browser_context(
             p,
             auth,
-            retina=retina,
+            scale_factor=scale_factor,
             browser=browser,
             browser_args=browser_args,
             user_agent=user_agent,

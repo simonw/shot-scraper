@@ -111,14 +111,31 @@ You can also use `--quality X` to save as a JPEG with the specified quality, in 
     % ls -lah simonwillison.jpg
     -rw-r--r--@ 1 simon  staff   168K Mar  9 13:53 simonwillison.jpg
 
+## Device scale factor
+
+The `--scale-factor` option sets a specific device scale factor, which effectively simulates different device pixel ratios. This setting is useful for testing high-definition displays or emulating screens with various pixel densities.
+
+For example, setting `--scale-factor 3` results in an image with a CSS pixel ratio of 3, which is ideal for emulating a high-resolution display, such as Apple iPhone 12 screens.
+
+To take a screenshot with a scale factor of 3 (tripled resolution), run the following command:
+
+    shot-scraper https://simonwillison.net/ -o simon.png \
+      --width 390 --height 844 --scale-factor 3
+
+This will multiply both the width and height of the screenshot by 3, resulting in an image that is 1170px wide and 2532px high, matching the iPhone 12's screen.
+
+The `--scale-factor` option takes a positive float as input. For example, setting `--scale-factor 2.625` simulates the Google Pixel 6's CSS pixel ratio.
+
 ## Retina images
 
-The `--retina` option sets a device scale factor of 2. This means that an image will have its resolution effectively doubled, emulating the display of images on [retina](https://en.wikipedia.org/wiki/Retina_display) or higher pixel density screens.
+The `--retina` option is a shortcut to set a device scale factor of 2. This means that an image will have its resolution effectively doubled, emulating the display of images on [retina](https://en.wikipedia.org/wiki/Retina_display) or higher pixel density screens.
 
     shot-scraper https://simonwillison.net/ -o simon.png \
       --width 400 --height 600 --retina
 
 This example will produce an image that is 800px wide and 1200px high.
+
+Note: The `--retina` option should not be used in conjunction with the `--scale-factor` flag as they are mutually exclusive. If both are provided, the command will raise an error to prevent conflicts.
 
 ## Transparent background
 
@@ -309,7 +326,10 @@ Options:
   -p, --padding INTEGER           When using selectors, add this much padding in
                                   pixels
   -j, --javascript TEXT           Execute this JS prior to taking the shot
-  --retina                        Use device scale factor of 2
+  --scale-factor FLOAT            Device scale factor. Cannot be used together
+                                  with '--retina'.
+  --retina                        Use device scale factor of 2. Cannot be used
+                                  together with '--scale-factor'.
   --omit-background               Omit the default browser background from the
                                   shot, making it possible take advantage of
                                   transparence. Does not work with JPEGs or when
