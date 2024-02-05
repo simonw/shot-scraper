@@ -85,7 +85,7 @@ shot-scraper https://shot-scraper.datasette.io/en/stable/screenshots.html \
 # Add browser argument for font-render-hinting
 shot-scraper https://shot-scraper.datasette.io/en/stable/screenshots.html \
   -w 800 -h 600 -o examples/font-hinting-none.png \
-  --browser-args "--font-render-hinting=none"
+  --browser-arg "--font-render-hinting=none"
 # --wait-for
 echo '<html>
 <body><h1>Here it comes...</h1>

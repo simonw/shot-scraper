@@ -33,8 +33,7 @@ def browser_option(fn):
 
 def browser_args_option(fn):
     click.option(
-        "--browser-args",
-        "-B",
+        "--browser-arg",
         multiple=True,
         help="Additional arguments to pass to the browser",
     )(fn)
@@ -369,7 +368,9 @@ def _browser_context(
     auth_username=None,
     auth_password=None,
 ):
-    browser_kwargs = dict(headless=not interactive, devtools=devtools, args=browser_args)
+    browser_kwargs = dict(
+        headless=not interactive, devtools=devtools, args=browser_args
+    )
     if browser == "chromium":
         browser_obj = p.chromium.launch(**browser_kwargs)
     elif browser == "firefox":

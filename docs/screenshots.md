@@ -167,12 +167,12 @@ Additional arguments to pass to the browser instance. The list of Chromium flags
 For example, to remove font render hinting:
 
     shot-scraper https://simonwillison.net/ -o no-hinting.png \
-      --height 800 --browser-args "--font-render-hinting=none"
+      --height 800 --browser-arg "--font-render-hinting=none"
 
-To add multiple arguments, add `--browser-args` for each argument:
+To add multiple arguments, add `--browser-arg` for each argument:
 
     shot-scraper https://simonwillison.net/ -o no-hinting-no-gpu.png \
-      --height 800 --browser-args "--font-render-hinting=none" --browser-args "--disable-gpu"
+      --height 800 --browser-arg "--font-render-hinting=none" --browser-arg "--disable-gpu"
 
 ## Taking screenshots of local HTML files
 
@@ -326,7 +326,7 @@ Options:
   --log-console                   Write console.log() to stderr
   -b, --browser [chromium|firefox|webkit|chrome|chrome-beta]
                                   Which browser to use
-  -B, --browser-args TEXT         Additional arguments to pass to the browser
+  --browser-arg TEXT              Additional arguments to pass to the browser
   --user-agent TEXT               User-Agent header to use
   --reduced-motion                Emulate 'prefers-reduced-motion' media feature
   --fail                          Fail with an error code if a page returns an
