@@ -349,6 +349,8 @@ def shot(
         if interactive or devtools:
             use_existing_page = True
             page = context.new_page()
+            if width or height:
+                page.set_viewport_size(_get_viewport(width, height))
             page.goto(url)
             context = page
             click.echo(
@@ -1051,6 +1053,14 @@ def _check_and_absolutize(filepath):
         # On Windows, instantiating a Path object on `http://` or `https://` will raise an exception
         return False
 
+def _get_viewport(width, height):
+    if width or height:
+        return {
+            "width": width or 1280,
+            "height": height or 720,
+        }
+    else:
+        return {}
 
 def take_shot(
     context_or_page,
@@ -1125,16 +1135,11 @@ def take_shot(
     if log_console:
         page.on("console", console_log)
 
-    viewport = {}
-    full_page = True
-    if shot.get("width") or shot.get("height"):
-        viewport = {
-            "width": shot.get("width") or 1280,
-            "height": shot.get("height") or 720,
-        }
+    viewport = _get_viewport(shot.get("width"), shot.get("height"))
+    if viewport:
         page.set_viewport_size(viewport)
-        if shot.get("height"):
-            full_page = False
+
+    full_page = not shot.get("height")
 
     if not use_existing_page:
         # Load page and check for errors
