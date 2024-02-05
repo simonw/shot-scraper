@@ -33,6 +33,7 @@ def browser_option(fn):
 
 def browser_args_option(fn):
     click.option(
+        "browser_args",
         "--browser-arg",
         multiple=True,
         help="Additional arguments to pass to the browser",
