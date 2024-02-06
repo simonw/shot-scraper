@@ -38,6 +38,11 @@ shot-scraper https://simonwillison.net/ \
 # JPEG quality
 shot-scraper https://simonwillison.net/ \
   -h 800 -o examples/simonwillison-quality-80.jpg --quality 80
+# Selector with a wait
+shot-scraper 'https://www.owlsnearme.com/?place=127871' \
+  --selector 'section.secondary' \
+  -o examples/owlsnearme-wait.jpg \
+  --wait-for "!!document.querySelector('section.secondary')"
 # Accessibility
 shot-scraper accessibility https://datasette.io/ \
   > examples/datasette-accessibility.json
