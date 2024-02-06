@@ -38,7 +38,7 @@ shot-scraper https://simonwillison.net/ \
 # JPEG quality
 shot-scraper https://simonwillison.net/ \
   -h 800 -o examples/simonwillison-quality-80.jpg --quality 80
-# Selector with a wait
+# Selector with a wait for remote page element
 shot-scraper 'https://www.owlsnearme.com/?place=127871' \
   --selector 'section.secondary' \
   -o examples/owlsnearme-wait.jpg \
