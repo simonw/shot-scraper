@@ -49,7 +49,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "shot-scraper"
-copyright = "2022, Simon Willison"
+copyright = "2024, Simon Willison"
 author = "Simon Willison"
 
 # The version info for the project you're documenting, acts as replacement for
