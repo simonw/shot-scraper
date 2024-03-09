@@ -1305,6 +1305,7 @@ def _selector_javascript(selectors, selectors_all, padding=0):
         div.style.left = left + 'px';
         div.style.width = (right - left) + 'px';
         div.style.height = (bottom - top) + 'px';
+        div.style.maxWidth = 'none';
         div.setAttribute('id', %s);
         document.body.appendChild(div);
         setTimeout(() => {
