@@ -92,6 +92,17 @@ This example takes the screenshot the moment a `<div>` with an ID of `content` b
     shot-scraper https://.../ \
       --wait-for 'document.querySelector("div#content")'
 
+Here's an example that waits for a specific element to become available (in this case a cookie consent overlay) and then removes it before the screenshot is taken:
+
+    shot-scraper -h 800 'https://www.spiegel.de/international/' \
+      --wait-for "() => {
+        const div = document.querySelector('[id^="sp_message_container"]');
+        if (div) {
+          div.remove();
+          return true;
+        }
+      }"
+
 ## Executing custom JavaScript
 
 You can use custom JavaScript to modify the page after it has loaded (after the 'onload' event has fired) but before the screenshot is taken using the `--javascript` option:
