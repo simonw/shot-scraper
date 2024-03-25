@@ -103,6 +103,8 @@ Here's an example that waits for a specific element to become available (in this
         }
       }"
 
+If the expression takes longer than 30 seconds to resolve `shot-scraper` will exit with an error.
+
 ## Executing custom JavaScript
 
 You can use custom JavaScript to modify the page after it has loaded (after the 'onload' event has fired) but before the screenshot is taken using the `--javascript` option:
