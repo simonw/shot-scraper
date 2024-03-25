@@ -245,6 +245,12 @@ def cli():
 @bypass_csp_option
 @silent_option
 @http_auth_options
+@click.option(
+    "init_scripts",
+    "--init-script",
+    multiple=True,
+    help="JavaScript to run as a page init script",
+)
 def shot(
     url,
     auth,
@@ -278,6 +284,7 @@ def shot(
     silent,
     auth_username,
     auth_password,
+    init_scripts,
 ):
     """
     Take a single screenshot of a page or portion of a page.
@@ -367,6 +374,7 @@ def shot(
                     log_requests=log_requests,
                     log_console=log_console,
                     silent=silent,
+                    init_scripts=init_scripts,
                 )
                 sys.stdout.buffer.write(shot)
             else:
@@ -380,6 +388,7 @@ def shot(
                     skip=skip,
                     fail=fail,
                     silent=silent,
+                    init_scripts=init_scripts,
                 )
         except TimeoutError as e:
             raise click.ClickException(str(e))
@@ -661,6 +670,12 @@ def accessibility(
 @skip_fail_options
 @bypass_csp_option
 @http_auth_options
+@click.option(
+    "init_scripts",
+    "--init-script",
+    multiple=True,
+    help="JavaScript to run as a page init script",
+)
 def javascript(
     url,
     javascript,
@@ -678,6 +693,7 @@ def javascript(
     bypass_csp,
     auth_username,
     auth_password,
+    init_scripts,
 ):
     """
     Execute JavaScript against the page and return the result as JSON
@@ -720,6 +736,8 @@ def javascript(
             auth_password=auth_password,
         )
         page = context.new_page()
+        for init_script in init_scripts:
+            page.add_init_script(script=init_script)
         if log_console:
             page.on("console", console_log)
         response = page.goto(url)
@@ -1053,6 +1071,7 @@ def _check_and_absolutize(filepath):
         # On Windows, instantiating a Path object on `http://` or `https://` will raise an exception
         return False
 
+
 def _get_viewport(width, height):
     if width or height:
         return {
@@ -1061,6 +1080,7 @@ def _get_viewport(width, height):
         }
     else:
         return {}
+
 
 def take_shot(
     context_or_page,
@@ -1072,6 +1092,7 @@ def take_shot(
     skip=False,
     fail=False,
     silent=False,
+    init_scripts=None,
 ):
     url = shot.get("url") or ""
     if not url:
@@ -1082,6 +1103,7 @@ def take_shot(
 
     url = url_or_file_path(url, file_exists=_check_and_absolutize)
 
+    init_scripts = init_scripts or []
     output = shot.get("output", "").strip()
     if not output and not return_bytes:
         output = filename_for_url(url, ext="png", file_exists=os.path.exists)
@@ -1140,6 +1162,9 @@ def take_shot(
         page.set_viewport_size(viewport)
 
     full_page = not shot.get("height")
+
+    for init_script in init_scripts:
+        page.add_init_script(script=init_script)
 
     if not use_existing_page:
         # Load page and check for errors
