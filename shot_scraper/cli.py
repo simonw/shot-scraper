@@ -1322,6 +1322,48 @@ def _selector_javascript(selectors, selectors_all, padding=0):
     return selector_javascript, "#" + selector_to_shoot
 
 
+@cli.command()
+@click.argument("url")
+@click.argument("script")
+@click.option(
+    "-o",
+    "--output",
+    type=click.File("w"),
+    help="Save output video to this file",
+)
+def video(
+    url,
+    script,
+    output,
+):
+    """
+    Record a video of the specified page
+
+    The script should be a Python script using the following functions:
+
+    \b
+    sleep(0.5) - delay for half a second
+    page.click('selector') - click the element identified by the selector
+    page.scrollTo('selector', 300) - scroll that selector in view, take 300ms
+    page.type('selector', 'Hello') - type 'Hello' into the specified input
+    press('Enter') - press the Enter key
+    """
+    if not output:
+        output = "/tmp/shot-scraper-video"
+    url = url_or_file_path(url, _check_and_absolutize)
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        context = browser.new_context(
+            record_video_dir=output,
+            record_video_size={"width": 1280, "height": 720},
+        )
+        page = context.new_page()
+        page.goto(url)
+        exec(script, {"page": page, "sleep": time.sleep})
+        context.close()
+        browser.close()
+
+
 def _evaluate_js(page, javascript):
     try:
         return page.evaluate(javascript)
