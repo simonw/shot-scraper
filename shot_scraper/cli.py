@@ -510,6 +510,8 @@ def multi(
         - output: example.png
           url: http://www.example.com/
 
+    \b
+    For full YAML syntax documentation, see:
     https://shot-scraper.datasette.io/en/stable/multi.html
     """
     scale_factor = normalize_scale_factor(retina, scale_factor)
