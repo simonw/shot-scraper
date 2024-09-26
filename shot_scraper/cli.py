@@ -556,9 +556,13 @@ def multi(
                     subprocess.run([sys.executable, "-c", shot["python"]])
                 if "server" in shot:
                     # Start that subprocess and remember the pid
-                    server_processes.append(
-                        subprocess.Popen(shot["server"], shell=True)
-                    )
+                    server = shot["server"]
+                    if isinstance(server, str):
+                        server_processes.append(subprocess.Popen(server, shell=True))
+                    elif isinstance(server, list):
+                        server_processes.append(subprocess.Popen(map(str, server)))
+                    else:
+                        raise click.ClickException("server: must be a string or list")
                     time.sleep(1)
                 if "url" in shot:
                     try:

@@ -115,7 +115,15 @@ If you need to run a server for the duration of the `shot-scraper multi` session
 ```yaml
 - server: python -m http.server 8000
 ```
-You can now take screenshots of `http://localhost:8000/` and any other URLs that are relative to that server:
+The `server:` key also accepts a list of arguments:
+```yaml
+- server:
+  - python
+  - -m
+  - http.server
+  - 8000
+```
+With that server configured, you can now take screenshots of `http://localhost:8000/` and any other URLs hosted by that server:
 ```yaml
 - output: index.png
   url: http://localhost:8000/

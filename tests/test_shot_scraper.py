@@ -19,6 +19,16 @@ SERVER_YAML = """
   output: output.png
 """.strip()
 
+SERVER_YAML2 = """
+- server:
+  - python
+  - -m
+  - http.server
+  - 9023
+- url: http://localhost:9023/
+  output: output.png
+""".strip()
+
 COMMANDS_YAML = """
 - sh: echo "hello world" > index.html
 - sh:
@@ -30,10 +40,11 @@ COMMANDS_YAML = """
 """
 
 
-def test_multi_server():
+@pytest.mark.parametrize("yaml", (SERVER_YAML, SERVER_YAML2))
+def test_multi_server(yaml):
     runner = CliRunner()
     with runner.isolated_filesystem():
-        open("server.yaml", "w").write(SERVER_YAML)
+        open("server.yaml", "w").write(yaml)
         result = runner.invoke(cli, ["multi", "server.yaml"])
         assert result.exit_code == 0, result.output
         assert pathlib.Path("output.png").exists()
