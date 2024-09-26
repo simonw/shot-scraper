@@ -515,6 +515,11 @@ def multi(
     shots = yaml.safe_load(config)
     if shots is None:
         shots = []
+    if isinstance(shots, str) and all(
+        url.strip().startswith("http") for url in shots.split() if url.strip()
+    ):
+        # Special case for a list of URLs
+        shots = [{"url": url.strip()} for url in shots.split() if url.strip()]
     if not isinstance(shots, list):
         raise click.ClickException("YAML file must contain a list")
     with sync_playwright() as p:
@@ -653,6 +658,13 @@ def accessibility(
     is_flag=True,
     help="Output JSON strings as raw text",
 )
+@click.option(
+    "multis",
+    "-m",
+    "--multi",
+    help="Run same JavaScript against multiple pages",
+    multiple=True,
+)
 @browser_option
 @browser_args_option
 @user_agent_option
@@ -668,6 +680,7 @@ def javascript(
     auth,
     output,
     raw,
+    multis,
     browser,
     browser_args,
     user_agent,
@@ -704,9 +717,28 @@ def javascript(
 
     If a JavaScript error occurs an exit code of 1 will be returned.
     """
+    # Special case for --multi - if multis are provided but JavaScript
+    # positional option was not set, assume the first argument is JS
+    if multis and not javascript:
+        javascript = url
+        url = None
+
+    # If they didn't provide JavaScript, assume it's being piped in
     if not javascript:
         javascript = input.read()
-    url = url_or_file_path(url, _check_and_absolutize)
+
+    to_process = []
+    if url:
+        to_process.append(url_or_file_path(url, _check_and_absolutize))
+    to_process.extend(
+        url_or_file_path(multi, _check_and_absolutize) for multi in multis
+    )
+
+    results = []
+
+    if len(to_process) > 1 and not raw:
+        output.write("[\n")
+
     with sync_playwright() as p:
         context, browser_obj = _browser_context(
             p,
@@ -719,18 +751,29 @@ def javascript(
             auth_username=auth_username,
             auth_password=auth_password,
         )
-        page = context.new_page()
-        if log_console:
-            page.on("console", console_log)
-        response = page.goto(url)
-        skip_or_fail(response, skip, fail)
-        result = _evaluate_js(page, javascript)
+        for i, url in enumerate(to_process):
+            is_last = i == len(to_process) - 1
+            page = context.new_page()
+            if log_console:
+                page.on("console", console_log)
+            response = page.goto(url)
+            skip_or_fail(response, skip, fail)
+            result = _evaluate_js(page, javascript)
+            if raw:
+                output.write(str(result) + "\n")
+            else:
+                output.write(
+                    json.dumps(result, indent=4, default=str)
+                    + ("\n" if is_last else ",\n")
+                )
+
         browser_obj.close()
-    if raw:
-        output.write(str(result))
-        return
-    output.write(json.dumps(result, indent=4, default=str))
-    output.write("\n")
+
+    if len(to_process) > 1 and not raw:
+        output.write("]\n")
+
+    if len(results) == 1:
+        results = results[0]
 
 
 @cli.command()
@@ -1053,6 +1096,7 @@ def _check_and_absolutize(filepath):
         # On Windows, instantiating a Path object on `http://` or `https://` will raise an exception
         return False
 
+
 def _get_viewport(width, height):
     if width or height:
         return {
@@ -1061,6 +1105,7 @@ def _get_viewport(width, height):
         }
     else:
         return {}
+
 
 def take_shot(
     context_or_page,
