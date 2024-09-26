@@ -122,6 +122,35 @@ You can now take screenshots of `http://localhost:8000/` and any other URLs that
 ```
 The server process will be automatically terminated when the `shot-scraper multi` command completes.
 
+## Running custom code between steps
+
+If you are taking screenshots of a single application, you may find it useful to run additional steps between shots that modify that application in some way.
+
+You can do that using the `sh:` or `python:` keys. These can specify shell commands or Python code to run before taking the screenshot:
+
+```yaml
+- sh: echo "Hello from shell" > index.html
+  output: from-shell.png
+  url: http://localhost:8000/
+```
+You can also specify a list of shell arguments like this:
+```yaml
+- sh:
+  - curl
+  - -o
+  - index.html
+  - https://www.example.com/
+  output: example.png
+  url: http://localhost:8000/
+```
+If you specify these steps without a `url:` key they will still execute as individual task executions, without also taking a screenshot:
+```yaml
+- sh: echo "hello world" > index.html
+- python: |
+    content = open("index.html").read()
+    open("index.html", "w").write(content.upper())
+```
+
 ## `shot-scraper multi --help`
 
 Full `--help` for this command:

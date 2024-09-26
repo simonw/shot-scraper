@@ -1,4 +1,5 @@
 from click.testing import CliRunner
+import pathlib
 import pytest
 import textwrap
 from shot_scraper.cli import cli
@@ -15,17 +16,39 @@ def test_version():
 SERVER_YAML = """
 - server: python -m http.server 9023
 - url: http://localhost:9023/
-  output: {}
+  output: output.png
 """.strip()
 
+COMMANDS_YAML = """
+- sh: echo "hello world" > index.html
+- sh:
+  - touch
+  - touched.html
+- python: |
+    content = open("index.html").read()
+    open("index.html", "w").write(content.upper())
+"""
 
-def test_multi_server(tmpdir):
-    yaml_file = tmpdir / "server.yaml"
-    yaml_file.write(SERVER_YAML.format(tmpdir / "output.png"))
+
+def test_multi_server():
     runner = CliRunner()
-    result = runner.invoke(cli, ["multi", str(yaml_file)])
-    assert result.exit_code == 0, result.output
-    assert (tmpdir / "output.png").exists()
+    with runner.isolated_filesystem():
+        open("server.yaml", "w").write(SERVER_YAML)
+        result = runner.invoke(cli, ["multi", "server.yaml"])
+        assert result.exit_code == 0, result.output
+        assert pathlib.Path("output.png").exists()
+
+
+def test_multi_commands():
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        yaml_file = "commands.yaml"
+        open(yaml_file, "w").write(COMMANDS_YAML)
+        result = runner.invoke(cli, ["multi", yaml_file], catch_exceptions=False)
+        assert result.exit_code == 0, result.output
+        assert pathlib.Path("touched.html").exists()
+        assert pathlib.Path("index.html").exists()
+        assert open("index.html").read().strip() == "HELLO WORLD"
 
 
 @pytest.mark.parametrize("input", ("key: value", "This is a string", "3.55"))

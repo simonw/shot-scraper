@@ -540,8 +540,20 @@ def multi(
                     and pathlib.Path(shot["output"]).exists()
                 ):
                     continue
-                if outputs and shot.get("output") not in outputs:
+                if outputs and shot.get("output") and shot.get("output") not in outputs:
                     continue
+                # Run "sh" key
+                if shot.get("sh"):
+                    sh = shot["sh"]
+                    if isinstance(sh, str):
+                        subprocess.run(shot["sh"], shell=True)
+                    elif isinstance(sh, list):
+                        subprocess.run(sh)
+                    else:
+                        raise click.ClickException("- sh: must be a string or list")
+                # And "python" key
+                if shot.get("python"):
+                    subprocess.run([sys.executable, "-c", shot["python"]])
                 if "server" in shot:
                     # Start that subprocess and remember the pid
                     server_processes.append(
@@ -1098,7 +1110,7 @@ def take_shot(
 
     url = url_or_file_path(url, file_exists=_check_and_absolutize)
 
-    output = shot.get("output", "").strip()
+    output = (shot.get("output") or "").strip()
     if not output and not return_bytes:
         output = filename_for_url(url, ext="png", file_exists=os.path.exists)
     quality = shot.get("quality")
