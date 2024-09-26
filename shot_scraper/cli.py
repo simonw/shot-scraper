@@ -6,6 +6,7 @@ import pathlib
 from playwright.sync_api import sync_playwright, Error, TimeoutError
 from runpy import run_module
 import secrets
+import subprocess
 import sys
 import textwrap
 import time
@@ -513,6 +514,7 @@ def multi(
     """
     scale_factor = normalize_scale_factor(retina, scale_factor)
     shots = yaml.safe_load(config)
+    server_processes = []
     if shots is None:
         shots = []
     if not isinstance(shots, list):
@@ -530,31 +532,43 @@ def multi(
             auth_username=auth_username,
             auth_password=auth_password,
         )
-        for shot in shots:
-            if (
-                noclobber
-                and shot.get("output")
-                and pathlib.Path(shot["output"]).exists()
-            ):
-                continue
-            if outputs and shot.get("output") not in outputs:
-                continue
-            try:
-                take_shot(
-                    context,
-                    shot,
-                    log_console=log_console,
-                    skip=skip,
-                    fail=fail,
-                    silent=silent,
-                )
-            except TimeoutError as e:
-                if fail or fail_on_error:
-                    raise click.ClickException(str(e))
-                else:
-                    click.echo(str(e), err=True)
+        try:
+            for shot in shots:
+                if (
+                    noclobber
+                    and shot.get("output")
+                    and pathlib.Path(shot["output"]).exists()
+                ):
                     continue
-        browser_obj.close()
+                if outputs and shot.get("output") not in outputs:
+                    continue
+                if "server" in shot:
+                    # Start that subprocess and remember the pid
+                    server_processes.append(
+                        subprocess.Popen(shot["server"], shell=True)
+                    )
+                    time.sleep(1)
+                if "url" in shot:
+                    try:
+                        take_shot(
+                            context,
+                            shot,
+                            log_console=log_console,
+                            skip=skip,
+                            fail=fail,
+                            silent=silent,
+                        )
+                    except TimeoutError as e:
+                        if fail or fail_on_error:
+                            raise click.ClickException(str(e))
+                        else:
+                            click.echo(str(e), err=True)
+                            continue
+        finally:
+            browser_obj.close()
+            if server_processes:
+                for process in server_processes:
+                    process.kill()
 
 
 @cli.command()
@@ -1053,6 +1067,7 @@ def _check_and_absolutize(filepath):
         # On Windows, instantiating a Path object on `http://` or `https://` will raise an exception
         return False
 
+
 def _get_viewport(width, height):
     if width or height:
         return {
@@ -1061,6 +1076,7 @@ def _get_viewport(width, height):
         }
     else:
         return {}
+
 
 def take_shot(
     context_or_page,

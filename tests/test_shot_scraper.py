@@ -12,6 +12,22 @@ def test_version():
         assert result.output.startswith("cli, version ")
 
 
+SERVER_YAML = """
+- server: python -m http.server 9023
+- url: http://localhost:9023/
+  output: {}
+""".strip()
+
+
+def test_multi_server(tmpdir):
+    yaml_file = tmpdir / "server.yaml"
+    yaml_file.write(SERVER_YAML.format(tmpdir / "output.png"))
+    runner = CliRunner()
+    result = runner.invoke(cli, ["multi", str(yaml_file)])
+    assert result.exit_code == 0, result.output
+    assert (tmpdir / "output.png").exists()
+
+
 @pytest.mark.parametrize("input", ("key: value", "This is a string", "3.55"))
 def test_multi_error_on_non_list(input):
     runner = CliRunner()

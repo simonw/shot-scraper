@@ -109,6 +109,19 @@ You can include desired `height`, `width`, `quality`, `wait` and `wait_for` opti
   wait_for: document.querySelector('#bighead')
 ```
 
+## Running a server for the duration of the session
+
+If you need to run a server for the duration of the `shot-scraper multi` session you can specify that using a `server:` block, like this:
+```yaml
+- server: python -m http.server 8000
+```
+You can now take screenshots of `http://localhost:8000/` and any other URLs that are relative to that server:
+```yaml
+- output: index.png
+  url: http://localhost:8000/
+```
+The server process will be automatically terminated when the `shot-scraper multi` command completes.
+
 ## `shot-scraper multi --help`
 
 Full `--help` for this command:

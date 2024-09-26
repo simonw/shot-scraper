@@ -112,6 +112,7 @@ shot-scraper examples/div-after-2-seconds.html \
 echo '# empty file' > empty.yml
 shot-scraper multi empty.yml
 (cd examples && echo '
+- server: python -m http.server 9043
 - output: example.com.png
   url: http://www.example.com/
 # This one will produce github-com.png
@@ -169,6 +170,9 @@ shot-scraper multi empty.yml
   width: 300
   height: 200
   wait: 2100
+# Screenshot from the server
+- url: https://localhost:9043/
+  output: from-server.png
 ' | shot-scraper multi - --fail)
 # --bypass-csp
 shot-scraper javascript github.com "async () => { await import('https://cdn.jsdelivr.net/npm/left-pad/+esm'); return 'content-security-policy ignored' }" -o examples/github-csp.json --bypass-csp
