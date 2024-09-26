@@ -188,6 +188,7 @@ Usage: shot-scraper multi [OPTIONS] CONFIG
       - output: example.png
         url: http://www.example.com/
 
+  For full YAML syntax documentation, see:
   https://shot-scraper.datasette.io/en/stable/multi.html
 
 Options:
