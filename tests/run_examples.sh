@@ -74,12 +74,12 @@ new Promise(done => setInterval(
   }, 1000
 ));" -o examples/datasette-io-title-tagline-from-promise.json
 # Different browsers
-shot-scraper 'https://www.whatismybrowser.com/detect/what-is-my-user-agent/' \
-  -o examples/whatismybrowser-default-chromium.png -h 400 -w 800
-shot-scraper 'https://www.whatismybrowser.com/detect/what-is-my-user-agent/' \
-  -o examples/whatismybrowser-firefox.png -h 400 -w 800 -b firefox
-shot-scraper 'https://www.whatismybrowser.com/detect/what-is-my-user-agent/' \
-  -o examples/whatismybrowser-webkit.png -h 400 -w 800 -b webkit
+shot-scraper https://tools.simonwillison.net/user-agent \
+  -o examples/useragent-default-chromium.png -h 400 -w 800
+shot-scraper https://tools.simonwillison.net/user-agent \
+  -o examples/useragent-firefox.png -h 400 -w 800 -b firefox
+shot-scraper https://tools.simonwillison.net/user-agent \
+  -o examples/useragent-webkit.png -h 400 -w 800 -b webkit
 # Default font-render-hinting
 shot-scraper https://shot-scraper.datasette.io/en/stable/screenshots.html \
   -w 800 -h 600 -o examples/font-hinting-default.png
