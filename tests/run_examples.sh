@@ -172,7 +172,7 @@ shot-scraper multi empty.yml
   height: 200
   wait: 2100
 # Screenshot from the server
-- url: https://localhost:9043/
+- url: http://localhost:9043/
   output: from-server.png
 ' | shot-scraper multi - --fail)
 # --bypass-csp
