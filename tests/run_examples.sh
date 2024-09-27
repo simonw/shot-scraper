@@ -26,7 +26,8 @@ shot-scraper https://simonwillison.net/ \
   -o examples/bighead-multi-selector.png
 # --selector-all
 shot-scraper https://simonwillison.net/ \
-  --selector-all .day --padding 20 \
+  --selector-all '#secondary li:nth-child(-n+5)' \
+  --padding 20 \
   -o examples/selector-all.png
 # Height and width
 shot-scraper https://simonwillison.net/ -w 400 -h 800 -o examples/simon-narrow.png
@@ -145,7 +146,7 @@ shot-scraper multi empty.yml
 - output: selectors-all-from-multi.png
   url: https://simonwillison.net/
   selectors_all:
-  - .day
+  - #secondary li:nth-child(-n+5)
   - .entry:nth-of-type(1)
   padding: 20
 # js_selector
