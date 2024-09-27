@@ -146,8 +146,8 @@ shot-scraper multi empty.yml
 - output: selectors-all-from-multi.png
   url: https://simonwillison.net/
   selectors_all:
-  - #secondary li:nth-child(-n+5)
-  - .entry:nth-of-type(1)
+  - "#secondary li:nth-child(-n+5)"
+  - "#secondary li:nth-child(8)"
   padding: 20
 # js_selector
 - output: js-selector-from-multi.png
