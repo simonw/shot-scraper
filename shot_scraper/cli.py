@@ -477,6 +477,12 @@ def _browser_context(
 @skip_fail_options
 @silent_option
 @http_auth_options
+@click.option(
+    "leave_server",
+    "--leave-server",
+    is_flag=True,
+    help="Leave servers running when script finishes",
+)
 def multi(
     config,
     auth,
@@ -496,6 +502,7 @@ def multi(
     silent,
     auth_username,
     auth_password,
+    leave_server,
 ):
     """
     Take multiple screenshots, defined by a YAML file
@@ -559,12 +566,14 @@ def multi(
                 if "server" in shot:
                     # Start that subprocess and remember the pid
                     server = shot["server"]
+                    proc = None
                     if isinstance(server, str):
-                        server_processes.append(subprocess.Popen(server, shell=True))
+                        proc = subprocess.Popen(server, shell=True)
                     elif isinstance(server, list):
-                        server_processes.append(subprocess.Popen(map(str, server)))
+                        proc = subprocess.Popen(map(str, server))
                     else:
                         raise click.ClickException("server: must be a string or list")
+                    server_processes.append((proc, server))
                     time.sleep(1)
                 if "url" in shot:
                     try:
@@ -583,10 +592,15 @@ def multi(
                             click.echo(str(e), err=True)
                             continue
         finally:
+            context.close()
             browser_obj.close()
-            if server_processes:
-                for process in server_processes:
-                    process.kill()
+            if leave_server:
+                for process, details in server_processes:
+                    print("Leaving server PID:", process.pid, " details:", details)
+            else:
+                if server_processes:
+                    for process, _ in server_processes:
+                        process.kill()
 
 
 @cli.command()
