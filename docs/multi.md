@@ -128,7 +128,7 @@ With that server configured, you can now take screenshots of `http://localhost:8
 - output: index.png
   url: http://localhost:8000/
 ```
-The server process will be automatically terminated when the `shot-scraper multi` command completes.
+The server process will be automatically terminated when the `shot-scraper multi` command completes, unless you pass the `--leave-server` option to `shot-scraper multi` in which case it will be left running - you can terminate it using `kill PID` with the PID displayed in the console output.
 
 ## Running custom code between steps
 
@@ -212,6 +212,7 @@ Options:
   --silent                        Do not output any messages
   --auth-password TEXT            Password for HTTP Basic authentication
   --auth-username TEXT            Username for HTTP Basic authentication
+  --leave-server                  Leave servers running when script finishes
   --help                          Show this message and exit.
 ```
 <!-- [[[end]]] -->
