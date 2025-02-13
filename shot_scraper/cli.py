@@ -401,6 +401,7 @@ def _browser_context(
     bypass_csp=False,
     auth_username=None,
     auth_password=None,
+    record_har_path=None,
 ):
     browser_kwargs = dict(
         headless=not interactive, devtools=devtools, args=browser_args
@@ -430,6 +431,8 @@ def _browser_context(
             "username": auth_username,
             "password": auth_password,
         }
+    if record_har_path:
+        context_args["record_har_path"] = record_har_path
     context = browser_obj.new_context(**context_args)
     if timeout:
         context.set_default_timeout(timeout)
@@ -668,6 +671,75 @@ def accessibility(
         browser_obj.close()
     output.write(json.dumps(snapshot, indent=4))
     output.write("\n")
+
+
+@cli.command()
+@click.argument("url")
+@click.option(
+    "-a",
+    "--auth",
+    type=click.File("r"),
+    help="Path to JSON authentication context file",
+)
+@click.option(
+    "-o",
+    "--output",
+    type=click.Path(file_okay=True, dir_okay=False, writable=True, allow_dash=False),
+    help="HAR filename",
+)
+@click.option("-j", "--javascript", help="Execute this JS prior to taking the snapshot")
+@click.option(
+    "--timeout",
+    type=int,
+    help="Wait this many milliseconds before failing",
+)
+@log_console_option
+@skip_fail_options
+@bypass_csp_option
+@http_auth_options
+def har(
+    url,
+    auth,
+    output,
+    javascript,
+    timeout,
+    log_console,
+    skip,
+    fail,
+    bypass_csp,
+    auth_username,
+    auth_password,
+):
+    """
+    Record a HAR file for the specified page
+
+    Usage:
+
+        shot-scraper har https://datasette.io/
+    """
+    if output is None:
+        output = filename_for_url(url, ext="har.zip", file_exists=os.path.exists)
+
+    url = url_or_file_path(url, _check_and_absolutize)
+    with sync_playwright() as p:
+        context, browser_obj = _browser_context(
+            p,
+            auth,
+            timeout=timeout,
+            bypass_csp=bypass_csp,
+            auth_username=auth_username,
+            auth_password=auth_password,
+            record_har_path=str(output),
+        )
+        page = context.new_page()
+        if log_console:
+            page.on("console", console_log)
+        response = page.goto(url)
+        skip_or_fail(response, skip, fail)
+        if javascript:
+            _evaluate_js(page, javascript)
+        context.close()
+        browser_obj.close()
 
 
 @cli.command()
