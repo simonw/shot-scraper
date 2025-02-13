@@ -345,7 +345,7 @@ Options:
                                   together with '--scale-factor'.
   --omit-background               Omit the default browser background from the
                                   shot, making it possible take advantage of
-                                  transparence. Does not work with JPEGs or when
+                                  transparency. Does not work with JPEGs or when
                                   using --quality.
   --quality INTEGER               Save as JPEG with this quality, e.g. 80
   --wait INTEGER                  Wait this many milliseconds before taking the
