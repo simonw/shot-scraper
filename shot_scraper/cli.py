@@ -59,6 +59,17 @@ def silent_option(fn):
     return fn
 
 
+def clock_option(fn):
+    click.option(
+        "--clock-time",
+        type=click.DateTime(
+            formats=["%Y-%m-%d", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S"]
+        ),
+        help="Set the clock to this time, YYYY-MM-DD HH:mm:ss",
+    )(fn)
+    return fn
+
+
 def skip_fail_options(fn):
     click.option("--skip", is_flag=True, help="Skip pages that return HTTP errors")(fn)
     click.option(
@@ -246,6 +257,7 @@ def cli():
 @bypass_csp_option
 @silent_option
 @http_auth_options
+@clock_option
 def shot(
     url,
     auth,
@@ -279,6 +291,7 @@ def shot(
     silent,
     auth_username,
     auth_password,
+    clock_time,
 ):
     """
     Take a single screenshot of a page or portion of a page.
@@ -346,6 +359,7 @@ def shot(
             bypass_csp=bypass_csp,
             auth_username=auth_username,
             auth_password=auth_password,
+            clock_time=clock_time,
         )
         if interactive or devtools:
             use_existing_page = True
@@ -401,6 +415,7 @@ def _browser_context(
     bypass_csp=False,
     auth_username=None,
     auth_password=None,
+    clock_time=None,
 ):
     browser_kwargs = dict(
         headless=not interactive, devtools=devtools, args=browser_args
@@ -433,6 +448,8 @@ def _browser_context(
     context = browser_obj.new_context(**context_args)
     if timeout:
         context.set_default_timeout(timeout)
+    if clock_time:
+        context.clock.install(time=clock_time)
     return context, browser_obj
 
 
@@ -707,6 +724,7 @@ def accessibility(
 @skip_fail_options
 @bypass_csp_option
 @http_auth_options
+@clock_option
 def javascript(
     url,
     javascript,
@@ -724,6 +742,7 @@ def javascript(
     bypass_csp,
     auth_username,
     auth_password,
+    clock_time,
 ):
     """
     Execute JavaScript against the page and return the result as JSON
@@ -764,6 +783,7 @@ def javascript(
             bypass_csp=bypass_csp,
             auth_username=auth_username,
             auth_password=auth_password,
+            clock_time=clock_time,
         )
         page = context.new_page()
         if log_console:
