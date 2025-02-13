@@ -213,6 +213,9 @@ Options:
   --auth-password TEXT            Password for HTTP Basic authentication
   --auth-username TEXT            Username for HTTP Basic authentication
   --leave-server                  Leave servers running when script finishes
+  --har                           Save all requests to trace.har file
+  --har-zip                       Save all requests to trace.har.zip file
+  --har-file FILE                 Path to HAR file to save all requests
   --help                          Show this message and exit.
 ```
 <!-- [[[end]]] -->

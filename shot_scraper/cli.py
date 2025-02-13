@@ -486,6 +486,21 @@ def _browser_context(
     is_flag=True,
     help="Leave servers running when script finishes",
 )
+@click.option(
+    "--har",
+    is_flag=True,
+    help="Save all requests to trace.har file",
+)
+@click.option(
+    "--har-zip",
+    is_flag=True,
+    help="Save all requests to trace.har.zip file",
+)
+@click.option(
+    "--har-file",
+    type=click.Path(file_okay=True, writable=True, dir_okay=False),
+    help="Path to HAR file to save all requests",
+)
 def multi(
     config,
     auth,
@@ -506,6 +521,9 @@ def multi(
     auth_username,
     auth_password,
     leave_server,
+    har,
+    har_zip,
+    har_file,
 ):
     """
     Take multiple screenshots, defined by a YAML file
@@ -524,6 +542,11 @@ def multi(
     For full YAML syntax documentation, see:
     https://shot-scraper.datasette.io/en/stable/multi.html
     """
+    if (har or har_zip) and not har_file:
+        har_file = filename_for_url(
+            "trace", ext="har.zip" if har_zip else "har", file_exists=os.path.exists
+        )
+
     scale_factor = normalize_scale_factor(retina, scale_factor)
     shots = yaml.safe_load(config)
     server_processes = []
@@ -543,6 +566,7 @@ def multi(
             reduced_motion=reduced_motion,
             auth_username=auth_username,
             auth_password=auth_password,
+            record_har_path=har_file or None,
         )
         try:
             for shot in shots:
@@ -599,11 +623,16 @@ def multi(
             browser_obj.close()
             if leave_server:
                 for process, details in server_processes:
-                    print("Leaving server PID:", process.pid, " details:", details)
+                    click.echo(
+                        f"Leaving server PID: {process.pid} details: {details}",
+                        err=True,
+                    )
             else:
                 if server_processes:
                     for process, _ in server_processes:
                         process.kill()
+            if har_file and not silent:
+                click.echo(f"Wrote to HAR file: {har_file}", err=True)
 
 
 @cli.command()
