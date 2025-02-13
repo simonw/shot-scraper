@@ -11,7 +11,7 @@ This will save to `datasette-io.har`. You can use `-o` to specify a filename:
 shot-scraper har https://datasette.io/tutorials/learn-sql \
   -o learn-sql.har
 ```
-A `.har` file is JSON. You can view it using this [HAR viewer tool](https://ericduran.github.io/chromeHAR/).
+A `.har` file is JSON. You can view it using the [Google HAR Analyzer](https://toolbox.googleapps.com/apps/har_analyzer/) tool.
 
 HTTP Archives can also be created as `.har.zip` files. These have a slightly different format: the `har.har` JSON does not include the full content of the responses, which is instead stored as separate files inside the `.zip`.
 
