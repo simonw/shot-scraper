@@ -216,36 +216,46 @@ def test_error_on_invalid_scale_factors(command, args, expected):
     assert result.output == expected
 
 
-@pytest.mark.parametrize("output", (None, "output.har.zip"))
-def test_har(http_server, output):
+@pytest.mark.parametrize(
+    "args,expect_zip",
+    (
+        ([], False),
+        (["--zip"], True),
+        (["--output", "output.har"], False),
+        (["-o", "output.har"], False),
+        (["--output", "output.har.zip"], True),
+        (["-o", "output.har.zip"], True),
+    ),
+)
+def test_har(http_server, args, expect_zip):
     runner = CliRunner()
     with runner.isolated_filesystem():
         # Should be no files
         here = pathlib.Path(".")
         assert list(here.glob("*.*")) == []
-        args = ["har", http_server.base_url]
-        if output:
-            args.extend(("--output", output))
-        result = runner.invoke(cli, args)
+        result = runner.invoke(cli, ["har", http_server.base_url] + args)
         assert result.exit_code == 0
         # HAR file should have been created
-        files = here.glob("*.har.zip")
+        if expect_zip:
+            files = here.glob("*.har.zip")
+        else:
+            files = here.glob("*.har")
         har_files = list(files)
         # Should have created exactly one .har file
         assert len(har_files) == 1
-        if output:
-            assert har_files[0] == pathlib.Path(output)
-        # It should contain *.html and har.har
-        with zipfile.ZipFile(har_files[0]) as zip_file:
-            file_list = zip_file.namelist()
-            assert any(".html" in file for file in file_list)
-            assert "har.har" in file_list
-
-            # har.har should be JSON with the expected structure
-            with zip_file.open("har.har") as har_file:
-                har_content = json.loads(har_file.read())
-                assert "log" in har_content
-                assert "entries" in har_content["log"]
-                # Verify entries is a non-empty list
-                assert isinstance(har_content["log"]["entries"], list)
-                assert len(har_content["log"]["entries"]) > 0
+        if expect_zip:
+            with zipfile.ZipFile(har_files[0]) as zip_file:
+                file_list = zip_file.namelist()
+                assert any(".html" in file for file in file_list)
+                assert "har.har" in file_list
+                with zip_file.open("har.har") as har_file:
+                    har_content = json.loads(har_file.read())
+        else:
+            with open(har_files[0]) as har_file:
+                har_content = json.load(har_file)
+        # HAR should have expected shape
+        assert "log" in har_content
+        assert "entries" in har_content["log"]
+        # Verify entries is a non-empty list
+        assert isinstance(har_content["log"]["entries"], list)
+        assert len(har_content["log"]["entries"]) > 0

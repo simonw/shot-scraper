@@ -6,12 +6,26 @@ The `shot-scraper har` command can save a `*.har.zip` file that contains both th
 ```bash
 shot-scraper har https://datasette.io/
 ```
-This will save to `datasette-io.har.zip`. You can use `-o` to specify a filename:
+This will save to `datasette-io.har`. You can use `-o` to specify a filename:
 ```bash
 shot-scraper har https://datasette.io/tutorials/learn-sql \
-  -o learn-sql.har.zip
+  -o learn-sql.har
 ```
-You can view the contents of a HAR file using `unzip -l`:
+A `.har` file is JSON. You can view it using this [HAR viewer tool](https://ericduran.github.io/chromeHAR/).
+
+HTTP Archives can also be created as `.har.zip` files. These have a slightly different format: the `har.har` JSON does not include the full content of the responses, which is instead stored as separate files inside the `.zip`.
+
+To create one of these, either add the `--zip` flag:
+
+```bash
+shot-scraper har https://datasette.io/ --zip
+```
+Or specify a filename that ends in `.har.zip`:
+```bash
+shot-scraper har https://datasette.io/ -o datasette-io.har.zip
+```
+
+You can view the contents of a HAR zip file using `unzip -l`:
 ```bash
 unzip -l datasette-io.har.zip
 ```
@@ -61,7 +75,16 @@ Usage: shot-scraper har [OPTIONS] URL
 
       shot-scraper har https://datasette.io/
 
+  This defaults to saving to datasette-io.har - use -o to specify a different
+  filename:
+
+      shot-scraper har https://datasette.io/ -o trace.har
+
+  Use --zip to save as a .har.zip file instead, or specify a filename ending in
+  .har.zip
+
 Options:
+  -z, --zip             Save as a .har.zip file
   -a, --auth FILENAME   Path to JSON authentication context file
   -o, --output FILE     HAR filename
   --timeout INTEGER     Wait this many milliseconds before failing

@@ -675,6 +675,7 @@ def accessibility(
 
 @cli.command()
 @click.argument("url")
+@click.option("zip_", "-z", "--zip", is_flag=True, help="Save as a .har.zip file")
 @click.option(
     "-a",
     "--auth",
@@ -698,6 +699,7 @@ def accessibility(
 @http_auth_options
 def har(
     url,
+    zip_,
     auth,
     output,
     timeout,
@@ -714,9 +716,17 @@ def har(
     Usage:
 
         shot-scraper har https://datasette.io/
+
+    This defaults to saving to datasette-io.har - use -o to specify a different filename:
+
+        shot-scraper har https://datasette.io/ -o trace.har
+
+    Use --zip to save as a .har.zip file instead, or specify a filename ending in .har.zip
     """
     if output is None:
-        output = filename_for_url(url, ext="har.zip", file_exists=os.path.exists)
+        output = filename_for_url(
+            url, ext="har.zip" if zip_ else "har", file_exists=os.path.exists
+        )
 
     url = url_or_file_path(url, _check_and_absolutize)
     with sync_playwright() as p:
