@@ -910,6 +910,12 @@ def javascript(
 @click.option(
     "--wait", type=int, help="Wait this many milliseconds before taking the screenshot"
 )
+@click.option("--wait-for", help="Wait until this JS expression returns true")
+@click.option(
+    "--timeout",
+    type=int,
+    help="Wait this many milliseconds before failing",
+)
 @click.option(
     "--media-screen", is_flag=True, help="Use screen rather than print styles"
 )
@@ -954,6 +960,8 @@ def pdf(
     output,
     javascript,
     wait,
+    wait_for,
+    timeout,
     media_screen,
     landscape,
     format_,
@@ -994,6 +1002,7 @@ def pdf(
             bypass_csp=bypass_csp,
             auth_username=auth_username,
             auth_password=auth_password,
+            timeout=timeout,
         )
         page = context.new_page()
         if log_console:
@@ -1004,6 +1013,8 @@ def pdf(
             time.sleep(wait / 1000)
         if javascript:
             _evaluate_js(page, javascript)
+        if wait_for:
+            page.wait_for_function(wait_for)
 
         kwargs = {
             "landscape": landscape,

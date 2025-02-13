@@ -51,6 +51,8 @@ Options:
   -j, --javascript TEXT           Execute this JS prior to creating the PDF
   --wait INTEGER                  Wait this many milliseconds before taking the
                                   screenshot
+  --wait-for TEXT                 Wait until this JS expression returns true
+  --timeout INTEGER               Wait this many milliseconds before failing
   --media-screen                  Use screen rather than print styles
   --landscape                     Use landscape orientation
   --format [Letter|Legal|Tabloid|Ledger|A0|A1|A2|A3|A4|A5|A6]
