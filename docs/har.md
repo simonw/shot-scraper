@@ -1,3 +1,4 @@
+(har)=
 # Saving a web page to an HTTP Archive
 
 An HTTP Archive file captures the full details of a series of HTTP requests and responses as JSON.
@@ -50,6 +51,8 @@ Archive:  datasette-io.har.zip
 ---------                     -------
    154803                     14 files
 ```
+
+You can record multiple pages to a single HTTP Archive using the {ref}`shot-scraper multi --har option<multi-har>`.
 
 ## `shot-scraper har --help`
 

@@ -109,6 +109,39 @@ You can include desired `height`, `width`, `quality`, `wait` and `wait_for` opti
   wait_for: document.querySelector('#bighead')
 ```
 
+(multi-har)=
+## Recording to an HTTP Archive
+
+Similar to the {ref}`shot-scraper har command<har>`, `shot-scraper multi` can optionally record HTTP Archive files of the requests made during a session.
+
+Add the `--har` flag to record all requests and responses to a `trace.har` JSON file, or `--har-zip` for a `trace.har.zip` file. Use `--har-file filename.har` to provide a path to a custom filename - this will be recorded as JSON or zip depending on the file extension.
+
+For example:
+
+```bash
+shot-scraper multi shots.yml --har
+```
+Will output something like this:
+```
+Screenshot of 'http://www.example.com/' written to 'example.com.png'
+Screenshot of 'https://www.w3.org/' written to 'w3c.org.png'
+Wrote to HAR file: trace.har
+```
+When writing to a HAR you can omit the `output:` key in a YAML file to skip taking a screenshot of that file. This `shots.yml` file for example:
+```yaml
+- url: https://example.com/
+- url: https://datasette.io/
+```
+When run like this:
+```bash
+shot-scraper multi shots.yml --har-zip
+```
+Will produce this output, recording a HAR without taking any screenshots:
+```
+Skipping screenshot of 'https://example.com/'
+Skipping screenshot of 'https://datasette.io/'
+Wrote to HAR file: trace.har.zip
+```
 ## Running a server for the duration of the session
 
 If you need to run a server for the duration of the `shot-scraper multi` session you can specify that using a `server:` block, like this:
@@ -213,6 +246,9 @@ Options:
   --auth-password TEXT            Password for HTTP Basic authentication
   --auth-username TEXT            Username for HTTP Basic authentication
   --leave-server                  Leave servers running when script finishes
+  --har                           Save all requests to trace.har file
+  --har-zip                       Save all requests to trace.har.zip file
+  --har-file FILE                 Path to HAR file to save all requests
   --help                          Show this message and exit.
 ```
 <!-- [[[end]]] -->
