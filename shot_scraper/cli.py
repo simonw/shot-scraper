@@ -687,7 +687,6 @@ def accessibility(
     type=click.Path(file_okay=True, dir_okay=False, writable=True, allow_dash=False),
     help="HAR filename",
 )
-@click.option("-j", "--javascript", help="Execute this JS prior to taking the snapshot")
 @click.option(
     "--timeout",
     type=int,
@@ -701,7 +700,6 @@ def har(
     url,
     auth,
     output,
-    javascript,
     timeout,
     log_console,
     skip,
@@ -736,8 +734,6 @@ def har(
             page.on("console", console_log)
         response = page.goto(url)
         skip_or_fail(response, skip, fail)
-        if javascript:
-            _evaluate_js(page, javascript)
         context.close()
         browser_obj.close()
 
