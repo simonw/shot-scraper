@@ -549,6 +549,13 @@ def multi(
 
     scale_factor = normalize_scale_factor(retina, scale_factor)
     shots = yaml.safe_load(config)
+
+    # Special case: if we are recording a har_file output can be blank to skip a shot
+    if har_file:
+        for shot in shots:
+            if not shot.get("output"):
+                shot["skip_shot"] = True
+
     server_processes = []
     if shots is None:
         shots = []
@@ -1370,12 +1377,16 @@ def take_shot(
                 ", ".join(list(selectors) + list(selectors_all)), url, output
             )
     else:
-        # Whole page
-        if return_bytes:
-            return page.screenshot(**screenshot_args)
+        if shot.get("skip_shot"):
+            message = "Skipping screenshot of '{}'".format(url)
         else:
-            page.screenshot(**screenshot_args)
-            message = "Screenshot of '{}' written to '{}'".format(url, output)
+            # Whole page
+            if return_bytes:
+                return page.screenshot(**screenshot_args)
+            else:
+                page.screenshot(**screenshot_args)
+                message = "Screenshot of '{}' written to '{}'".format(url, output)
+
     if not silent:
         click.echo(message, err=True)
 

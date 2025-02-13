@@ -262,23 +262,25 @@ def test_har(http_server, args, expect_zip):
 
 
 @pytest.mark.parametrize(
-    "args,expect_zip",
+    "args,expect_zip,record_shots",
     (
-        (["--har"], False),
-        (["--har-zip"], True),
-        (["--har-file", "output.har"], False),
-        (["--har-file", "output.har.zip"], True),
+        (["--har"], False, True),
+        (["--har-zip"], True, True),
+        (["--har-file", "output.har"], False, True),
+        (["--har-file", "output.har.zip"], True, True),
+        # And one where we don't record the shots:
+        (["--har"], False, False),
     ),
 )
-def test_multi_har(http_server, args, expect_zip):
+def test_multi_har(http_server, args, expect_zip, record_shots):
     runner = CliRunner()
     (http_server.base_dir / "two.html").write_text("<h1>Two</h1>")
     with runner.isolated_filesystem():
         pathlib.Path("shots.yml").write_text(
             f"- url: {http_server.base_url}/\n"
-            f"  output: index.png\n"
-            f"- url: {http_server.base_url}/two.html\n"
-            f"  output: two.png\n"
+            + (f"  output: index.png\n" if record_shots else "")
+            + f"- url: {http_server.base_url}/two.html\n"
+            + (f"  output: two.png\n" if record_shots else "")
         )
         # Should be no files
         here = pathlib.Path(".")
@@ -286,7 +288,10 @@ def test_multi_har(http_server, args, expect_zip):
         assert files == ["shots.yml"]
         result = runner.invoke(cli, ["multi", "shots.yml"] + args)
         assert result.exit_code == 0
-        assert result.output.startswith("Screenshot of 'http://localhost")
+        if record_shots:
+            assert result.output.startswith("Screenshot of 'http://localhost")
+        else:
+            assert result.output.startswith("Skipping screenshot of 'http://localhost")
         assert "Wrote to HAR file:" in result.output
         assert (".har.zip" in result.output) == expect_zip
         # HAR file should have been created
@@ -298,5 +303,9 @@ def test_multi_har(http_server, args, expect_zip):
         # Should have created exactly one .har file
         assert len(har_files) == 1
         assert bool(zipfile.is_zipfile(har_files[0])) == expect_zip
-        # Should have taken shots
-        assert len(list(here.glob("*.png"))) == 2
+        shot_files = list(here.glob("*.png"))
+        num_shots = len(shot_files)
+        if record_shots:
+            assert num_shots == 2
+        else:
+            assert num_shots == 0
