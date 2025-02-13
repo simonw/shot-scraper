@@ -98,7 +98,11 @@ html_theme = "furo"
 # further.  For a list of options available for each theme, see the
 # documentation.
 
-html_theme_options = {}
+html_theme_options = {
+    "light_css_variables": {
+        "sidebar-item-line-height": "1.25rem"
+    }
+}
 html_title = "shot-scraper"
 
 # Add any paths that contain custom static files (such as style sheets) here,
