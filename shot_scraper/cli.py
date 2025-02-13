@@ -1,16 +1,17 @@
-import click
-from click_default_group import DefaultGroup
-import json
-import os
-import pathlib
-from playwright.sync_api import sync_playwright, Error, TimeoutError
-from runpy import run_module
 import secrets
 import subprocess
 import sys
 import textwrap
 import time
+import json
+import os
+import pathlib
+from runpy import run_module
+from click_default_group import DefaultGroup
 import yaml
+import click
+from playwright.sync_api import sync_playwright, Error, TimeoutError
+
 
 from shot_scraper.utils import filename_for_url, url_or_file_path
 
@@ -88,15 +89,13 @@ def skip_or_fail(response, skip, fail):
     if str(response.status)[0] in ("4", "5"):
         if skip:
             click.echo(
-                "{} error for {}, skipping".format(response.status, response.url),
+                f"{response.status} error for {response.url}, skipping",
                 err=True,
             )
             # Exit with a 0 status code
             raise SystemExit
         elif fail:
-            raise click.ClickException(
-                "{} error for {}".format(response.status, response.url)
-            )
+            raise click.ClickException(f"{response.status} error for {response.url}")
 
 
 def scale_factor_options(fn):
@@ -1035,7 +1034,7 @@ def pdf(
         if output == "-":
             sys.stdout.buffer.write(pdf)
         elif not silent:
-            click.echo("PDF of '{}' written to '{}'".format(url, output), err=True)
+            click.echo(f"PDF of '{url}' written to '{output}'", err=True)
 
         browser_obj.close()
 
@@ -1135,7 +1134,7 @@ def html(
             open(output, "w").write(html)
             if not silent:
                 click.echo(
-                    "HTML snapshot of '{}' written to '{}'".format(url, output),
+                    f"HTML snapshot of '{url}' written to '{output}'",
                     err=True,
                 )
 
@@ -1320,14 +1319,10 @@ def take_shot(
         # Check if page was a 404 or 500 or other error
         if str(response.status)[0] in ("4", "5"):
             if skip:
-                click.echo(
-                    "{} error for {}, skipping".format(response.status, url), err=True
-                )
+                click.echo(f"{response.status} error for {url}, skipping", err=True)
                 return
             elif fail:
-                raise click.ClickException(
-                    "{} error for {}".format(response.status, url)
-                )
+                raise click.ClickException(f"{response.status} error for {url}")
 
     if wait:
         time.sleep(wait / 1000)
@@ -1376,9 +1371,7 @@ def take_shot(
             bytes_ = page.locator(selector_to_shoot).screenshot(**screenshot_args)
         except TimeoutError as e:
             raise click.ClickException(
-                "Timed out while waiting for element to become available.\n\n{}".format(
-                    e
-                )
+                f"Timed out while waiting for element to become available.\n\n{e}"
             )
         if return_bytes:
             return bytes_
@@ -1396,7 +1389,7 @@ def take_shot(
                 return page.screenshot(**screenshot_args)
             else:
                 page.screenshot(**screenshot_args)
-                message = "Screenshot of '{}' written to '{}'".format(url, output)
+                message = f"Screenshot of '{url}' written to '{output}'"
 
     if not silent:
         click.echo(message, err=True)
@@ -1407,22 +1400,20 @@ def _js_selector_javascript(js_selectors, js_selectors_all):
     extra_selectors_all = []
     js_blocks = []
     for js_selector in js_selectors:
-        klass = "js-selector-{}".format(secrets.token_hex(16))
-        extra_selectors.append(".{}".format(klass))
+        klass = f"js-selector-{secrets.token_hex(16)}"
+        extra_selectors.append(f".{klass}")
         js_blocks.append(
             textwrap.dedent(
-                """
+                f"""
         Array.from(
           document.getElementsByTagName('*')
-        ).find(el => {}).classList.add("{}");
-        """.format(
-                    js_selector, klass
-                )
+        ).find(el => {js_selector}).classList.add("{klass}");
+        """
             )
         )
     for js_selector_all in js_selectors_all:
-        klass = "js-selector-all-{}".format(secrets.token_hex(16))
-        extra_selectors_all.append(".{}".format(klass))
+        klass = f"js-selector-all-{secrets.token_hex(16)}"
+        extra_selectors_all.append(f".{klass}")
         js_blocks.append(
             textwrap.dedent(
                 """
@@ -1439,7 +1430,7 @@ def _js_selector_javascript(js_selectors, js_selectors_all):
 
 
 def _selector_javascript(selectors, selectors_all, padding=0):
-    selector_to_shoot = "shot-scraper-{}".format(secrets.token_hex(8))
+    selector_to_shoot = f"shot-scraper-{secrets.token_hex(8)}"
     selector_javascript = textwrap.dedent(
         """
     new Promise(takeShot => {

@@ -1,7 +1,7 @@
-from click.testing import CliRunner
 import pathlib
-import pytest
 import textwrap
+from click.testing import CliRunner
+import pytest
 from shot_scraper.cli import cli
 import zipfile
 import json
