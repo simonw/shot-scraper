@@ -3,6 +3,8 @@ import textwrap
 from click.testing import CliRunner
 import pytest
 from shot_scraper.cli import cli
+import zipfile
+import json
 
 
 def test_version():
@@ -212,3 +214,98 @@ def test_error_on_invalid_scale_factors(command, args, expected):
     result = runner.invoke(cli, [command, "-"] + args)
     assert result.exit_code == 1
     assert result.output == expected
+
+
+@pytest.mark.parametrize(
+    "args,expect_zip",
+    (
+        ([], False),
+        (["--zip"], True),
+        (["--output", "output.har"], False),
+        (["-o", "output.har"], False),
+        (["--output", "output.har.zip"], True),
+        (["-o", "output.har.zip"], True),
+    ),
+)
+def test_har(http_server, args, expect_zip):
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        # Should be no files
+        here = pathlib.Path(".")
+        assert list(here.glob("*.*")) == []
+        result = runner.invoke(cli, ["har", http_server.base_url] + args)
+        assert result.exit_code == 0
+        # HAR file should have been created
+        if expect_zip:
+            files = here.glob("*.har.zip")
+        else:
+            files = here.glob("*.har")
+        har_files = list(files)
+        # Should have created exactly one .har file
+        assert len(har_files) == 1
+        if expect_zip:
+            with zipfile.ZipFile(har_files[0]) as zip_file:
+                file_list = zip_file.namelist()
+                assert any(".html" in file for file in file_list)
+                assert "har.har" in file_list
+                with zip_file.open("har.har") as har_file:
+                    har_content = json.loads(har_file.read())
+        else:
+            with open(har_files[0]) as har_file:
+                har_content = json.load(har_file)
+        # HAR should have expected shape
+        assert "log" in har_content
+        assert "entries" in har_content["log"]
+        # Verify entries is a non-empty list
+        assert isinstance(har_content["log"]["entries"], list)
+        assert len(har_content["log"]["entries"]) > 0
+
+
+@pytest.mark.parametrize(
+    "args,expect_zip,record_shots",
+    (
+        (["--har"], False, True),
+        (["--har-zip"], True, True),
+        (["--har-file", "output.har"], False, True),
+        (["--har-file", "output.har.zip"], True, True),
+        # And one where we don't record the shots:
+        (["--har"], False, False),
+    ),
+)
+def test_multi_har(http_server, args, expect_zip, record_shots):
+    runner = CliRunner()
+    (http_server.base_dir / "two.html").write_text("<h1>Two</h1>")
+    with runner.isolated_filesystem():
+        pathlib.Path("shots.yml").write_text(
+            f"- url: {http_server.base_url}/\n"
+            + (f"  output: index.png\n" if record_shots else "")
+            + f"- url: {http_server.base_url}/two.html\n"
+            + (f"  output: two.png\n" if record_shots else "")
+        )
+        # Should be no files
+        here = pathlib.Path(".")
+        files = [str(p) for p in here.glob("*.*")]
+        assert files == ["shots.yml"]
+        result = runner.invoke(cli, ["multi", "shots.yml"] + args)
+        assert result.exit_code == 0
+        if record_shots:
+            assert result.output.startswith("Screenshot of 'http://localhost")
+        else:
+            assert result.output.startswith("Skipping screenshot of 'http://localhost")
+        assert "Wrote to HAR file:" in result.output
+        assert (".har.zip" in result.output) == expect_zip
+        # HAR file should have been created
+        if expect_zip:
+            files = here.glob("*.har.zip")
+        else:
+            files = here.glob("*.har")
+        har_files = list(files)
+        # Should have created exactly one .har file
+        assert len(har_files) == 1
+        assert bool(zipfile.is_zipfile(har_files[0])) == expect_zip
+        shot_files = list(here.glob("*.png"))
+        num_shots = len(shot_files)
+        if record_shots:
+            assert num_shots == 2
+        else:
+            assert num_shots == 0

@@ -400,6 +400,7 @@ def _browser_context(
     bypass_csp=False,
     auth_username=None,
     auth_password=None,
+    record_har_path=None,
 ):
     browser_kwargs = dict(
         headless=not interactive, devtools=devtools, args=browser_args
@@ -429,6 +430,8 @@ def _browser_context(
             "username": auth_username,
             "password": auth_password,
         }
+    if record_har_path:
+        context_args["record_har_path"] = record_har_path
     context = browser_obj.new_context(**context_args)
     if timeout:
         context.set_default_timeout(timeout)
@@ -482,6 +485,21 @@ def _browser_context(
     is_flag=True,
     help="Leave servers running when script finishes",
 )
+@click.option(
+    "--har",
+    is_flag=True,
+    help="Save all requests to trace.har file",
+)
+@click.option(
+    "--har-zip",
+    is_flag=True,
+    help="Save all requests to trace.har.zip file",
+)
+@click.option(
+    "--har-file",
+    type=click.Path(file_okay=True, writable=True, dir_okay=False),
+    help="Path to HAR file to save all requests",
+)
 def multi(
     config,
     auth,
@@ -502,6 +520,9 @@ def multi(
     auth_username,
     auth_password,
     leave_server,
+    har,
+    har_zip,
+    har_file,
 ):
     """
     Take multiple screenshots, defined by a YAML file
@@ -520,8 +541,20 @@ def multi(
     For full YAML syntax documentation, see:
     https://shot-scraper.datasette.io/en/stable/multi.html
     """
+    if (har or har_zip) and not har_file:
+        har_file = filename_for_url(
+            "trace", ext="har.zip" if har_zip else "har", file_exists=os.path.exists
+        )
+
     scale_factor = normalize_scale_factor(retina, scale_factor)
     shots = yaml.safe_load(config)
+
+    # Special case: if we are recording a har_file output can be blank to skip a shot
+    if har_file:
+        for shot in shots:
+            if not shot.get("output"):
+                shot["skip_shot"] = True
+
     server_processes = []
     if shots is None:
         shots = []
@@ -539,6 +572,7 @@ def multi(
             reduced_motion=reduced_motion,
             auth_username=auth_username,
             auth_password=auth_password,
+            record_har_path=har_file or None,
         )
         try:
             for shot in shots:
@@ -595,11 +629,16 @@ def multi(
             browser_obj.close()
             if leave_server:
                 for process, details in server_processes:
-                    print("Leaving server PID:", process.pid, " details:", details)
+                    click.echo(
+                        f"Leaving server PID: {process.pid} details: {details}",
+                        err=True,
+                    )
             else:
                 if server_processes:
                     for process, _ in server_processes:
                         process.kill()
+            if har_file and not silent:
+                click.echo(f"Wrote to HAR file: {har_file}", err=True)
 
 
 @cli.command()
@@ -667,6 +706,81 @@ def accessibility(
         browser_obj.close()
     output.write(json.dumps(snapshot, indent=4))
     output.write("\n")
+
+
+@cli.command()
+@click.argument("url")
+@click.option("zip_", "-z", "--zip", is_flag=True, help="Save as a .har.zip file")
+@click.option(
+    "-a",
+    "--auth",
+    type=click.File("r"),
+    help="Path to JSON authentication context file",
+)
+@click.option(
+    "-o",
+    "--output",
+    type=click.Path(file_okay=True, dir_okay=False, writable=True, allow_dash=False),
+    help="HAR filename",
+)
+@click.option(
+    "--timeout",
+    type=int,
+    help="Wait this many milliseconds before failing",
+)
+@log_console_option
+@skip_fail_options
+@bypass_csp_option
+@http_auth_options
+def har(
+    url,
+    zip_,
+    auth,
+    output,
+    timeout,
+    log_console,
+    skip,
+    fail,
+    bypass_csp,
+    auth_username,
+    auth_password,
+):
+    """
+    Record a HAR file for the specified page
+
+    Usage:
+
+        shot-scraper har https://datasette.io/
+
+    This defaults to saving to datasette-io.har - use -o to specify a different filename:
+
+        shot-scraper har https://datasette.io/ -o trace.har
+
+    Use --zip to save as a .har.zip file instead, or specify a filename ending in .har.zip
+    """
+    if output is None:
+        output = filename_for_url(
+            url, ext="har.zip" if zip_ else "har", file_exists=os.path.exists
+        )
+
+    url = url_or_file_path(url, _check_and_absolutize)
+    with sync_playwright() as p:
+        context, browser_obj = _browser_context(
+            p,
+            auth,
+            timeout=timeout,
+            bypass_csp=bypass_csp,
+            auth_username=auth_username,
+            auth_password=auth_password,
+            record_har_path=str(output),
+        )
+        page = context.new_page()
+        if log_console:
+            page.on("console", console_log)
+        response = page.goto(url)
+        skip_or_fail(response, skip, fail)
+        context.close()
+        browser_obj.close()
 
 
 @cli.command()
@@ -1256,12 +1370,16 @@ def take_shot(
                 ", ".join(list(selectors) + list(selectors_all)), url, output
             )
     else:
-        # Whole page
-        if return_bytes:
-            return page.screenshot(**screenshot_args)
+        if shot.get("skip_shot"):
+            message = "Skipping screenshot of '{}'".format(url)
         else:
-            page.screenshot(**screenshot_args)
-            message = f"Screenshot of '{url}' written to '{output}'"
+            # Whole page
+            if return_bytes:
+                return page.screenshot(**screenshot_args)
+            else:
+                page.screenshot(**screenshot_args)
+                message = f"Screenshot of '{url}' written to '{output}'"
+
     if not silent:
         click.echo(message, err=True)
 
