@@ -1,3 +1,5 @@
+(pdf)=
+
 # Saving a web page to PDF
 
 The `shot-scraper pdf` command saves a PDF version of a web page - the equivalent of using `Print -> Save to PDF` in Chromium.
