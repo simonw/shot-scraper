@@ -4,7 +4,7 @@ A command-line utility for taking automated screenshots of websites
 
 **Quick start**:
 
-```
+```bash
 pip install shot-scraper
 shot-scraper install
 shot-scraper https://github.com/simonw/shot-scraper -h 900
