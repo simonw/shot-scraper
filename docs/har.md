@@ -1,4 +1,5 @@
 (har)=
+
 # Saving a web page to an HTTP Archive
 
 An HTTP Archive file captures the full details of a series of HTTP requests and responses as JSON.

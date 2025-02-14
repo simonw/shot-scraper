@@ -1,3 +1,5 @@
+(multi)=
+
 # Taking multiple screenshots
 
 You can configure multiple screenshots using a YAML file. Create a file called `shots.yml` that looks like this:
@@ -9,21 +11,21 @@ You can configure multiple screenshots using a YAML file. Create a file called `
   url: https://www.w3.org/
 ```
 Then run the tool like so:
-
-    shot-scraper multi shots.yml
-
+```bash
+shot-scraper multi shots.yml
+```
 This will create two image files, `www-example-com.png` and `w3c.org.png`, containing screenshots of those two URLs.
 
 Use `-` to pass in YAML from standard input:
-
-    echo "- url: http://www.example.com" | shot-scraper multi -
-
+```bash
+echo "- url: http://www.example.com" | shot-scraper multi -
+```
 If you run the tool with the `-n` or `--no-clobber` option any shots where the output file aleady exists will be skipped.
 
 You can specify a subset of screenshots to take by specifying output files that you would like to create. For example, to take just the shots of `one.png` and `three.png` that are defined in `shots.yml` run this:
-
-    shot-scraper multi shots.yml -o one.png -o three.png
-
+```bash
+shot-scraper multi shots.yml -o one.png -o three.png
+```
 The `url:` can be set to a path to a file on disk as well:
 
 ```yaml
@@ -36,15 +38,15 @@ Use the `--scale-factor` option to capture all screenshots at a specific scale f
 For example, setting `--scale-factor 3` results in screenshots with a CSS pixel ratio of 3, which is ideal for emulating a high-resolution display, such as Apple's iPhone 12 screens.
 
 To take screenshots with a scale factor of 3 (tripled resolution), run the following command:
-
-    shot-scraper multi shots.yml --scale-factor 3
-
+```bash
+shot-scraper multi shots.yml --scale-factor 3
+```
 This will multiply both the width and height of all screenshots by 3, resulting in images with a higher level of detail, suitable for scenarios where you need to capture the screen as it would appear on a high-DPI display.
 
 Use `--retina` to take all screenshots at retina resolution instead, doubling the dimensions of the files:
-
-    shot-scraper multi shots.yml --retina
-
+```bash
+shot-scraper multi shots.yml --retina
+```
 Note: The `--retina` option should not be used in conjunction with the `--scale-factor` flag as they are mutually exclusive. If both are provided, the command will raise an error to prevent conflicts.
 
 To take a screenshot of just the area of a page defined by a CSS selector, add `selector` to the YAML block:

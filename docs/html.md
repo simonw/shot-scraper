@@ -1,30 +1,32 @@
+(html)=
+
 # Dumping the HTML of a page
 
 The `shot-scraper html` command dumps out the final HTML of a page after all JavaScript has run.
-
-    shot-scraper html https://datasette.io/
-
+```bash
+shot-scraper html https://datasette.io/
+```
 Use `-o filename.html` to write the output to a file instead of displaying it.
-
-    shot-scraper html https://datasette.io/ -o index.html
-
+```bash
+shot-scraper html https://datasette.io/ -o index.html
+```
 Add `--javascript SCRIPT` to execute custom JavaScript before taking the HTML snapshot.
-
-    shot-scraper html https://datasette.io/ \
-      --javascript "document.querySelector('h1').innerText = 'Hello, world!'"
-
+```bash
+shot-scraper html https://datasette.io/ \
+  --javascript "document.querySelector('h1').innerText = 'Hello, world!'"
+```
 ## Retrieving the HTML for a specific element
 
 You can use the `-s SELECTOR` option to capture just the HTML for one specific element on the page, identified using a CSS selector:
-
-    shot-scraper html https://datasette.io/ -s h1
-
+```bash
+shot-scraper html https://datasette.io/ -s h1
+```
 This outputs:
-
-    <h1>
-      <img class="datasette-logo" src="/static/datasette-logo.svg" alt="Datasette">
-    </h1>
-
+```html
+<h1>
+  <img class="datasette-logo" src="/static/datasette-logo.svg" alt="Datasette">
+</h1>
+```
 ## `shot-scraper html --help`
 
 Full `--help` for this command:

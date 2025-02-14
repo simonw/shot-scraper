@@ -3,39 +3,39 @@
 # Taking a screenshot
 
 To take a screenshot of a web page and write it to `datasette-io.png` run this:
-
-    shot-scraper https://datasette.io/
-
+```bash
+shot-scraper https://datasette.io/
+```
 If a file called `datasette-io.png` already exists the filename `datasette-io.1.png` will be used instead.
 
 You can use the `-o` option to specify a filename:
-
-    shot-scraper https://datasette.io/ -o datasette.png
-
+```bash
+shot-scraper https://datasette.io/ -o datasette.png
+```
 Use `-o -` to write the PNG image to standard output:
-
-    shot-scraper https://datasette.io/ -o - > datasette.png
-
+```bash
+shot-scraper https://datasette.io/ -o - > datasette.png
+```
 If you omit the protocol `http://` will be added automatically, and any redirects will be followed:
-
-    shot-scraper datasette.io -o datasette.png
-
+```bash
+shot-scraper datasette.io -o datasette.png
+```
 ## Adjusting the browser width and height
 
 The browser window used to take the screenshots defaults to 1280px wide and 780px tall.
 
 You can adjust these with the `--width` and `--height` options (`-w` and `-h` for short):
-
-    shot-scraper https://datasette.io/ -o small.png --width 400 --height 800
-
+```bash
+shot-scraper https://datasette.io/ -o small.png --width 400 --height 800
+```
 If you provide both options, the resulting screenshot will be of that size. If you omit `--height` a full page length screenshot will be produced (the default).
 
 ## Screenshotting a specific area with CSS selectors
 
 To take a screenshot of a specific element on the page, use `--selector` or `-s` with its CSS selector:
-
-    shot-scraper https://simonwillison.net/ -s '#bighead'
-
+```bash
+shot-scraper https://simonwillison.net/ -s '#bighead'
+```
 This produces `simonwillison-net.png` containing this image:
 
 <img src="https://raw.githubusercontent.com/simonw/shot-scraper-screenshot/main/shot-selector.png" alt="Just the header section from my blog">
@@ -43,17 +43,17 @@ This produces `simonwillison-net.png` containing this image:
 When using `--selector` the height and width, if provided, will set the size of the browser window when the page is loaded but the resulting screenshot will still be the same dimensions as the element on the page.
 
 You can pass `--selector` multiple times. The resulting screenshot will cover the smallest area of the page that contains all of the elements you specified, for example:
-
-    shot-scraper https://simonwillison.net/ \
-      -s '#bighead' -s .overband \
-      -o bighead-multi-selector.png
-
+```bash
+shot-scraper https://simonwillison.net/ \
+  -s '#bighead' -s .overband \
+  -o bighead-multi-selector.png
+```
 To capture a rectangle around every element that matches a CSS selector, use `--selector-all`:
-
-    shot-scraper https://simonwillison.net/ \
-      --selector-all '.day' \
-      -o just-the-day-boxes.png
-
+```bash
+shot-scraper https://simonwillison.net/ \
+  --selector-all '.day' \
+  -o just-the-day-boxes.png
+```
 You can add `--padding 20` to add 20px of padding around the elements when the shot is taken.
 
 ## Specifying elements using JavaScript filters
@@ -63,10 +63,10 @@ The `--js-selector` and `--js-selector-all` options can be used to use JavaScrip
 The options should be passed JavaScript expression that operates on the `el` variable, returning `true` if that element should be included in the screenshot selection.
 
 To take a screenshot of the first paragraph on the page that contains the text "shot-scraper" you could run the following:
-
-    shot-scraper https://github.com/simonw/shot-scraper \
-      --js-selector 'el.tagName == "P" && el.innerText.includes("shot-scraper")'
-
+```bash
+shot-scraper https://github.com/simonw/shot-scraper \
+  --js-selector 'el.tagName == "P" && el.innerText.includes("shot-scraper")'
+```
 The `el.tagName == "P"` part is needed here because otherwise the `<html>` element on the page will be the first to match the expression.
 
 The generated JavaScript that will be executed on the page looks like this:
@@ -80,50 +80,52 @@ The `--js-selector-all` option will select all matching elements, in a similar f
 ## Waiting for a delay
 
 Sometimes a page will not have completely loaded before a screenshot is taken. You can use `--wait X` to wait the specified number of milliseconds after the page load event has fired before taking the screenshot:
-
-    shot-scraper https://simonwillison.net/ --wait 2000
-
+```bash
+shot-scraper https://simonwillison.net/ --wait 2000
+```
 ## Waiting until a specific condition
 
 In addition to waiting a specific amount of time, you can also wait until a JavaScript expression returns true using the `--wait-for expression` option.
 
 This example takes the screenshot the moment a `<div>` with an ID of `content` becomes available in the DOM:
-
-    shot-scraper https://.../ \
-      --wait-for 'document.querySelector("div#content")'
-
+```bash
+shot-scraper https://.../ \
+  --wait-for 'document.querySelector("div#content")'
+```
 Here's an example that waits for a specific element to become available (in this case a cookie consent overlay) and then removes it before the screenshot is taken:
-
-    shot-scraper -h 800 'https://www.spiegel.de/international/' \
-      --wait-for "() => {
-        const div = document.querySelector('[id^="sp_message_container"]');
-        if (div) {
-          div.remove();
-          return true;
-        }
-      }"
-
+```bash
+shot-scraper -h 800 'https://www.spiegel.de/international/' \
+  --wait-for "() => {
+    const div = document.querySelector('[id^="sp_message_container"]');
+    if (div) {
+      div.remove();
+      return true;
+    }
+  }"
+```
 If the expression takes longer than 30 seconds to resolve `shot-scraper` will exit with an error.
 
 ## Executing custom JavaScript
 
 You can use custom JavaScript to modify the page after it has loaded (after the 'onload' event has fired) but before the screenshot is taken using the `--javascript` option:
-
-    shot-scraper https://simonwillison.net/ \
-      -o simonwillison-pink.png \
-      --javascript "document.body.style.backgroundColor = 'pink';"
-
+```bash
+shot-scraper https://simonwillison.net/ \
+  -o simonwillison-pink.png \
+  --javascript "document.body.style.backgroundColor = 'pink';"
+```
 ## Using JPEGs instead of PNGs
 
 Screenshots default to PNG. You can save as a JPEG by specifying a `-o` filename that ends with `.jpg`.
 
 You can also use `--quality X` to save as a JPEG with the specified quality, in order to reduce the filesize. 80 is a good value to use here:
-
-    shot-scraper https://simonwillison.net/ \
-      -h 800 -o simonwillison.jpg --quality 80
-    % ls -lah simonwillison.jpg
-    -rw-r--r--@ 1 simon  staff   168K Mar  9 13:53 simonwillison.jpg
-
+```bash
+shot-scraper https://simonwillison.net/ \
+  -h 800 -o simonwillison.jpg --quality 80
+```
+```
+% ls -lah simonwillison.jpg
+-rw-r--r--@ 1 simon  staff   168K Mar  9 13:53 simonwillison.jpg
+```
 ## Device scale factor
 
 The `--scale-factor` option sets a specific device scale factor, which effectively simulates different device pixel ratios. This setting is useful for testing high-definition displays or emulating screens with various pixel densities.
@@ -131,10 +133,10 @@ The `--scale-factor` option sets a specific device scale factor, which effective
 For example, setting `--scale-factor 3` results in an image with a CSS pixel ratio of 3, which is ideal for emulating a high-resolution display, such as Apple iPhone 12 screens.
 
 To take a screenshot with a scale factor of 3 (tripled resolution), run the following command:
-
-    shot-scraper https://simonwillison.net/ -o simon.png \
-      --width 390 --height 844 --scale-factor 3
-
+```bash
+shot-scraper https://simonwillison.net/ -o simon.png \
+  --width 390 --height 844 --scale-factor 3
+```
 This will multiply both the width and height of the screenshot by 3, resulting in an image that is 1170px wide and 2532px high, matching the iPhone 12's screen.
 
 The `--scale-factor` option takes a positive float as input. For example, setting `--scale-factor 2.625` simulates the Google Pixel 6's CSS pixel ratio.
@@ -142,10 +144,10 @@ The `--scale-factor` option takes a positive float as input. For example, settin
 ## Retina images
 
 The `--retina` option is a shortcut to set a device scale factor of 2. This means that an image will have its resolution effectively doubled, emulating the display of images on [retina](https://en.wikipedia.org/wiki/Retina_display) or higher pixel density screens.
-
-    shot-scraper https://simonwillison.net/ -o simon.png \
-      --width 400 --height 600 --retina
-
+```bash
+shot-scraper https://simonwillison.net/ -o simon.png \
+  --width 400 --height 600 --retina
+```
 This example will produce an image that is 800px wide and 1200px high.
 
 Note: The `--retina` option should not be used in conjunction with the `--scale-factor` flag as they are mutually exclusive. If both are provided, the command will raise an error to prevent conflicts.
@@ -153,25 +155,25 @@ Note: The `--retina` option should not be used in conjunction with the `--scale-
 ## Transparent background
 
 The `--omit-background` option instructs the browser to ignore the default background, allowing for the capture of a page with a transparent background. Does not work with JPG images or when `quality` is set.
-
-    shot-scraper https://simonwillison.net/ -o simon.png \
-      --width 400 --height 600 --omit-background
-
+```bash
+shot-scraper https://simonwillison.net/ -o simon.png \
+  --width 400 --height 600 --omit-background
+```
 ## Interacting with the page
 
 Sometimes it's useful to be able to manually interact with a page before the screenshot is captured.
 
 Add the `--interactive` option to open a browser window that you can interact with. Then hit `<enter>` in the terminal when you are ready to take the shot and close the window.
-
-    shot-scraper https://simonwillison.net/ -o after-interaction.png \
-      --height 800 --interactive
-
+```bash
+shot-scraper https://simonwillison.net/ -o after-interaction.png \
+  --height 800 --interactive
+```
 This will output:
-
-    Hit <enter> to take the shot and close the browser window:
-      # And after you hit <enter>...
-    Screenshot of 'https://simonwillison.net/' written to 'after-interaction.png'
-
+```
+Hit <enter> to take the shot and close the browser window:
+  # And after you hit <enter>...
+Screenshot of 'https://simonwillison.net/' written to 'after-interaction.png'
+```
 ## Logging all requests
 
 It can sometimes be useful to see a list of all of the requests that the browser made while it was rendering a page.
@@ -181,8 +183,10 @@ Use `--log-requests` to output newline-delimited JSON representing each request,
 Pass `-` to output the list to standard output, or use a filename to write to a file on disk.
 
 The output looks like this:
+```bash
+shot-scraper http://datasette.io/ --log-requests -
 ```
-% shot-scraper http://datasette.io/ --log-requests -
+```
 {"method": "GET", "url": "http://datasette.io/", "status": 302, "size": null, "timing": {"startTime": 1663211674984.7068, "domainLookupStart": 0.698, "domainLookupEnd": 1.897, "connectStart": 1.897, "secureConnectionStart": -1, "connectEnd": 18.726, "requestStart": 18.86, "responseStart": 99.75, "responseEnd": 101.75000000162981}}
 {"method": "GET", "url": "https://datasette.io/", "status": 200, "size": 34592, "timing": {"startTime": 1663211675085.51, "domainLookupStart": 0.187, "domainLookupEnd": 0.197, "connectStart": 0.197, "secureConnectionStart": 15.719, "connectEnd": 63.854, "requestStart": 64.098, "responseStart": 390.231, "responseEnd": 399.268}}
 {"method": "GET", "url": "https://datasette.io/static/site.css", "status": 200, "size": 3952, "timing": {"startTime": 1663211675486.027, "domainLookupStart": -1, "domainLookupEnd": -1, "connectStart": -1, "secureConnectionStart": -1, "connectEnd": -1, "requestStart": 0.408, "responseStart": 99.407, "responseEnd": 100.433}}
@@ -195,21 +199,21 @@ Note that the `size` field here will be the size of the response in bytes, but i
 Additional arguments to pass to the browser instance. The list of Chromium flags can be found [here](https://peter.sh/experiments/chromium-command-line-switches/).
 
 For example, to remove font render hinting:
-
-    shot-scraper https://simonwillison.net/ -o no-hinting.png \
-      --height 800 --browser-arg "--font-render-hinting=none"
-
+```bash
+shot-scraper https://simonwillison.net/ -o no-hinting.png \
+  --height 800 --browser-arg "--font-render-hinting=none"
+```
 To add multiple arguments, add `--browser-arg` for each argument:
-
-    shot-scraper https://simonwillison.net/ -o no-hinting-no-gpu.png \
-      --height 800 --browser-arg "--font-render-hinting=none" --browser-arg "--disable-gpu"
-
+```bash
+shot-scraper https://simonwillison.net/ -o no-hinting-no-gpu.png \
+  --height 800 --browser-arg "--font-render-hinting=none" --browser-arg "--disable-gpu"
+```
 ## Taking screenshots of local HTML files
 
 You can pass the path to an HTML file on disk to take a screenshot of that rendered file:
-
-    shot-scraper index.html -o index.png
-
+```bash
+shot-scraper index.html -o index.png
+```
 CSS and images referenced from that file using relative paths will also be included.
 
 ## Tips for executing JavaScript
@@ -219,14 +223,14 @@ If you are using the `--javascript` option to execute code, that code will be ex
 You can use that code to do things like hide or remove specific page elements, click on links to open menus, or even add annotations to the page such as this [pink arrow example](https://simonwillison.net/2022/Mar/10/shot-scraper/#a-complex-example).
 
 This code hides any element with a `[data-ad-rendered]` attribute and the element with `id="ensNotifyBanner"`:
-
-    document.querySelectorAll(
-        '[data-ad-rendered],#ensNotifyBanner'
-    ).forEach(el => el.style.display = 'none')
-
+```javascript
+document.querySelectorAll(
+    '[data-ad-rendered],#ensNotifyBanner'
+).forEach(el => el.style.display = 'none')
+```
 You can execute that like so:
 
-```
+```bash
 shot-scraper https://www.latimes.com/ -o latimes.png --javascript "
 document.querySelectorAll(
     '[data-ad-rendered],#ensNotifyBanner'

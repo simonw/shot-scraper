@@ -1,13 +1,15 @@
+(authentication)=
+
 # Websites that need authentication
 
 If you want to take screenshots of a site that has some form of authentication, you will first need to authenticate with that website manually.
 
 You can do that using the `shot-scraper auth` command:
-
-    shot-scraper auth \
-      https://datasette-auth-passwords-demo.datasette.io/-/login \
-      auth.json
-
+```bash
+shot-scraper auth \
+  https://datasette-auth-passwords-demo.datasette.io/-/login \
+  auth.json
+```
 (For this demo, use username = `root` and password = `password!`)
 
 This will open a browser window on your computer showing the page you specified.
@@ -17,10 +19,10 @@ You can then sign in using that browser window - including 2FA or CAPTCHAs or ot
 When you are finished, hit `<enter>` at the `shot-scraper` command-line prompt. The browser will close and the authentication credentials (usually cookies) for that browser session will be written out to the `auth.json` file.
 
 To take authenticated screenshots you can then use the `-a` or `--auth` options to point to the JSON file that you created:
-
-    shot-scraper https://datasette-auth-passwords-demo.datasette.io/ \
-      -a auth.json -o authed.png
-
+```bash
+shot-scraper https://datasette-auth-passwords-demo.datasette.io/ \
+  -a auth.json -o authed.png
+```
 ## `shot-scraper auth --help`
 
 Full `--help` for `shot-scraper auth`:

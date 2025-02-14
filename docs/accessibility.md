@@ -1,9 +1,11 @@
+(accessibility)=
+
 # Dumping out an accessibility tree
 
 The `shot-scraper accessibility` command dumps out the Chromium accessibility tree for the provided URL, as JSON:
-
-    shot-scraper accessibility https://datasette.io/
-
+```bash
+shot-scraper accessibility https://datasette.io/
+```
 Use `-o filename.json` to write the output to a file instead of displaying it.
 
 Add `--javascript SCRIPT` to execute custom JavaScript before taking the snapshot.

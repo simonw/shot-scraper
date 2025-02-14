@@ -1,3 +1,5 @@
+(javascript)=
+
 # Scraping pages using JavaScript
 
 The `shot-scraper javascript` command can be used to execute JavaScript directly against a page and return the result as JSON.
@@ -5,28 +7,28 @@ The `shot-scraper javascript` command can be used to execute JavaScript directly
 This command doesn't produce a screenshot, but has interesting applications for scraping.
 
 To retrieve a string title of a document:
-
-    shot-scraper javascript https://datasette.io/ "document.title"
-
+```bash
+shot-scraper javascript https://datasette.io/ "document.title"
+```
 This returns a JSON string:
 ```json
 "Datasette: An open source multi-tool for exploring and publishing data"
 ```
 To return a raw string instead, use the `-r` or `--raw` options:
-
-    shot-scraper javascript https://datasette.io/ "document.title" -r
-
+```bash
+shot-scraper javascript https://datasette.io/ "document.title" -r
+```
 Output:
-
-    Datasette: An open source multi-tool for exploring and publishing data
-
+```
+Datasette: An open source multi-tool for exploring and publishing data
+```
 To return a JSON object, wrap an object literal in parenthesis:
-
-    shot-scraper javascript https://datasette.io/ "({
-      title: document.title,
-      tagline: document.querySelector('.tagline').innerText
-    })"
-
+```bash
+shot-scraper javascript https://datasette.io/ "({
+  title: document.title,
+  tagline: document.querySelector('.tagline').innerText
+})"
+```
 This returns:
 ```json
 {
@@ -55,7 +57,7 @@ shot-scraper javascript https://www.example.com/ "
 
 You can pass an `async` function if you want to use `await`, including to import modules from external URLs. This example loads the [Readability.js](https://github.com/mozilla/readability) library from [Skypack](https://www.skypack.dev/) and uses it to extract the core content of a page:
 
-```
+```bash
 shot-scraper javascript \
   https://simonwillison.net/2022/Mar/14/scraping-web-pages-shot-scraper/ "
 async () => {
@@ -65,17 +67,17 @@ async () => {
 ```
 
 To use functions such as `setInterval()`, for example if you need to delay the shot for a second to allow an animation to finish running, return a promise:
-
-    shot-scraper javascript datasette.io "
-    new Promise(done => setInterval(
-      () => {
-        done({
-          title: document.title,
-          tagline: document.querySelector('.tagline').innerText
-        });
-      }, 1000
-    ));"
-
+```bash
+shot-scraper javascript datasette.io "
+new Promise(done => setInterval(
+  () => {
+    done({
+      title: document.title,
+      tagline: document.querySelector('.tagline').innerText
+    });
+  }, 1000
+));"
+```
 (bypass-csp)=
 ## Bypassing Content Security Policy headers
 
@@ -110,13 +112,13 @@ Output:
 ## Running JavaScript from a file
 
 You can also save JavaScript to a file and execute it like this:
-
-    shot-scraper javascript datasette.io -i script.js
-
+```bash
+shot-scraper javascript datasette.io -i script.js
+```
 Or read it from standard input like this:
-
-    echo "document.title" | shot-scraper javascript datasette.io
-
+```bash
+echo "document.title" | shot-scraper javascript datasette.io
+```
 ## Using this for automated tests
 
 If a JavaScript error occurs, a stack trace will be written to standard error and the tool will terminate with an exit code of 1.
