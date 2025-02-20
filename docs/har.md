@@ -88,16 +88,20 @@ Usage: shot-scraper har [OPTIONS] URL
   .har.zip
 
 Options:
-  -z, --zip             Save as a .har.zip file
-  -a, --auth FILENAME   Path to JSON authentication context file
-  -o, --output FILE     HAR filename
-  --timeout INTEGER     Wait this many milliseconds before failing
-  --log-console         Write console.log() to stderr
-  --fail                Fail with an error code if a page returns an HTTP error
-  --skip                Skip pages that return HTTP errors
-  --bypass-csp          Bypass Content-Security-Policy
-  --auth-password TEXT  Password for HTTP Basic authentication
-  --auth-username TEXT  Username for HTTP Basic authentication
-  --help                Show this message and exit.
+  -z, --zip              Save as a .har.zip file
+  -a, --auth FILENAME    Path to JSON authentication context file
+  -o, --output FILE      HAR filename
+  --wait INTEGER         Wait this many milliseconds before taking the
+                         screenshot
+  --wait-for TEXT        Wait until this JS expression returns true
+  -j, --javascript TEXT  Execute this JavaScript on the page
+  --timeout INTEGER      Wait this many milliseconds before failing
+  --log-console          Write console.log() to stderr
+  --fail                 Fail with an error code if a page returns an HTTP error
+  --skip                 Skip pages that return HTTP errors
+  --bypass-csp           Bypass Content-Security-Policy
+  --auth-password TEXT   Password for HTTP Basic authentication
+  --auth-username TEXT   Username for HTTP Basic authentication
+  --help                 Show this message and exit.
 ```
 <!-- [[[end]]] -->

@@ -724,6 +724,11 @@ def accessibility(
     help="HAR filename",
 )
 @click.option(
+    "--wait", type=int, help="Wait this many milliseconds before taking the screenshot"
+)
+@click.option("--wait-for", help="Wait until this JS expression returns true")
+@click.option("-j", "--javascript", help="Execute this JavaScript on the page")
+@click.option(
     "--timeout",
     type=int,
     help="Wait this many milliseconds before failing",
@@ -737,7 +742,10 @@ def har(
     zip_,
     auth,
     output,
+    wait,
+    wait_for,
     timeout,
+    javascript,
     log_console,
     skip,
     fail,
@@ -779,6 +787,15 @@ def har(
             page.on("console", console_log)
         response = page.goto(url)
         skip_or_fail(response, skip, fail)
+        if wait:
+            time.sleep(wait / 1000)
+
+        if javascript:
+            _evaluate_js(page, javascript)
+
+        if wait_for:
+            page.wait_for_function(wait_for)
+
         context.close()
         browser_obj.close()
 
