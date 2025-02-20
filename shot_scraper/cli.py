@@ -83,6 +83,13 @@ def http_auth_options(fn):
     return fn
 
 
+def proxy_options(fn):
+    click.option("--proxy-server", help="Server URL for an HTTP proxy")(fn)
+    click.option("--proxy-username", help="Username for HTTP proxy")(fn)
+    click.option("--proxy-password", help="Password for HTTP proxy")(fn)
+    return fn
+
+
 def skip_or_fail(response, skip, fail):
     if skip and fail:
         raise click.ClickException("--skip and --fail cannot be used together")
@@ -245,6 +252,7 @@ def cli():
 @bypass_csp_option
 @silent_option
 @http_auth_options
+@proxy_options
 def shot(
     url,
     auth,
@@ -278,6 +286,9 @@ def shot(
     silent,
     auth_username,
     auth_password,
+    proxy_server,
+    proxy_username,
+    proxy_password,
 ):
     """
     Take a single screenshot of a page or portion of a page.
@@ -345,6 +356,9 @@ def shot(
             bypass_csp=bypass_csp,
             auth_username=auth_username,
             auth_password=auth_password,
+            proxy_server=proxy_server,
+            proxy_username=proxy_username,
+            proxy_password=proxy_password,
         )
         if interactive or devtools:
             use_existing_page = True
@@ -401,6 +415,9 @@ def _browser_context(
     auth_username=None,
     auth_password=None,
     record_har_path=None,
+    proxy_server=None,
+    proxy_username=None,
+    proxy_password=None,
 ):
     browser_kwargs = dict(
         headless=not interactive, devtools=devtools, args=browser_args
@@ -432,6 +449,16 @@ def _browser_context(
         }
     if record_har_path:
         context_args["record_har_path"] = record_har_path
+    if proxy_server:
+        proxy = {"server": proxy_server}
+        if proxy_username:
+            proxy["username"] = proxy_username
+        if proxy_password:
+            proxy["password"] = proxy_password
+        context_args["proxy"] = proxy
+        # Not sure why I needed this, figure that out!
+        context_args["ignore_https_errors"] = True
+
     context = browser_obj.new_context(**context_args)
     if timeout:
         context.set_default_timeout(timeout)
@@ -737,6 +764,7 @@ def accessibility(
 @skip_fail_options
 @bypass_csp_option
 @http_auth_options
+@proxy_options
 def har(
     url,
     zip_,
@@ -752,6 +780,9 @@ def har(
     bypass_csp,
     auth_username,
     auth_password,
+    proxy_server,
+    proxy_username,
+    proxy_password,
 ):
     """
     Record a HAR file for the specified page
@@ -781,6 +812,9 @@ def har(
             auth_username=auth_username,
             auth_password=auth_password,
             record_har_path=str(output),
+            proxy_server=proxy_server,
+            proxy_username=proxy_username,
+            proxy_password=proxy_password,
         )
         page = context.new_page()
         if log_console:
