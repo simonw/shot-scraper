@@ -2,6 +2,8 @@
 
 # Contributing
 
+The GitHub repository for this project is [simonw/shot-scraper](https://github.com/simonw/shot-scraper).
+
 To contribute to this tool, first checkout the code. Then create a new virtual environment:
 ```bash
 cd shot-scraper
