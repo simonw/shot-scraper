@@ -118,7 +118,9 @@ Similar to the {ref}`shot-scraper har command<har>`, `shot-scraper multi` can op
 
 Add the `--har` flag to record all requests and responses to a `trace.har` JSON file, or `--har-zip` for a `trace.har.zip` file. Use `--har-file filename.har` to provide a path to a custom filename - this will be recorded as JSON or zip depending on the file extension.
 
-For example:
+If you are running this against a larger number of pages you should use `--har-zip` to avoid the JSON HAR file growing so large that it causes Playwright to crash.
+
+This example:
 
 ```bash
 shot-scraper multi shots.yml --har
