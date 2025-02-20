@@ -1,6 +1,7 @@
 import pytest
 from shot_scraper.utils import filename_for_url
 
+
 @pytest.mark.parametrize(
     "url,ext,expected",
     (
