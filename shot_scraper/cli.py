@@ -281,6 +281,7 @@ def shot(
     browser_args,
     user_agent,
     reduced_motion,
+    color_scheme,
     skip,
     fail,
     bypass_csp,
