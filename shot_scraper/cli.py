@@ -133,6 +133,14 @@ def reduced_motion_option(fn):
     return fn
 
 
+def color_scheme_option(fn):
+    click.option(
+        "--color-scheme",
+        type=click.Choice(["light", "dark"], case_sensitive=False),
+        help="Emulate 'prefers-color-scheme' media feature",
+    )(fn)
+    return fn
+
 @click.group(
     cls=DefaultGroup,
     default="shot",
@@ -241,6 +249,7 @@ def cli():
 @browser_args_option
 @user_agent_option
 @reduced_motion_option
+@color_scheme_option
 @skip_fail_options
 @bypass_csp_option
 @silent_option
@@ -272,6 +281,7 @@ def shot(
     browser_args,
     user_agent,
     reduced_motion,
+    color_scheme,
     skip,
     fail,
     bypass_csp,
@@ -342,6 +352,7 @@ def shot(
             user_agent=user_agent,
             timeout=timeout,
             reduced_motion=reduced_motion,
+            color_scheme=color_scheme,
             bypass_csp=bypass_csp,
             auth_username=auth_username,
             auth_password=auth_password,
@@ -397,6 +408,7 @@ def _browser_context(
     user_agent=None,
     timeout=None,
     reduced_motion=False,
+    color_scheme=None,
     bypass_csp=False,
     auth_username=None,
     auth_password=None,
@@ -421,6 +433,8 @@ def _browser_context(
         context_args["device_scale_factor"] = scale_factor
     if reduced_motion:
         context_args["reduced_motion"] = "reduce"
+    if color_scheme:
+        context_args["color_scheme"] = color_scheme
     if user_agent is not None:
         context_args["user_agent"] = user_agent
     if bypass_csp:
@@ -475,6 +489,7 @@ def _browser_context(
 @browser_args_option
 @user_agent_option
 @reduced_motion_option
+@color_scheme_option
 @log_console_option
 @skip_fail_options
 @silent_option
@@ -513,6 +528,7 @@ def multi(
     browser_args,
     user_agent,
     reduced_motion,
+    color_scheme,
     log_console,
     skip,
     fail,
@@ -570,6 +586,7 @@ def multi(
             user_agent=user_agent,
             timeout=timeout,
             reduced_motion=reduced_motion,
+            color_scheme=color_scheme,
             auth_username=auth_username,
             auth_password=auth_password,
             record_har_path=har_file or None,

@@ -183,3 +183,8 @@ shot-scraper https://simonwillison.net/ -h 400 -w 800 \
 # --scale-factor
 shot-scraper https://simonwillison.net/ -h 915 -w 412 \
   -o examples/simonwillison-scale-factor-pixel-six.png --scale-factor 2.625
+# Dark and light mode screenshots for simonw github profile
+shot-scraper "https://github.com/simonw" --color-scheme="dark" \
+  -o examples/simonwgithub-dark-mode.png --quality 100 --height 800 --width 1280
+shot-scraper "https://github.com/simonw" --color-scheme="light" \
+  -o examples/simonwgithub-light-mode.png --quality 100 --height 800 --width 1280
