@@ -226,7 +226,10 @@ Usage: shot-scraper javascript [OPTIONS] URL [JAVASCRIPT]
   If a JavaScript error occurs an exit code of 1 will be returned.
 
 Options:
-  -i, --input FILENAME            Read input JavaScript from this file
+  -i, --input TEXT                Read input JavaScript from this file or use
+                                  gh:username/script to load from
+                                  github.com/username/shot-scraper-
+                                  scripts/script.js
   -a, --auth FILENAME             Path to JSON authentication context file
   -o, --output FILENAME           Save output JSON to this file
   -r, --raw                       Output JSON strings as raw text

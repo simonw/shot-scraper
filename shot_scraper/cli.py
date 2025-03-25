@@ -807,7 +807,10 @@ def har(
     "-i",
     "--input",
     default="-",
-    help="Read input JavaScript from this file or a GitHub repo with gh: prefix",
+    help=(
+        "Read input JavaScript from this file or use gh:username/script "
+        "to load from github.com/username/shot-scraper-scripts/script.js"
+    ),
 )
 @click.option(
     "-a",
