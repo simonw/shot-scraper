@@ -1,4 +1,5 @@
 import pathlib
+from unittest.mock import patch, MagicMock
 import textwrap
 from click.testing import CliRunner
 import pytest
@@ -130,6 +131,39 @@ def test_javascript(args, expected):
         result = runner.invoke(cli, ["javascript", "index.html"] + args)
         assert result.exit_code == 0, str(result.exception)
         assert result.output == expected
+
+
+def test_javascript_input_file():
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        open("index.html", "w").write(TEST_HTML)
+        open("script.js", "w").write("document.title")
+        result = runner.invoke(cli, ["javascript", "index.html", "-i", "script.js"])
+        assert result.exit_code == 0, str(result.exception)
+        assert result.output == '"Test title"\n'
+
+
+def test_javascript_input_github():
+    mock_response = MagicMock()
+    mock_response.status = 200
+    mock_response.read.return_value = b"document.title"
+    mock_urlopen = MagicMock()
+    mock_urlopen.__enter__.return_value = mock_response
+    mock_context = MagicMock()
+    mock_context.return_value = mock_urlopen
+
+    runner = CliRunner()
+    with patch("urllib.request.urlopen", mock_context):
+        with runner.isolated_filesystem():
+            open("index.html", "w").write(TEST_HTML)
+            result = runner.invoke(
+                cli, ["javascript", "index.html", "-i", "gh:simonw/title"]
+            )
+            assert result.exit_code == 0, str(result.exception)
+            assert result.output == '"Test title"\n'
+            mock_context.assert_called_once_with(
+                "https://raw.githubusercontent.com/simonw/shot-scraper-scripts/main/title.js"
+            )
 
 
 @pytest.mark.parametrize(

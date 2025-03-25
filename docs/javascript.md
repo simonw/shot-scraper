@@ -55,13 +55,13 @@ shot-scraper javascript https://www.example.com/ "
 
 ## Using async/await
 
-You can pass an `async` function if you want to use `await`, including to import modules from external URLs. This example loads the [Readability.js](https://github.com/mozilla/readability) library from [Skypack](https://www.skypack.dev/) and uses it to extract the core content of a page:
+You can pass an `async` function if you want to use `await`, including to import modules from external URLs. This example loads the [Readability.js](https://github.com/mozilla/readability) library from [jsdelivr](https://www.jsdelivr.com/) and uses it to extract the core content of a page:
 
 ```bash
 shot-scraper javascript \
   https://simonwillison.net/2022/Mar/14/scraping-web-pages-shot-scraper/ "
 async () => {
-  const readability = await import('https://cdn.skypack.dev/@mozilla/readability');
+  const readability = await import('https://cdn.jsdelivr.net/npm/@mozilla/readability@0.6.0/+esm');
   return (new readability.Readability(document)).parse();
 }"
 ```
@@ -108,17 +108,6 @@ Output:
 ```
 "content-security-policy ignored"
 ```
-
-## Running JavaScript from a file
-
-You can also save JavaScript to a file and execute it like this:
-```bash
-shot-scraper javascript datasette.io -i script.js
-```
-Or read it from standard input like this:
-```bash
-echo "document.title" | shot-scraper javascript datasette.io
-```
 ## Using this for automated tests
 
 If a JavaScript error occurs, a stack trace will be written to standard error and the tool will terminate with an exit code of 1.
@@ -136,16 +125,47 @@ This example [uses GitHub Actions](https://docs.github.com/en/actions/quickstart
       }"
 ```
 
+## Running JavaScript from a file
+
+You can also save JavaScript to a file and execute it like this:
+```bash
+shot-scraper javascript datasette.io -i script.js
+```
+Or read it from standard input like this:
+```bash
+echo "document.title" | shot-scraper javascript datasette.io
+```
+Or read it from standard input like this:
+```bash
+echo "document.title" | shot-scraper javascript datasette.io
+```
+
+## Running JavaScript from GitHub
+
+A special `gh:` prefix can be used to load scripts from GitHub.
+
+You can use this with a full path to a `script.js` file in a public GitHub repository like this:
+
+```bash
+shot-scraper javascript datasette.io -i gh:simonw/shot-scraper-scripts/readability.js
+```
+Or by convention if the script lives in a repo called `shot-scraper-scripts` you can omit that (and the `.js` extension too) like this:
+
+```bash
+shot-scraper javascript datasette.io -i gh:simonw/readability
+```
+Both of these examples will execute [readability.js](https://github.com/simonw/shot-scraper-scripts/blob/main/readability.js), explained in the next section.
+
 ## Example: Extracting page content with Readability.js
 
 [Readability.js](https://github.com/mozilla/readability) is "a standalone version of the readability library used for Firefox Reader View." It lets you parse the content on a web page and extract just the title, content, byline and some other key metadata.
 
-The following recipe imports the library from the [Skypack CDN](https://www.skypack.dev/), runs it against the current page and returns the results to the console as JSON:
+The following recipe imports the library from the [jsdelivr CDN](https://www.jsdelivr.com/), runs it against the current page and returns the results to the console as JSON:
 
 ```bash
 shot-scraper javascript https://simonwillison.net/2022/Mar/24/datasette-061/ "
 async () => {
-  const readability = await import('https://cdn.skypack.dev/@mozilla/readability');
+  const readability = await import('https://cdn.jsdelivr.net/npm/@mozilla/readability@0.6.0/+esm');
   return (new readability.Readability(document)).parse();
 }"
 ```

@@ -13,7 +13,7 @@ import click
 from playwright.sync_api import sync_playwright, Error, TimeoutError
 
 
-from shot_scraper.utils import filename_for_url, url_or_file_path
+from shot_scraper.utils import filename_for_url, load_github_script, url_or_file_path
 
 BROWSERS = ("chromium", "firefox", "webkit", "chrome", "chrome-beta")
 
@@ -806,9 +806,8 @@ def har(
 @click.option(
     "-i",
     "--input",
-    type=click.File("r"),
     default="-",
-    help="Read input JavaScript from this file",
+    help="Read input JavaScript from this file or a GitHub repo with gh: prefix",
 )
 @click.option(
     "-a",
@@ -881,7 +880,20 @@ def javascript(
     If a JavaScript error occurs an exit code of 1 will be returned.
     """
     if not javascript:
-        javascript = input.read()
+        if input.startswith("gh:"):
+            try:
+                javascript = load_github_script(input[3:])
+            except ValueError as ex:
+                raise click.ClickException(str(ex))
+        elif input == "-":
+            javascript = sys.stdin.read()
+        else:
+            try:
+                with open(input, "r") as f:
+                    javascript = f.read()
+            except Exception as e:
+                raise click.ClickException(f"Failed to read file '{input}': {e}")
+
     url = url_or_file_path(url, _check_and_absolutize)
     with sync_playwright() as p:
         context, browser_obj = _browser_context(
