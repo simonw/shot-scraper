@@ -343,3 +343,108 @@ def test_multi_har(http_server, args, expect_zip, record_shots):
             assert num_shots == 2
         else:
             assert num_shots == 0
+
+
+@pytest.mark.parametrize(
+    "args,expect_zip",
+    (
+        (["--extract"], False),
+        (["-x"], False),
+        (["--extract", "--zip"], True),
+        (["-x", "-z"], True),
+        (["--extract", "-o", "output.har"], False),
+        (["-x", "-o", "output.har.zip"], True),
+    ),
+)
+def test_har_extract(http_server, args, expect_zip):
+    """Test that --extract creates a directory with HAR resources."""
+    runner = CliRunner()
+    # Create additional files on the server with different content types
+    (http_server.base_dir / "style.css").write_text("body { color: red; }")
+    (http_server.base_dir / "script.js").write_text("console.log('hello');")
+    # Create an HTML file that references the CSS and JS
+    (http_server.base_dir / "page.html").write_text(
+        """<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js"></script>
+</head>
+<body>Hello</body>
+</html>"""
+    )
+    with runner.isolated_filesystem():
+        here = pathlib.Path(".")
+        result = runner.invoke(cli, ["har", f"{http_server.base_url}/page.html"] + args)
+        assert result.exit_code == 0, result.output
+
+        # HAR file should have been created
+        if expect_zip:
+            har_files = list(here.glob("*.har.zip"))
+        else:
+            har_files = list(here.glob("*.har"))
+        assert len(har_files) == 1
+        har_file = har_files[0]
+
+        # Extract directory should have been created
+        if expect_zip:
+            extract_dir_name = str(har_file.name).replace(".har.zip", "")
+        else:
+            extract_dir_name = str(har_file.name).replace(".har", "")
+        extract_dir = here / extract_dir_name
+        assert extract_dir.exists(), f"Extract directory {extract_dir} should exist"
+        assert extract_dir.is_dir(), f"{extract_dir} should be a directory"
+
+        # Should contain extracted files
+        extracted_files = list(extract_dir.glob("*"))
+        assert len(extracted_files) >= 1, "Should have extracted at least one file"
+
+        # Check that at least the main HTML file was extracted
+        html_files = list(extract_dir.glob("*.html"))
+        assert len(html_files) >= 1, "Should have extracted at least one HTML file"
+
+
+def test_har_extract_filenames(http_server):
+    """Test that extracted files have correct names based on URLs."""
+    runner = CliRunner()
+    (http_server.base_dir / "api").mkdir()
+    (http_server.base_dir / "api" / "data.json").write_text('{"key": "value"}')
+    # Create an HTML page that loads the JSON
+    (http_server.base_dir / "loader.html").write_text(
+        '<html><script src="api/data.json"></script></html>'
+    )
+    with runner.isolated_filesystem():
+        here = pathlib.Path(".")
+        result = runner.invoke(
+            cli, ["har", f"{http_server.base_url}/loader.html", "--extract", "-o", "test.har"]
+        )
+        assert result.exit_code == 0, result.output
+
+        extract_dir = here / "test"
+        assert extract_dir.exists()
+
+        extracted_files = list(extract_dir.glob("*"))
+        assert len(extracted_files) >= 1
+        # The /api/data.json file should be extracted with derived name
+        file_names = [f.name for f in extracted_files]
+        assert any("api-data" in name for name in file_names), f"Expected api-data in {file_names}"
+
+
+def test_har_extract_content_type_extension(http_server):
+    """Test that extracted files have correct extension based on content-type."""
+    runner = CliRunner()
+    # Create an HTML file that will be served with text/html content-type
+    (http_server.base_dir / "test-page.html").write_text("<html><body>Test page</body></html>")
+    with runner.isolated_filesystem():
+        here = pathlib.Path(".")
+        result = runner.invoke(
+            cli, ["har", f"{http_server.base_url}/test-page.html", "--extract", "-o", "test.har"]
+        )
+        assert result.exit_code == 0, result.output
+
+        extract_dir = here / "test"
+        assert extract_dir.exists()
+
+        # The file should have .html extension based on content-type text/html
+        html_files = list(extract_dir.glob("*.html"))
+        assert len(html_files) >= 1, f"Should have .html file, got: {list(extract_dir.glob('*'))}"
