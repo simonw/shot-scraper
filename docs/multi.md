@@ -167,6 +167,26 @@ With that server configured, you can now take screenshots of `http://localhost:8
 ```
 The server process will be automatically terminated when the `shot-scraper multi` command completes, unless you pass the `--leave-server` option to `shot-scraper multi` in which case it will be left running - you can terminate it using `kill PID` with the PID displayed in the console output.
 
+## Recording videos
+
+You can record videos instead of screenshots by adding `video: true` to a YAML block. Videos support an `actions:` list for defining interactions to perform during recording:
+
+```yaml
+- output: demo.webm
+  video: true
+  url: https://example.com/
+  duration: 5
+  actions:
+    - action: click
+      selector: "#menu"
+    - action: wait
+      ms: 1000
+    - action: scroll
+      y: 500
+```
+
+See {ref}`video` for full documentation on video recording and available actions.
+
 ## Running custom code between steps
 
 If you are taking screenshots of a single application, you may find it useful to run additional steps between shots that modify that application in some way.

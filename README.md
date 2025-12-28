@@ -38,6 +38,40 @@ This will create a screenshot in a file called `datasette-io.png`.
 
 Many more options are available, see [Taking a screenshot](https://shot-scraper.datasette.io/en/stable/screenshots.html) for details.
 
+## Recording videos
+
+You can record videos of web pages with interactive elements:
+
+    shot-scraper video https://example.com/ -o video.webm --duration 10
+
+Pass actions directly via the command line:
+
+    shot-scraper video https://example.com/ -o video.webm \
+      --actions '[{"action": "click", "selector": "#button"}]'
+
+Or reference a file (JSON or YAML):
+
+    shot-scraper video https://example.com/ -o video.webm --actions actions.json
+
+For more complex workflows, create a YAML file with action sequences:
+
+```yaml
+- output: demo.webm
+  video: true
+  url: https://example.com/
+  actions:
+    - action: click
+      selector: "#menu"
+    - action: scroll
+      y: 500
+    - action: javascript
+      code: document.querySelector('h1').style.color = 'red';
+```
+
+Then run: `shot-scraper multi config.yml`
+
+See [Recording videos](https://shot-scraper.datasette.io/en/stable/video.html) for full documentation.
+
 ## Examples
 
 - The [shot-scraper-demo](https://github.com/simonw/shot-scraper-demo) repository uses this tool to capture recently spotted owls in El Granada, CA according to [this page](https://www.owlsnearme.com/?place=127871), and to  generate an annotated screenshot illustrating a Datasette feature as described [in my blog](https://simonwillison.net/2022/Mar/10/shot-scraper/#a-complex-example).

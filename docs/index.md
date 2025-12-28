@@ -23,6 +23,7 @@ installation
 screenshots
 authentication
 multi
+video
 javascript
 pdf
 html

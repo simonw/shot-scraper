@@ -610,14 +610,44 @@ def multi(
                     time.sleep(1)
                 if "url" in shot:
                     try:
-                        take_shot(
-                            context,
-                            shot,
-                            log_console=log_console,
-                            skip=skip,
-                            fail=fail,
-                            silent=silent,
-                        )
+                        # Check if this is a video recording
+                        if shot.get("video"):
+                            # Record a video with actions
+                            record_video(
+                                url=shot["url"],
+                                output=shot.get("output"),
+                                actions=shot.get("actions"),
+                                duration=shot.get("duration"),
+                                width=shot.get("width", 1280),
+                                height=shot.get("height", 720),
+                                wait=shot.get("wait"),
+                                wait_for=shot.get("wait_for"),
+                                javascript=shot.get("javascript"),
+                                auth=auth,
+                                browser=browser,
+                                browser_args=browser_args,
+                                user_agent=user_agent,
+                                timeout=timeout,
+                                reduced_motion=reduced_motion,
+                                bypass_csp=False,
+                                auth_username=auth_username,
+                                auth_password=auth_password,
+                                skip=skip,
+                                fail=fail,
+                                silent=silent,
+                                log_console=log_console,
+                                p=p,
+                            )
+                        else:
+                            # Take a regular screenshot
+                            take_shot(
+                                context,
+                                shot,
+                                log_console=log_console,
+                                skip=skip,
+                                fail=fail,
+                                silent=silent,
+                            )
                     except TimeoutError as e:
                         if fail or fail_on_error:
                             raise click.ClickException(str(e))
@@ -1174,6 +1204,154 @@ def html(
 
 
 @cli.command()
+@click.argument("url")
+@click.option(
+    "-o",
+    "--output",
+    type=click.Path(file_okay=True, writable=True, dir_okay=False, allow_dash=False),
+    help="Output video filename (.webm)",
+)
+@click.option(
+    "--duration",
+    type=float,
+    help="Duration to record after actions complete (in seconds)",
+)
+@click.option(
+    "--actions",
+    help="Actions to perform (YAML/JSON string or path to file containing array of actions)",
+)
+@click.option(
+    "-w",
+    "--width",
+    type=int,
+    help="Width of browser window, defaults to 1280",
+    default=1280,
+)
+@click.option(
+    "-h",
+    "--height",
+    type=int,
+    help="Height of browser window, defaults to 720",
+    default=720,
+)
+@click.option(
+    "-a",
+    "--auth",
+    type=click.File("r"),
+    help="Path to JSON authentication context file",
+)
+@click.option(
+    "-j",
+    "--javascript",
+    help="Execute this JS on page load before actions",
+)
+@click.option(
+    "--wait",
+    type=int,
+    help="Wait this many milliseconds before starting actions",
+)
+@click.option(
+    "--wait-for",
+    help="Wait until this JS expression returns true before starting actions",
+)
+@click.option(
+    "--timeout",
+    type=int,
+    help="Wait this many milliseconds before failing",
+)
+@browser_option
+@browser_args_option
+@user_agent_option
+@reduced_motion_option
+@log_console_option
+@skip_fail_options
+@bypass_csp_option
+@silent_option
+@http_auth_options
+def video(
+    url,
+    output,
+    duration,
+    actions,
+    width,
+    height,
+    auth,
+    javascript,
+    wait,
+    wait_for,
+    timeout,
+    browser,
+    browser_args,
+    user_agent,
+    reduced_motion,
+    log_console,
+    skip,
+    fail,
+    bypass_csp,
+    silent,
+    auth_username,
+    auth_password,
+):
+    """
+    Record a video of a web page
+
+    Usage:
+
+        shot-scraper video https://example.com/ -o output.webm --duration 10
+
+    With actions:
+
+        shot-scraper video https://example.com/ -o output.webm \\
+          --actions '[{"action": "click", "selector": "#button"}]'
+
+    Or from a file:
+
+        shot-scraper video https://example.com/ -o output.webm \\
+          --actions actions.json
+
+    The video will be recorded in WebM format. Use --duration to specify
+    how long to record (in seconds).
+
+    For complex interactions, use the multi command with a YAML file
+    containing an actions: list. See documentation for action syntax.
+    """
+    # Parse actions if provided
+    parsed_actions = None
+    if actions:
+        parsed_actions = parse_actions(actions)
+
+    with sync_playwright() as p:
+        try:
+            record_video(
+                url=url,
+                output=output,
+                actions=parsed_actions,
+                duration=duration,
+                width=width,
+                height=height,
+                wait=wait,
+                wait_for=wait_for,
+                javascript=javascript,
+                auth=auth,
+                browser=browser,
+                browser_args=browser_args,
+                user_agent=user_agent,
+                timeout=timeout,
+                reduced_motion=reduced_motion,
+                bypass_csp=bypass_csp,
+                auth_username=auth_username,
+                auth_password=auth_password,
+                skip=skip,
+                fail=fail,
+                silent=silent,
+                log_console=log_console,
+                p=p,
+            )
+        except TimeoutError as e:
+            raise click.ClickException(str(e))
+
+
+@cli.command()
 @click.option(
     "--browser",
     "-b",
@@ -1528,3 +1706,355 @@ def _evaluate_js(page, javascript):
         return page.evaluate(javascript)
     except Error as error:
         raise click.ClickException(error.message)
+
+
+def parse_actions(actions_input):
+    """
+    Parse actions from a string (YAML/JSON) or file path
+
+    Args:
+        actions_input: String containing YAML/JSON actions or path to file
+
+    Returns:
+        List of action dictionaries
+
+    Raises:
+        click.ClickException: If parsing fails
+    """
+    # Check if it's a file path
+    if os.path.exists(actions_input):
+        try:
+            with open(actions_input, 'r') as f:
+                content = f.read()
+
+            # Try JSON first if file ends with .json
+            if actions_input.endswith('.json'):
+                try:
+                    result = json.loads(content)
+                    if isinstance(result, list):
+                        return result
+                    else:
+                        raise click.ClickException("Actions file must contain an array")
+                except json.JSONDecodeError as e:
+                    raise click.ClickException(f"Invalid JSON in {actions_input}: {e}")
+
+            # Otherwise try YAML
+            try:
+                result = yaml.safe_load(content)
+                if isinstance(result, list):
+                    return result
+                else:
+                    raise click.ClickException("Actions file must contain an array")
+            except yaml.YAMLError as e:
+                raise click.ClickException(f"Invalid YAML in {actions_input}: {e}")
+
+        except IOError as e:
+            raise click.ClickException(f"Error reading file {actions_input}: {e}")
+
+    # Not a file, try parsing as JSON first
+    try:
+        result = json.loads(actions_input)
+        if isinstance(result, list):
+            return result
+        else:
+            raise click.ClickException("Actions must be an array")
+    except json.JSONDecodeError:
+        # Not JSON, try YAML
+        try:
+            result = yaml.safe_load(actions_input)
+            if isinstance(result, list):
+                return result
+            else:
+                raise click.ClickException("Actions must be an array")
+        except yaml.YAMLError as e:
+            raise click.ClickException(f"Invalid YAML/JSON: {e}")
+
+
+def execute_action(page, action_dict, output_dir=None):
+    """
+    Execute a single action on a Playwright page
+
+    Args:
+        page: Playwright page object
+        action_dict: Dictionary describing the action
+        output_dir: Directory for screenshot outputs
+    """
+    action_type = action_dict.get("action")
+
+    if action_type == "click":
+        selector = action_dict["selector"]
+        button = action_dict.get("button", "left")
+        click_count = action_dict.get("click_count", 1)
+        page.click(selector, button=button, click_count=click_count)
+
+    elif action_type == "type":
+        selector = action_dict["selector"]
+        text = action_dict["text"]
+        delay = action_dict.get("delay", 0)
+        page.fill(selector, "")  # Clear first
+        page.type(selector, text, delay=delay)
+
+    elif action_type == "press":
+        key = action_dict["key"]
+        selector = action_dict.get("selector")
+        if selector:
+            page.press(selector, key)
+        else:
+            page.keyboard.press(key)
+
+    elif action_type == "scroll":
+        y = action_dict.get("y", 0)
+        x = action_dict.get("x", 0)
+        selector = action_dict.get("selector")
+        smooth = action_dict.get("smooth", False)
+
+        if selector:
+            # Scroll specific element
+            behavior = "smooth" if smooth else "auto"
+            page.evaluate(f"""
+                () => {{
+                    const el = document.querySelector('{selector}');
+                    el.scrollBy({{ top: {y}, left: {x}, behavior: '{behavior}' }});
+                }}
+            """)
+        else:
+            # Scroll page
+            behavior = "smooth" if smooth else "auto"
+            page.evaluate(f"window.scrollBy({{ top: {y}, left: {x}, behavior: '{behavior}' }})")
+
+    elif action_type == "hover":
+        selector = action_dict["selector"]
+        page.hover(selector)
+
+    elif action_type == "select":
+        selector = action_dict["selector"]
+        if "value" in action_dict:
+            page.select_option(selector, action_dict["value"])
+        elif "label" in action_dict:
+            page.select_option(selector, label=action_dict["label"])
+
+    elif action_type == "wait":
+        if "ms" in action_dict:
+            time.sleep(action_dict["ms"] / 1000)
+        elif "for" in action_dict:
+            page.wait_for_function(action_dict["for"])
+
+    elif action_type == "navigate":
+        url = action_dict["url"]
+        page.goto(url)
+
+    elif action_type == "screenshot":
+        output = action_dict.get("output")
+        if output and output_dir:
+            output = os.path.join(output_dir, output)
+
+        screenshot_args = {}
+        if output:
+            screenshot_args["path"] = output
+
+        # Support all screenshot options
+        if "selector" in action_dict:
+            locator = page.locator(action_dict["selector"])
+            locator.screenshot(**screenshot_args)
+        else:
+            page.screenshot(**screenshot_args)
+
+    elif action_type == "javascript":
+        code = action_dict["code"]
+        _evaluate_js(page, code)
+
+    elif action_type == "drag":
+        from_selector = action_dict["from"]
+        to_selector = action_dict["to"]
+        page.drag_and_drop(from_selector, to_selector)
+
+    elif action_type == "check":
+        selector = action_dict["selector"]
+        page.check(selector)
+
+    elif action_type == "uncheck":
+        selector = action_dict["selector"]
+        page.uncheck(selector)
+
+    elif action_type == "focus":
+        selector = action_dict["selector"]
+        page.focus(selector)
+
+    elif action_type == "clear":
+        selector = action_dict["selector"]
+        page.fill(selector, "")
+
+    else:
+        raise ValueError(f"Unknown action type: {action_type}")
+
+
+def execute_action_sequence(page, actions, output_dir=None, silent=False):
+    """
+    Execute a sequence of actions
+
+    Args:
+        page: Playwright page object
+        actions: List of action dictionaries
+        output_dir: Directory for screenshot outputs
+        silent: Suppress action progress messages
+    """
+    for i, action in enumerate(actions):
+        try:
+            if not silent:
+                action_type = action.get("action", "unknown")
+                click.echo(f"  Action {i+1}/{len(actions)}: {action_type}", err=True)
+            execute_action(page, action, output_dir)
+        except Exception as e:
+            click.echo(f"  Warning: Action {i+1} failed: {e}", err=True)
+            # Continue with remaining actions
+
+
+def record_video(
+    url,
+    output=None,
+    actions=None,
+    duration=None,
+    width=1280,
+    height=720,
+    wait=None,
+    wait_for=None,
+    javascript=None,
+    auth=None,
+    browser="chromium",
+    browser_args=None,
+    user_agent=None,
+    timeout=None,
+    reduced_motion=False,
+    bypass_csp=False,
+    auth_username=None,
+    auth_password=None,
+    skip=False,
+    fail=False,
+    silent=False,
+    log_console=False,
+    p=None,
+):
+    """
+    Record video of a web page with optional action sequence
+
+    Args:
+        url: URL or file path to record
+        output: Output video filename
+        actions: List of action dictionaries to execute
+        duration: Total recording duration in seconds (after actions)
+        width: Viewport width
+        height: Viewport height
+        ... (other browser options)
+
+    Returns:
+        Path to the recorded video file
+    """
+    import tempfile
+    import shutil
+    from pathlib import Path
+
+    url = url_or_file_path(url, file_exists=_check_and_absolutize)
+
+    if output is None:
+        output = filename_for_url(url, ext="webm", file_exists=os.path.exists)
+
+    # Create temporary directory for video recording
+    with tempfile.TemporaryDirectory() as tmpdir:
+        context, browser_obj = _browser_context(
+            p,
+            auth,
+            browser=browser,
+            browser_args=browser_args,
+            user_agent=user_agent,
+            timeout=timeout,
+            reduced_motion=reduced_motion,
+            bypass_csp=bypass_csp,
+            auth_username=auth_username,
+            auth_password=auth_password,
+        )
+
+        # Enable video recording
+        context_with_video = browser_obj.new_context(
+            record_video_dir=tmpdir,
+            record_video_size={"width": width, "height": height},
+            device_scale_factor=context._impl_obj._options.get("device_scale_factor"),
+            user_agent=user_agent,
+            reduced_motion="reduce" if reduced_motion else None,
+            bypass_csp=bypass_csp,
+            storage_state=context._impl_obj._options.get("storage_state"),
+            http_credentials=context._impl_obj._options.get("http_credentials"),
+        )
+
+        if timeout:
+            context_with_video.set_default_timeout(timeout)
+
+        page = context_with_video.new_page()
+        page.set_viewport_size({"width": width, "height": height})
+
+        if log_console:
+            page.on("console", console_log)
+
+        # Navigate to URL
+        response = page.goto(url)
+
+        # Handle HTTP errors
+        if response and str(response.status)[0] in ("4", "5"):
+            if skip:
+                click.echo(f"{response.status} error for {url}, skipping", err=True)
+                context_with_video.close()
+                context.close()
+                browser_obj.close()
+                return None
+            elif fail:
+                context_with_video.close()
+                context.close()
+                browser_obj.close()
+                raise click.ClickException(f"{response.status} error for {url}")
+
+        # Initial wait
+        if wait:
+            time.sleep(wait / 1000)
+
+        # Execute initial JavaScript
+        if javascript:
+            _evaluate_js(page, javascript)
+
+        # Wait for condition
+        if wait_for:
+            page.wait_for_function(wait_for)
+
+        # Execute action sequence
+        if actions:
+            if not silent:
+                click.echo("Executing action sequence...", err=True)
+            output_dir = os.path.dirname(output) if output else "."
+            execute_action_sequence(page, actions, output_dir, silent)
+
+        # Wait for additional duration after actions
+        if duration:
+            if not silent:
+                click.echo(f"Recording for {duration} seconds...", err=True)
+            time.sleep(duration)
+
+        # Close page and context to finalize video
+        page.close()
+        context_with_video.close()
+        context.close()
+
+        # Find the video file in tmpdir
+        video_files = list(Path(tmpdir).glob("*.webm"))
+        if not video_files:
+            browser_obj.close()
+            raise click.ClickException("Video file was not created")
+
+        video_path = video_files[0]
+
+        # Move to output location
+        shutil.move(str(video_path), output)
+
+        browser_obj.close()
+
+        if not silent:
+            click.echo(f"Video of '{url}' written to '{output}'", err=True)
+
+        return output
