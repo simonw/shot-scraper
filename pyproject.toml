@@ -1,0 +1,51 @@
+[project]
+name = "shot-scraper"
+version = "1.8"
+description = "A command-line utility for taking automated screenshots of websites"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+authors = [
+    { name = "Simon Willison" }
+]
+
+classifiers = [
+    "License :: OSI Approved :: Apache Software License",
+]
+
+dependencies = [
+    "click",
+    "PyYAML",
+    "playwright",
+    "click-default-group",
+]
+
+[project.urls]
+Homepage = "https://shot-scraper.datasette.io/"
+Issues = "https://github.com/simonw/shot-scraper/issues"
+CI = "https://github.com/simonw/shot-scraper/actions"
+Changelog = "https://github.com/simonw/shot-scraper/releases"
+
+[project.scripts]
+shot-scraper = "shot_scraper.cli:cli"
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "cogapp",
+    "pytest-mock",
+]
+docs = [
+    "furo==2023.9.10",
+    "sphinx-autobuild",
+    "sphinx-copybutton",
+    "myst-parser",
+    "cogapp",
+]
+
+[build-system]
+requires = ["uv_build>=0.9.18,<0.10.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-root = ""

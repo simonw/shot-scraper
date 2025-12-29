@@ -4,35 +4,38 @@ on: [push, pull_request]
 
 jobs:
   test:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
         cache: 'pip'
-        cache-dependency-path: setup.py
+        cache-dependency-path: pyproject.toml
     - name: Cache Playwright browsers
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/.cache/ms-playwright/
         key: ${{ runner.os }}-browsers
     - name: Install dependencies
       run: |
-        pip install -e '.[test]'
+        pip install -e . --group dev
     - name: Install Playwright dependencies
       run: |
         python -m playwright install-deps
         shot-scraper install
         shot-scraper install -b firefox
         shot-scraper install -b webkit
+    - name: Test Playwright startup time
+      run: |
+        time python -c "from playwright.sync_api import sync_playwright; p = sync_playwright().start(); b = p.chromium.launch(); b.close(); p.stop(); print('OK')"
     - name: Run tests
       run: |
-        pytest
+        pytest -vv
     - name: Check if cog needs to be run
       run: |
         cog --check docs/*.md
@@ -40,7 +43,7 @@ jobs:
       run: |
         tests/run_examples.sh
     - name: Archive examples
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: examples-${{ matrix.python-version }}
         path: examples/*
