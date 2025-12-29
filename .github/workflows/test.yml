@@ -15,7 +15,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
         cache: 'pip'
-        cache-dependency-path: setup.py
+        cache-dependency-path: pyproject.toml
     - name: Cache Playwright browsers
       uses: actions/cache@v5
       with:
@@ -23,7 +23,7 @@ jobs:
         key: ${{ runner.os }}-browsers
     - name: Install dependencies
       run: |
-        pip install -e '.[test]'
+        pip install -e . --group dev
     - name: Install Playwright dependencies
       run: |
         python -m playwright install-deps
