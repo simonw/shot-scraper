@@ -21,7 +21,7 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/simonw/shot-scraper"
+Homepage = "https://shot-scraper.datasette.io/"
 Issues = "https://github.com/simonw/shot-scraper/issues"
 CI = "https://github.com/simonw/shot-scraper/actions"
 Changelog = "https://github.com/simonw/shot-scraper/releases"
@@ -44,5 +44,5 @@ docs = [
 ]
 
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["uv_build"]
+build-backend = "uv_build"
