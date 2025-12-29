@@ -30,6 +30,9 @@ jobs:
         shot-scraper install
         shot-scraper install -b firefox
         shot-scraper install -b webkit
+    - name: Test Playwright startup time
+      run: |
+        time python -c "from playwright.sync_api import sync_playwright; p = sync_playwright().start(); b = p.chromium.launch(); b.close(); p.stop(); print('OK')"
     - name: Run tests
       run: |
         pytest -vv
