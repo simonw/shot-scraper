@@ -55,6 +55,23 @@ Archive:  datasette-io.har.zip
 
 You can record multiple pages to a single HTTP Archive using the {ref}`shot-scraper multi --har option<multi-har>`.
 
+## Extracting resources from HAR files
+
+Use the `--extract` or `-x` option to automatically extract all resources from the HAR file into a directory:
+
+```bash
+shot-scraper har https://datasette.io/ --extract
+```
+This will create both `datasette-io.har` and a `datasette-io/` directory containing all resources with meaningful filenames derived from their URLs.
+
+The extracted files use extensions based on their content-type. For example, a request to `/api/data` that returns JSON will be saved with a `.json` extension.
+
+You can combine this with `--zip`:
+```bash
+shot-scraper har https://datasette.io/ --extract --zip
+```
+This creates `datasette-io.har.zip` and extracts resources to the `datasette-io/` directory.
+
 ## `shot-scraper har --help`
 
 Full `--help` for this command:
@@ -87,8 +104,11 @@ Usage: shot-scraper har [OPTIONS] URL
   Use --zip to save as a .har.zip file instead, or specify a filename ending in
   .har.zip
 
+  Use --extract / -x to also extract all resources from the HAR into a directory
+
 Options:
   -z, --zip              Save as a .har.zip file
+  -x, --extract          Extract resources from the HAR file into a directory
   -a, --auth FILENAME    Path to JSON authentication context file
   -o, --output FILE      HAR filename
   --wait INTEGER         Wait this many milliseconds before taking the

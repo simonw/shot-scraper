@@ -1,3 +1,4 @@
+import base64
 import secrets
 import subprocess
 import sys
@@ -6,6 +7,7 @@ import time
 import json
 import os
 import pathlib
+import zipfile
 from runpy import run_module
 from click_default_group import DefaultGroup
 import yaml
@@ -13,7 +15,12 @@ import click
 from playwright.sync_api import sync_playwright, Error, TimeoutError
 
 
-from shot_scraper.utils import filename_for_url, load_github_script, url_or_file_path
+from shot_scraper.utils import (
+    filename_for_url,
+    filename_for_har_entry,
+    load_github_script,
+    url_or_file_path,
+)
 
 BROWSERS = ("chromium", "firefox", "webkit", "chrome", "chrome-beta")
 
@@ -713,6 +720,13 @@ def accessibility(
 @click.argument("url")
 @click.option("zip_", "-z", "--zip", is_flag=True, help="Save as a .har.zip file")
 @click.option(
+    "extract",
+    "-x",
+    "--extract",
+    is_flag=True,
+    help="Extract resources from the HAR file into a directory",
+)
+@click.option(
     "-a",
     "--auth",
     type=click.File("r"),
@@ -741,6 +755,7 @@ def accessibility(
 def har(
     url,
     zip_,
+    extract,
     auth,
     output,
     wait,
@@ -766,6 +781,8 @@ def har(
         shot-scraper har https://datasette.io/ -o trace.har
 
     Use --zip to save as a .har.zip file instead, or specify a filename ending in .har.zip
+
+    Use --extract / -x to also extract all resources from the HAR into a directory
     """
     if output is None:
         output = filename_for_url(
@@ -799,6 +816,104 @@ def har(
 
         context.close()
         browser_obj.close()
+
+    if extract:
+        _extract_har_resources(output)
+
+
+def _extract_har_resources(har_path):
+    """Extract resources from a HAR file into a directory."""
+    har_path = pathlib.Path(har_path)
+
+    # Determine if it's a zip file
+    is_zip = zipfile.is_zipfile(har_path)
+
+    # Determine extract directory name (parallel to har file)
+    if str(har_path).endswith(".har.zip"):
+        extract_dir = har_path.parent / har_path.name.replace(".har.zip", "")
+    else:
+        extract_dir = har_path.parent / har_path.name.replace(".har", "")
+
+    # Create the extract directory
+    extract_dir.mkdir(exist_ok=True)
+
+    # Track existing files to handle duplicates
+    existing_files = set()
+
+    def file_exists_in_dir(filename):
+        return filename in existing_files
+
+    # Load the HAR data (and keep zip file open if needed)
+    if is_zip:
+        with zipfile.ZipFile(har_path) as zf:
+            with zf.open("har.har") as har_file:
+                har_data = json.load(har_file)
+
+            # Extract each entry (with zip file open for _file references)
+            for entry in har_data.get("log", {}).get("entries", []):
+                _extract_har_entry(entry, extract_dir, existing_files, file_exists_in_dir, zf)
+    else:
+        with open(har_path) as har_file:
+            har_data = json.load(har_file)
+
+        # Extract each entry
+        for entry in har_data.get("log", {}).get("entries", []):
+            _extract_har_entry(entry, extract_dir, existing_files, file_exists_in_dir, None)
+
+    click.echo(f"Extracted resources to: {extract_dir}", err=True)
+
+
+def _extract_har_entry(entry, extract_dir, existing_files, file_exists_fn, zip_file):
+    """Extract a single HAR entry to the extract directory."""
+    request = entry.get("request", {})
+    response = entry.get("response", {})
+    content = response.get("content", {})
+
+    url = request.get("url", "")
+    if not url:
+        return
+
+    # Get content-type from response headers
+    content_type = None
+    for header in response.get("headers", []):
+        if header.get("name", "").lower() == "content-type":
+            content_type = header.get("value", "")
+            break
+
+    # Get the content - either from text field or from _file reference in zip
+    text = content.get("text", "")
+    encoding = content.get("encoding", "")
+    file_ref = content.get("_file", "")
+
+    data = None
+
+    if file_ref and zip_file:
+        # Content is stored as a separate file in the zip
+        try:
+            with zip_file.open(file_ref) as f:
+                data = f.read()
+        except KeyError:
+            pass
+    elif text:
+        # Decode the content from text field
+        if encoding == "base64":
+            try:
+                data = base64.b64decode(text)
+            except Exception:
+                return
+        else:
+            data = text.encode("utf-8")
+
+    if not data:
+        return
+
+    # Generate filename
+    filename = filename_for_har_entry(url, content_type, file_exists=file_exists_fn)
+    existing_files.add(filename)
+
+    # Write the file
+    file_path = extract_dir / filename
+    file_path.write_bytes(data)
 
 
 @cli.command()
