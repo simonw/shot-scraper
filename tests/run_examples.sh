@@ -45,15 +45,15 @@ shot-scraper 'https://www.owlsnearme.com/?place=127871' \
   -o examples/owlsnearme-wait.jpg \
   --wait-for "!!document.querySelector('section.secondary')"
 # Accessibility
-# #shot-scraper accessibility https://datasette.io/ \
-#   > examples/datasette-accessibility.json
-# shot-scraper accessibility https://simonwillison.net \
-#   --javascript "document.getElementById('wrapper').style.display='none'" \
-#   > examples/simonwillison-accessibility-javascript.json
-# shot-scraper accessibility https://simonwillison.net \
-#   --javascript "document.getElementById('wrapper').style.display='none'" \
-#   --output examples/simonwillison-accessibility-javascript-and-dash-output.json
-# shot-scraper accessibility examples/local.html -o examples/local-accessibility.json
+shot-scraper accessibility https://datasette.io/ \
+  > examples/datasette-accessibility.json
+shot-scraper accessibility https://simonwillison.net \
+  --javascript "document.getElementById('wrapper').style.display='none'" \
+  > examples/simonwillison-accessibility-javascript.json
+shot-scraper accessibility https://simonwillison.net \
+  --javascript "document.getElementById('wrapper').style.display='none'" \
+  --output examples/simonwillison-accessibility-javascript-and-dash-output.json
+shot-scraper accessibility examples/local.html -o examples/local-accessibility.json
 # PDF
 (cd examples && shot-scraper pdf https://datasette.io/tools)
 shot-scraper pdf https://datasette.io \

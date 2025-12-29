@@ -709,9 +709,10 @@ def accessibility(
         skip_or_fail(response, skip, fail)
         if javascript:
             _evaluate_js(page, javascript)
-        snapshot = page.accessibility.snapshot()
+        snapshot = page.locator("body").aria_snapshot()
         browser_obj.close()
-    output.write(json.dumps(snapshot, indent=4))
+    # aria_snapshot() returns YAML, parse it for JSON output
+    output.write(json.dumps(yaml.safe_load(snapshot), indent=4))
     output.write("\n")
 
 
