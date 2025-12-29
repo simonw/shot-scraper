@@ -3,7 +3,7 @@ name = "shot-scraper"
 version = "1.8"
 description = "A command-line utility for taking automated screenshots of websites"
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.10"
 license = "Apache-2.0"
 authors = [
     { name = "Simon Willison" }
@@ -44,5 +44,8 @@ docs = [
 ]
 
 [build-system]
-requires = ["uv_build"]
+requires = ["uv_build>=0.9.18,<0.10.0"]
 build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-root = ""
