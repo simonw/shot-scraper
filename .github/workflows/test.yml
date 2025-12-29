@@ -32,7 +32,7 @@ jobs:
         shot-scraper install -b webkit
     - name: Run tests
       run: |
-        pytest
+        pytest -vv
     - name: Check if cog needs to be run
       run: |
         cog --check docs/*.md
