@@ -57,7 +57,7 @@ Options:
   --timeout INTEGER               Wait this many milliseconds before failing
   --media-screen                  Use screen rather than print styles
   --landscape                     Use landscape orientation
-  --format [Letter|Legal|Tabloid|Ledger|A0|A1|A2|A3|A4|A5|A6]
+  --format [letter|legal|tabloid|ledger|a0|a1|a2|a3|a4|a5|a6]
                                   Which standard paper size to use
   --width TEXT                    PDF width including units, e.g. 10cm
   --height TEXT                   PDF height including units, e.g. 10cm
