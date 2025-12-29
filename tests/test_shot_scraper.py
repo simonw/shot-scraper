@@ -354,6 +354,8 @@ def test_multi_har(http_server, args, expect_zip, record_shots):
         (["-x", "-z"], True),
         (["--extract", "-o", "output.har"], False),
         (["-x", "-o", "output.har.zip"], True),
+        (["--extract", "-o", "basepath"], False),  # base path without extension
+        (["-x", "-z", "-o", "basepath"], True),  # base path with zip
     ),
 )
 def test_har_extract(http_server, args, expect_zip):

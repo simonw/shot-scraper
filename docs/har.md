@@ -104,7 +104,13 @@ Usage: shot-scraper har [OPTIONS] URL
   Use --zip to save as a .har.zip file instead, or specify a filename ending in
   .har.zip
 
-  Use --extract / -x to also extract all resources from the HAR into a directory
+  Use --extract / -x to also extract all resources from the HAR into a
+  directory. With -x, you can specify a base path and the .har extension will be
+  added automatically:
+
+      shot-scraper har https://datasette.io/ -x -o /tmp/datasette
+
+  This creates /tmp/datasette.har and extracts resources to /tmp/datasette/
 
 Options:
   -z, --zip              Save as a .har.zip file

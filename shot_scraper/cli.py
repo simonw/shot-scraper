@@ -782,12 +782,20 @@ def har(
 
     Use --zip to save as a .har.zip file instead, or specify a filename ending in .har.zip
 
-    Use --extract / -x to also extract all resources from the HAR into a directory
+    Use --extract / -x to also extract all resources from the HAR into a directory.
+    With -x, you can specify a base path and the .har extension will be added automatically:
+
+        shot-scraper har https://datasette.io/ -x -o /tmp/datasette
+
+    This creates /tmp/datasette.har and extracts resources to /tmp/datasette/
     """
     if output is None:
         output = filename_for_url(
             url, ext="har.zip" if zip_ else "har", file_exists=os.path.exists
         )
+    elif extract and not (output.endswith(".har") or output.endswith(".har.zip")):
+        # When -x is used with -o that lacks .har extension, treat as base path
+        output = output + (".har.zip" if zip_ else ".har")
 
     url = url_or_file_path(url, _check_and_absolutize)
     with sync_playwright() as p:
