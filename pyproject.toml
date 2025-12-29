@@ -1,16 +1,12 @@
 [project]
 name = "shot-scraper"
-version = "1.8"
-description = "A command-line utility for taking automated screenshots of websites"
+version = "1.9"
+description = "A command-line utility for scraping and taking automated screenshots of websites"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "Apache-2.0"
 authors = [
     { name = "Simon Willison" }
-]
-
-classifiers = [
-    "License :: OSI Approved :: Apache Software License",
 ]
 
 dependencies = [
