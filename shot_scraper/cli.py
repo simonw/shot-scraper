@@ -409,8 +409,10 @@ def _browser_context(
     auth_password=None,
     record_har_path=None,
 ):
+    if devtools:
+        browser_args = list(browser_args or []) + ["--auto-open-devtools-for-tabs"]
     browser_kwargs = dict(
-        headless=not interactive, devtools=devtools, args=browser_args
+        headless=not interactive, args=browser_args
     )
     if browser == "chromium":
         browser_obj = p.chromium.launch(**browser_kwargs)
