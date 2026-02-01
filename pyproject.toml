@@ -1,6 +1,6 @@
 [project]
 name = "shot-scraper"
-version = "1.9"
+version = "1.9.1"
 description = "A command-line utility for scraping and taking automated screenshots of websites"
 readme = "README.md"
 requires-python = ">=3.10"
