@@ -409,10 +409,13 @@ def _browser_context(
     auth_password=None,
     record_har_path=None,
 ):
-    browser_kwargs = dict(
-        headless=not interactive, devtools=devtools, args=browser_args
-    )
+    # Playwright 1.58 removed the `devtools` launch option. Emulate the
+    # previous behavior for Chromium by passing the corresponding flag.
+    args = list(browser_args or [])
+    browser_kwargs = dict(headless=not interactive, args=args)
     if browser == "chromium":
+        if devtools and "--auto-open-devtools-for-tabs" not in args:
+            args.append("--auto-open-devtools-for-tabs")
         browser_obj = p.chromium.launch(**browser_kwargs)
     elif browser == "firefox":
         browser_obj = p.firefox.launch(**browser_kwargs)
@@ -420,6 +423,8 @@ def _browser_context(
         browser_obj = p.webkit.launch(**browser_kwargs)
     else:
         browser_kwargs["channel"] = browser
+        if devtools and "--auto-open-devtools-for-tabs" not in args:
+            args.append("--auto-open-devtools-for-tabs")
         browser_obj = p.chromium.launch(**browser_kwargs)
     context_args = {}
     if auth:
