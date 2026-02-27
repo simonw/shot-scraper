@@ -159,6 +159,16 @@ The `--omit-background` option instructs the browser to ignore the default backg
 shot-scraper https://simonwillison.net/ -o simon.png \
   --width 400 --height 600 --omit-background
 ```
+## Emulating color scheme preference
+
+Use `--color-scheme` to emulate the `prefers-color-scheme` media feature. This is useful for capturing screenshots of pages that support dark mode:
+
+```bash
+shot-scraper https://example.com/ -o dark.png --color-scheme dark
+```
+
+The available values are `light`, `dark`, and `no-preference`.
+
 ## Interacting with the page
 
 Sometimes it's useful to be able to manually interact with a page before the screenshot is captured.
@@ -366,6 +376,8 @@ Options:
   --browser-arg TEXT              Additional arguments to pass to the browser
   --user-agent TEXT               User-Agent header to use
   --reduced-motion                Emulate 'prefers-reduced-motion' media feature
+  --color-scheme [light|dark|no-preference]
+                                  Emulate 'prefers-color-scheme' media feature
   --fail                          Fail with an error code if a page returns an
                                   HTTP error
   --skip                          Skip pages that return HTTP errors

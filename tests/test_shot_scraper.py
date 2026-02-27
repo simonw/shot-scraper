@@ -209,6 +209,36 @@ def test_html(args, expected):
 
 
 @pytest.mark.parametrize(
+    "command",
+    ("shot", "multi", "javascript"),
+)
+def test_color_scheme_invalid(command):
+    runner = CliRunner()
+    result = runner.invoke(cli, [command, "-", "--color-scheme", "invalid"])
+    assert result.exit_code != 0
+    assert "Invalid value" in result.output
+
+
+@pytest.mark.parametrize("color_scheme", ("light", "dark", "no-preference"))
+def test_javascript_color_scheme(color_scheme):
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        open("index.html", "w").write(TEST_HTML)
+        result = runner.invoke(
+            cli,
+            [
+                "javascript",
+                "index.html",
+                "document.title",
+                "--color-scheme",
+                color_scheme,
+            ],
+        )
+        assert result.exit_code == 0, str(result.exception)
+        assert result.output == '"Test title"\n'
+
+
+@pytest.mark.parametrize(
     "command,args,expected",
     [
         (
