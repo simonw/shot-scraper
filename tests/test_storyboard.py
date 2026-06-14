@@ -95,6 +95,47 @@ scenes:
     assert storyboard.viewport_size() == {"width": 1280, "height": 720}
 
 
+def test_load_storyboard_cursor_true_uses_defaults():
+    storyboard = parse_storyboard(
+        """
+output: demo.webm
+url: https://example.com/
+cursor: true
+scenes:
+- name: Home
+"""
+    )
+
+    assert storyboard.cursor.visible is True
+    assert storyboard.cursor.clicks is True
+    assert storyboard.cursor.color == "#ff4f00"
+    assert storyboard.cursor.size == 18
+    assert storyboard.cursor.click_size == 44
+
+
+def test_load_storyboard_cursor_options():
+    storyboard = parse_storyboard(
+        """
+output: demo.webm
+url: https://example.com/
+cursor:
+  visible: false
+  clicks: true
+  color: "#3366ff"
+  size: 24
+  click_size: 60
+scenes:
+- name: Home
+"""
+    )
+
+    assert storyboard.cursor.visible is False
+    assert storyboard.cursor.clicks is True
+    assert storyboard.cursor.color == "#3366ff"
+    assert storyboard.cursor.size == 24
+    assert storyboard.cursor.click_size == 60
+
+
 @pytest.mark.parametrize(
     "yaml,expected",
     (

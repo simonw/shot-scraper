@@ -58,8 +58,42 @@ A storyboard file is a YAML mapping with these keys:
 `viewport`
 : Optional browser viewport size. Defaults to `1280` by `720`.
 
+`cursor`
+: Set to `true` to show a cursor dot and click rings in the video. This can
+  also be a mapping of cursor options.
+
 `scenes`
 : A list of scenes to record.
+
+## Cursor and click visualization
+
+Playwright videos do not show the system cursor. Add `cursor: true` to inject a
+visible cursor dot and click rings into the page while recording:
+
+```yaml
+output: demo.webm
+url: https://example.com/
+cursor: true
+
+scenes:
+- name: Open menu
+  do:
+  - click: "button[aria-label='Menu']"
+  hold: 1
+```
+
+You can also configure the cursor:
+
+```yaml
+cursor:
+  visible: true
+  clicks: true
+  color: "#ff4f00"
+  size: 18
+  click_size: 44
+```
+
+Set `visible: false` to show click rings without the cursor dot.
 
 ## Scenes
 

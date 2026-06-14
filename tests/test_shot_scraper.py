@@ -272,12 +272,15 @@ def test_storyboard_records_video(http_server):
         pathlib.Path("storyboard.yml").write_text(f"""
 output: demo.webm
 url: {http_server.base_url}/
+cursor: true
 viewport:
   width: 640
   height: 360
 scenes:
   - name: Home
-    wait_for: "#more"
+    wait_for: "#shot-scraper-cursor"
+    do:
+      - wait_for: "#more"
     hold: 0.1
   - name: Details
     do:

@@ -26,6 +26,14 @@ class StoryboardViewport(StoryboardBaseModel):
     height: PositiveInt | None = None
 
 
+class CursorOptions(StoryboardBaseModel):
+    visible: bool = True
+    clicks: bool = True
+    color: str = "#ff4f00"
+    size: PositiveInt = 18
+    click_size: PositiveInt = 44
+
+
 class ClickAction(StoryboardBaseModel):
     action: Literal["click"]
     selector: str
@@ -169,6 +177,7 @@ class Storyboard(StoryboardBaseModel):
     output: str | None = None
     url: str | None = None
     viewport: StoryboardViewport = Field(default_factory=StoryboardViewport)
+    cursor: CursorOptions | None = None
     width: PositiveInt | None = None
     height: PositiveInt | None = None
     wait: NonNegativeFloat | None = None
@@ -176,6 +185,15 @@ class Storyboard(StoryboardBaseModel):
     wait_for_url: str | None = None
     javascript: str | None = None
     scenes: list[StoryboardScene] = Field(default_factory=list)
+
+    @field_validator("cursor", mode="before")
+    @classmethod
+    def normalize_cursor(cls, cursor):
+        if cursor is True:
+            return {}
+        if cursor is False:
+            return None
+        return cursor
 
     @model_validator(mode="after")
     def validate_storyboard(self):

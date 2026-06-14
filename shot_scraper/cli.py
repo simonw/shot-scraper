@@ -1536,6 +1536,12 @@ def _record_storyboard(
                 record_video_dir=video_dir,
                 record_video_size=viewport,
             )
+            if storyboard_config.cursor and (
+                storyboard_config.cursor.visible or storyboard_config.cursor.clicks
+            ):
+                context.add_init_script(
+                    _storyboard_cursor_script(storyboard_config.cursor)
+                )
             page = context.new_page()
             context_closed = False
             page.set_viewport_size(viewport)
@@ -1736,6 +1742,115 @@ def _storyboard_screenshot(page, action):
         page.locator(action.selector).screenshot(path=action.output)
     else:
         page.screenshot(path=action.output, full_page=action.full_page)
+
+
+def _storyboard_cursor_script(cursor):
+    options = json.dumps(
+        {
+            "visible": cursor.visible,
+            "clicks": cursor.clicks,
+            "color": cursor.color,
+            "size": cursor.size,
+            "clickSize": cursor.click_size,
+        }
+    )
+    return f"""
+(() => {{
+    const options = {options};
+    if (window.__shotScraperCursorInstalled) {{
+        return;
+    }}
+    window.__shotScraperCursorInstalled = true;
+
+    function install() {{
+        if (!document.body) {{
+            requestAnimationFrame(install);
+            return;
+        }}
+
+        const style = document.createElement("style");
+        style.textContent = `
+            #shot-scraper-cursor {{
+                position: fixed;
+                left: 0;
+                top: 0;
+                width: ${{options.size}}px;
+                height: ${{options.size}}px;
+                margin-left: ${{-options.size / 2}}px;
+                margin-top: ${{-options.size / 2}}px;
+                border-radius: 999px;
+                background: ${{options.color}};
+                border: 2px solid white;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+                opacity: 0;
+                pointer-events: none;
+                z-index: 2147483647;
+                transition: left 120ms ease-out, top 120ms ease-out, opacity 120ms ease-out;
+            }}
+            .shot-scraper-click-ring {{
+                position: fixed;
+                width: ${{options.clickSize}}px;
+                height: ${{options.clickSize}}px;
+                margin-left: ${{-options.clickSize / 2}}px;
+                margin-top: ${{-options.clickSize / 2}}px;
+                border: 3px solid ${{options.color}};
+                border-radius: 999px;
+                pointer-events: none;
+                z-index: 2147483646;
+                animation: shot-scraper-click-ring 650ms ease-out forwards;
+            }}
+            @keyframes shot-scraper-click-ring {{
+                from {{
+                    opacity: 0.85;
+                    transform: scale(0.25);
+                }}
+                to {{
+                    opacity: 0;
+                    transform: scale(1.25);
+                }}
+            }}
+        `;
+        document.documentElement.appendChild(style);
+
+        let cursor = null;
+        if (options.visible) {{
+            cursor = document.createElement("div");
+            cursor.id = "shot-scraper-cursor";
+            document.body.appendChild(cursor);
+        }}
+
+        function move(event) {{
+            if (!cursor) {{
+                return;
+            }}
+            cursor.style.left = `${{event.clientX}}px`;
+            cursor.style.top = `${{event.clientY}}px`;
+            cursor.style.opacity = "1";
+        }}
+
+        function ring(event) {{
+            if (!options.clicks) {{
+                return;
+            }}
+            const el = document.createElement("div");
+            el.className = "shot-scraper-click-ring";
+            el.style.left = `${{event.clientX}}px`;
+            el.style.top = `${{event.clientY}}px`;
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 700);
+        }}
+
+        document.addEventListener("mousemove", move, true);
+        document.addEventListener("mousedown", event => {{
+            move(event);
+            ring(event);
+        }}, true);
+        document.addEventListener("click", move, true);
+    }}
+
+    install();
+}})();
+"""
 
 
 def _get_viewport(width, height):
