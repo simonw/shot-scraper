@@ -85,14 +85,12 @@ def test_multi_noclobber(mocker, args, expected_shot_count):
     take_shot = mocker.patch("shot_scraper.cli.take_shot")
     runner = CliRunner()
     with runner.isolated_filesystem():
-        yaml = textwrap.dedent(
-            """
+        yaml = textwrap.dedent("""
         - url: https://www.example.com/
           output: example.jpg
         - url: https://www.google.com/
           output: google.jpg
-        """
-        ).strip()
+        """).strip()
         open("shots.yaml", "w").write(yaml)
         open("example.jpg", "wb").write(b"")
         result = runner.invoke(cli, ["multi", "shots.yaml"] + args, input=yaml)
@@ -206,6 +204,91 @@ def test_html(args, expected):
         assert result.exit_code == 0, result.output
         # Whitespace is not preserved
         assert result.output.replace("\n", "") == expected.replace("\n", "")
+
+
+@pytest.mark.parametrize(
+    "yaml,expected",
+    (
+        ("", "Error: Storyboard YAML file cannot be empty\n"),
+        ("- output: demo.webm", "Error: Storyboard YAML file must contain a mapping\n"),
+        (
+            "url: https://example.com/\nscenes:\n- name: one\n",
+            "Error: Storyboard must define output: or use --output\n",
+        ),
+        (
+            "output: demo.webm\nurl: https://example.com/\n",
+            "Error: Storyboard must define a non-empty scenes: list\n",
+        ),
+        (
+            "output: demo.webm\nscenes:\n- name: one\n",
+            "Error: Storyboard must define url: or open: in the first scene\n",
+        ),
+    ),
+)
+def test_storyboard_validation(yaml, expected):
+    runner = CliRunner()
+    result = runner.invoke(cli, ["storyboard", "-"], input=yaml)
+    assert result.exit_code == 1
+    assert result.output == expected
+
+
+def test_storyboard_records_video(http_server):
+    runner = CliRunner()
+    (http_server.base_dir / "index.html").write_text("""<!DOCTYPE html>
+<html>
+<body style="min-height: 1600px">
+    <h1>Home</h1>
+    <a id="more" href="/more.html">More</a>
+</body>
+</html>""")
+    (http_server.base_dir / "more.html").write_text("""<!DOCTYPE html>
+<html>
+<body style="min-height: 1600px">
+    <h1 id="more-heading">More information</h1>
+    <input id="search">
+    <p class="ready">Ready</p>
+</body>
+</html>""")
+    with runner.isolated_filesystem():
+        pathlib.Path("storyboard.yml").write_text(f"""
+output: demo.webm
+url: {http_server.base_url}/
+viewport:
+  width: 640
+  height: 360
+scenes:
+  - name: Home
+    wait_for: "#more"
+    hold: 0.1
+  - name: Details
+    do:
+      - click: "#more"
+      - wait_for: "#more-heading"
+      - fill:
+          into: "#search"
+          text: "shot-scraper"
+      - press:
+          selector: "#search"
+          key: "Control+A"
+      - type:
+          into: "#search"
+          text: "storyboard"
+          delay: 5
+      - scroll:
+          y: 200
+          duration: 0.05
+      - js: document.body.dataset.storyboard = "yes"
+    hold: 0.1
+""".strip())
+        result = runner.invoke(cli, ["storyboard", "storyboard.yml"])
+        assert result.exit_code == 0, result.output
+        assert "Recording storyboard to 'demo.webm'" in result.output
+        assert "Scene 1: Home" in result.output
+        assert "Scene 2: Details" in result.output
+        assert "Video written to 'demo.webm'" in result.output
+        video = pathlib.Path("demo.webm")
+        assert video.exists()
+        assert video.stat().st_size > 0
 
 
 @pytest.mark.parametrize(
@@ -365,16 +448,14 @@ def test_har_extract(http_server, args, expect_zip):
     (http_server.base_dir / "style.css").write_text("body { color: red; }")
     (http_server.base_dir / "script.js").write_text("console.log('hello');")
     # Create an HTML file that references the CSS and JS
-    (http_server.base_dir / "page.html").write_text(
-        """<!DOCTYPE html>
+    (http_server.base_dir / "page.html").write_text("""<!DOCTYPE html>
 <html>
 <head>
     <link rel="stylesheet" href="style.css">
     <script src="script.js"></script>
 </head>
 <body>Hello</body>
-</html>"""
-    )
+</html>""")
     with runner.isolated_filesystem():
         here = pathlib.Path(".")
         result = runner.invoke(cli, ["har", f"{http_server.base_url}/page.html"] + args)
@@ -418,7 +499,14 @@ def test_har_extract_filenames(http_server):
     with runner.isolated_filesystem():
         here = pathlib.Path(".")
         result = runner.invoke(
-            cli, ["har", f"{http_server.base_url}/loader.html", "--extract", "-o", "test.har"]
+            cli,
+            [
+                "har",
+                f"{http_server.base_url}/loader.html",
+                "--extract",
+                "-o",
+                "test.har",
+            ],
         )
         assert result.exit_code == 0, result.output
 
@@ -429,18 +517,29 @@ def test_har_extract_filenames(http_server):
         assert len(extracted_files) >= 1
         # The /api/data.json file should be extracted with derived name
         file_names = [f.name for f in extracted_files]
-        assert any("api-data" in name for name in file_names), f"Expected api-data in {file_names}"
+        assert any(
+            "api-data" in name for name in file_names
+        ), f"Expected api-data in {file_names}"
 
 
 def test_har_extract_content_type_extension(http_server):
     """Test that extracted files have correct extension based on content-type."""
     runner = CliRunner()
     # Create an HTML file that will be served with text/html content-type
-    (http_server.base_dir / "test-page.html").write_text("<html><body>Test page</body></html>")
+    (http_server.base_dir / "test-page.html").write_text(
+        "<html><body>Test page</body></html>"
+    )
     with runner.isolated_filesystem():
         here = pathlib.Path(".")
         result = runner.invoke(
-            cli, ["har", f"{http_server.base_url}/test-page.html", "--extract", "-o", "test.har"]
+            cli,
+            [
+                "har",
+                f"{http_server.base_url}/test-page.html",
+                "--extract",
+                "-o",
+                "test.har",
+            ],
         )
         assert result.exit_code == 0, result.output
 
@@ -449,4 +548,6 @@ def test_har_extract_content_type_extension(http_server):
 
         # The file should have .html extension based on content-type text/html
         html_files = list(extract_dir.glob("*.html"))
-        assert len(html_files) >= 1, f"Should have .html file, got: {list(extract_dir.glob('*'))}"
+        assert (
+            len(html_files) >= 1
+        ), f"Should have .html file, got: {list(extract_dir.glob('*'))}"

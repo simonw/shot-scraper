@@ -23,6 +23,7 @@ installation
 screenshots
 authentication
 multi
+storyboard
 javascript
 pdf
 html

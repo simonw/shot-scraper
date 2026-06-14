@@ -7,6 +7,8 @@ import time
 import json
 import os
 import pathlib
+import tempfile
+import urllib.parse
 import zipfile
 from runpy import run_module
 from click_default_group import DefaultGroup
@@ -408,6 +410,8 @@ def _browser_context(
     auth_username=None,
     auth_password=None,
     record_har_path=None,
+    record_video_dir=None,
+    record_video_size=None,
 ):
     # Playwright 1.58 removed the `devtools` launch option. Emulate the
     # previous behavior for Chromium by passing the corresponding flag.
@@ -444,10 +448,93 @@ def _browser_context(
         }
     if record_har_path:
         context_args["record_har_path"] = record_har_path
+    if record_video_dir:
+        context_args["record_video_dir"] = record_video_dir
+    if record_video_size:
+        context_args["record_video_size"] = record_video_size
     context = browser_obj.new_context(**context_args)
     if timeout:
         context.set_default_timeout(timeout)
     return context, browser_obj
+
+
+@cli.command()
+@click.argument("storyboard_file", type=click.File(mode="r"))
+@click.option(
+    "-o",
+    "--output",
+    type=click.Path(file_okay=True, writable=True, dir_okay=False, allow_dash=False),
+    help="Output video filename (.webm), overriding output: in the storyboard",
+)
+@click.option(
+    "-a",
+    "--auth",
+    type=click.File("r"),
+    help="Path to JSON authentication context file",
+)
+@click.option(
+    "--timeout",
+    type=int,
+    help="Wait this many milliseconds before failing",
+)
+@browser_option
+@browser_args_option
+@user_agent_option
+@reduced_motion_option
+@log_console_option
+@skip_fail_options
+@bypass_csp_option
+@silent_option
+@http_auth_options
+def storyboard(
+    storyboard_file,
+    output,
+    auth,
+    timeout,
+    browser,
+    browser_args,
+    user_agent,
+    reduced_motion,
+    log_console,
+    skip,
+    fail,
+    bypass_csp,
+    silent,
+    auth_username,
+    auth_password,
+):
+    """
+    Record a WebM video from a YAML storyboard.
+
+    Usage:
+
+        shot-scraper storyboard storyboard.yml
+
+    The storyboard file should define output, url and scenes. Use -o to
+    override the output filename from the YAML file.
+    """
+    storyboard_config = _load_storyboard(storyboard_file)
+    if output:
+        storyboard_config["output"] = output
+    try:
+        _record_storyboard(
+            storyboard_config,
+            auth=auth,
+            timeout=timeout,
+            browser=browser,
+            browser_args=browser_args,
+            user_agent=user_agent,
+            reduced_motion=reduced_motion,
+            log_console=log_console,
+            skip=skip,
+            fail=fail,
+            bypass_csp=bypass_csp,
+            silent=silent,
+            auth_username=auth_username,
+            auth_password=auth_password,
+        )
+    except TimeoutError as e:
+        raise click.ClickException(str(e))
 
 
 @cli.command()
@@ -864,14 +951,18 @@ def _extract_har_resources(har_path):
 
             # Extract each entry (with zip file open for _file references)
             for entry in har_data.get("log", {}).get("entries", []):
-                _extract_har_entry(entry, extract_dir, existing_files, file_exists_in_dir, zf)
+                _extract_har_entry(
+                    entry, extract_dir, existing_files, file_exists_in_dir, zf
+                )
     else:
         with open(har_path) as har_file:
             har_data = json.load(har_file)
 
         # Extract each entry
         for entry in har_data.get("log", {}).get("entries", []):
-            _extract_har_entry(entry, extract_dir, existing_files, file_exists_in_dir, None)
+            _extract_har_entry(
+                entry, extract_dir, existing_files, file_exists_in_dir, None
+            )
 
     click.echo(f"Extracted resources to: {extract_dir}", err=True)
 
@@ -1385,6 +1476,328 @@ def _check_and_absolutize(filepath):
         return False
 
 
+def _load_storyboard(storyboard_file):
+    storyboard_config = yaml.safe_load(storyboard_file)
+    if storyboard_config is None:
+        raise click.ClickException("Storyboard YAML file cannot be empty")
+    if not isinstance(storyboard_config, dict):
+        raise click.ClickException("Storyboard YAML file must contain a mapping")
+    return storyboard_config
+
+
+def _record_storyboard(
+    storyboard_config,
+    auth=None,
+    timeout=None,
+    browser="chromium",
+    browser_args=None,
+    user_agent=None,
+    reduced_motion=False,
+    log_console=False,
+    skip=False,
+    fail=False,
+    bypass_csp=False,
+    silent=False,
+    auth_username=None,
+    auth_password=None,
+):
+    if skip and fail:
+        raise click.ClickException("--skip and --fail cannot be used together")
+
+    output = storyboard_config.get("output")
+    if not output:
+        raise click.ClickException("Storyboard must define output: or use --output")
+
+    scenes = storyboard_config.get("scenes")
+    if not isinstance(scenes, list) or not scenes:
+        raise click.ClickException("Storyboard must define a non-empty scenes: list")
+
+    viewport = _storyboard_viewport(storyboard_config)
+    start_url = storyboard_config.get("url")
+    first_scene_open = isinstance(scenes[0], dict) and scenes[0].get("open")
+    if not start_url and not first_scene_open:
+        raise click.ClickException(
+            "Storyboard must define url: or open: in the first scene"
+        )
+
+    with tempfile.TemporaryDirectory() as video_dir:
+        with sync_playwright() as p:
+            context, browser_obj = _browser_context(
+                p,
+                auth,
+                browser=browser,
+                browser_args=browser_args,
+                user_agent=user_agent,
+                timeout=timeout,
+                reduced_motion=reduced_motion,
+                bypass_csp=bypass_csp,
+                auth_username=auth_username,
+                auth_password=auth_password,
+                record_video_dir=video_dir,
+                record_video_size=viewport,
+            )
+            page = context.new_page()
+            context_closed = False
+            page.set_viewport_size(viewport)
+            if log_console:
+                page.on("console", console_log)
+
+            try:
+                if not silent:
+                    click.echo(f"Recording storyboard to '{output}'", err=True)
+
+                if start_url:
+                    _storyboard_goto(
+                        page,
+                        start_url,
+                        skip=skip,
+                        fail=fail,
+                    )
+
+                if storyboard_config.get("wait"):
+                    _storyboard_pause(storyboard_config["wait"])
+                if storyboard_config.get("wait_for"):
+                    _storyboard_wait_for(page, storyboard_config["wait_for"])
+                if storyboard_config.get("wait_for_url"):
+                    page.wait_for_url(storyboard_config["wait_for_url"])
+                if storyboard_config.get("javascript"):
+                    _evaluate_js(page, storyboard_config["javascript"])
+
+                for index, scene in enumerate(scenes, 1):
+                    _run_storyboard_scene(
+                        page,
+                        scene,
+                        index=index,
+                        skip=skip,
+                        fail=fail,
+                        silent=silent,
+                    )
+
+                video = page.video
+                page.close()
+                context.close()
+                context_closed = True
+                if video is None:
+                    raise click.ClickException("Playwright did not produce a video")
+                video.save_as(output)
+            finally:
+                if not page.is_closed():
+                    page.close()
+                if not context_closed:
+                    context.close()
+                browser_obj.close()
+
+    if not silent:
+        click.echo(f"Video written to '{output}'", err=True)
+
+
+def _storyboard_viewport(storyboard_config):
+    viewport = storyboard_config.get("viewport") or {}
+    if not isinstance(viewport, dict):
+        raise click.ClickException("viewport: must be a mapping")
+    width = viewport.get("width", storyboard_config.get("width", 1280))
+    height = viewport.get("height", storyboard_config.get("height", 720))
+    try:
+        width = int(width)
+        height = int(height)
+    except (TypeError, ValueError):
+        raise click.ClickException("viewport width and height must be integers")
+    if width <= 0 or height <= 0:
+        raise click.ClickException("viewport width and height must be positive")
+    return {"width": width, "height": height}
+
+
+def _run_storyboard_scene(page, scene, index, skip=False, fail=False, silent=False):
+    if not isinstance(scene, dict):
+        raise click.ClickException(f"Scene {index} must be a mapping")
+
+    name = scene.get("name") or f"Scene {index}"
+    if not silent:
+        click.echo(f"Scene {index}: {name}", err=True)
+
+    if scene.get("open"):
+        _storyboard_goto(page, scene["open"], skip=skip, fail=fail)
+    if scene.get("wait_for"):
+        _storyboard_wait_for(page, scene["wait_for"])
+    if scene.get("wait_for_url"):
+        page.wait_for_url(scene["wait_for_url"])
+
+    actions = scene.get("do") or []
+    if not isinstance(actions, list):
+        raise click.ClickException(f"Scene {index} do: must be a list")
+    for action_index, action in enumerate(actions, 1):
+        _run_storyboard_action(page, action, index, action_index, skip=skip, fail=fail)
+
+    if scene.get("hold"):
+        _storyboard_pause(scene["hold"])
+
+
+def _run_storyboard_action(
+    page, action, scene_index, action_index, skip=False, fail=False
+):
+    if not isinstance(action, dict) or len(action) != 1:
+        raise click.ClickException(
+            f"Scene {scene_index} action {action_index} must be a single-key mapping"
+        )
+
+    action_name, value = next(iter(action.items()))
+
+    if action_name == "click":
+        selector, options = _selector_action(value, "click")
+        click_kwargs = {}
+        if options.get("button"):
+            click_kwargs["button"] = options["button"]
+        if options.get("count"):
+            click_kwargs["click_count"] = int(options["count"])
+        page.locator(selector).click(**click_kwargs)
+    elif action_name == "type":
+        selector, text, options = _text_action(value, "type")
+        type_kwargs = {}
+        if options.get("delay") is not None:
+            type_kwargs["delay"] = float(options["delay"])
+        page.locator(selector).type(str(text), **type_kwargs)
+    elif action_name == "fill":
+        selector, text, _ = _text_action(value, "fill")
+        page.locator(selector).fill(str(text))
+    elif action_name == "press":
+        if isinstance(value, str):
+            page.keyboard.press(value)
+        elif isinstance(value, dict):
+            key = value.get("key")
+            if not key:
+                raise click.ClickException("press: must define key:")
+            if value.get("selector"):
+                page.locator(value["selector"]).press(str(key))
+            else:
+                page.keyboard.press(str(key))
+        else:
+            raise click.ClickException("press: must be a key string or mapping")
+    elif action_name == "scroll":
+        _storyboard_scroll(page, value)
+    elif action_name == "pause":
+        _storyboard_pause(value)
+    elif action_name == "wait_for":
+        _storyboard_wait_for(page, value)
+    elif action_name == "wait_for_url":
+        page.wait_for_url(value)
+    elif action_name == "open":
+        _storyboard_goto(page, value, skip=skip, fail=fail)
+    elif action_name in ("javascript", "js"):
+        _evaluate_js(page, value)
+    else:
+        raise click.ClickException(
+            f"Unknown storyboard action in scene {scene_index} action {action_index}: {action_name}"
+        )
+
+
+def _selector_action(value, action_name):
+    if isinstance(value, str):
+        return value, {}
+    if isinstance(value, dict):
+        selector = value.get("selector")
+        if not selector:
+            raise click.ClickException(f"{action_name}: must define selector:")
+        return selector, value
+    raise click.ClickException(f"{action_name}: must be a selector string or mapping")
+
+
+def _text_action(value, action_name):
+    if not isinstance(value, dict):
+        raise click.ClickException(f"{action_name}: must be a mapping")
+    selector = value.get("into") or value.get("selector")
+    if not selector:
+        raise click.ClickException(f"{action_name}: must define into: or selector:")
+    if "text" not in value:
+        raise click.ClickException(f"{action_name}: must define text:")
+    return selector, value["text"], value
+
+
+def _storyboard_goto(page, url, skip=False, fail=False):
+    resolved_url = _resolve_storyboard_url(url, page.url)
+    response = page.goto(resolved_url)
+    if response is not None:
+        skip_or_fail(response, skip, fail)
+
+
+def _resolve_storyboard_url(url, base_url=None):
+    if not isinstance(url, str):
+        raise click.ClickException("URL values must be strings")
+    if pathlib.Path(url).exists():
+        return url_or_file_path(url, _check_and_absolutize)
+    parsed_url = urllib.parse.urlparse(url)
+    if parsed_url.scheme:
+        return url
+    if base_url and base_url != "about:blank":
+        return urllib.parse.urljoin(base_url, url)
+    return url_or_file_path(url, _check_and_absolutize)
+
+
+def _storyboard_wait_for(page, selector):
+    if not isinstance(selector, str):
+        raise click.ClickException("wait_for: must be a selector string")
+    page.locator(selector).wait_for()
+
+
+def _storyboard_pause(seconds):
+    try:
+        seconds = float(seconds)
+    except (TypeError, ValueError):
+        raise click.ClickException("pause and hold values must be numbers")
+    if seconds < 0:
+        raise click.ClickException("pause and hold values must not be negative")
+    time.sleep(seconds)
+
+
+def _storyboard_scroll(page, value):
+    if isinstance(value, (int, float)):
+        value = {"y": value}
+    if not isinstance(value, dict):
+        raise click.ClickException("scroll: must be a number or mapping")
+
+    duration = float(value.get("duration", 0) or 0)
+    if duration < 0:
+        raise click.ClickException("scroll duration must not be negative")
+
+    if value.get("to"):
+        selector = value["to"]
+        if duration:
+            page.locator(selector).evaluate(
+                "(el) => el.scrollIntoView({behavior: 'smooth', block: 'center'})"
+            )
+            time.sleep(duration)
+        else:
+            page.locator(selector).scroll_into_view_if_needed()
+        return
+
+    x = float(value.get("x", 0) or 0)
+    y = float(value.get("y", 0) or 0)
+    if duration:
+        page.evaluate(
+            """
+            ({x, y, duration}) => new Promise(resolve => {
+                const startX = window.scrollX;
+                const startY = window.scrollY;
+                const start = performance.now();
+                const durationMs = duration * 1000;
+                const ease = t => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+                const step = now => {
+                    const progress = Math.min((now - start) / durationMs, 1);
+                    window.scrollTo(startX + x * ease(progress), startY + y * ease(progress));
+                    if (progress < 1) {
+                        requestAnimationFrame(step);
+                    } else {
+                        resolve();
+                    }
+                };
+                requestAnimationFrame(step);
+            })
+            """,
+            {"x": x, "y": y, "duration": duration},
+        )
+    else:
+        page.evaluate("({x, y}) => window.scrollBy(x, y)", {"x": x, "y": y})
+
+
 def _get_viewport(width, height):
     if width or height:
         return {
@@ -1563,29 +1976,19 @@ def _js_selector_javascript(js_selectors, js_selectors_all):
     for js_selector in js_selectors:
         klass = f"js-selector-{secrets.token_hex(16)}"
         extra_selectors.append(f".{klass}")
-        js_blocks.append(
-            textwrap.dedent(
-                f"""
+        js_blocks.append(textwrap.dedent(f"""
         Array.from(
           document.getElementsByTagName('*')
         ).find(el => {js_selector}).classList.add("{klass}");
-        """
-            )
-        )
+        """))
     for js_selector_all in js_selectors_all:
         klass = f"js-selector-all-{secrets.token_hex(16)}"
         extra_selectors_all.append(f".{klass}")
-        js_blocks.append(
-            textwrap.dedent(
-                """
+        js_blocks.append(textwrap.dedent("""
         Array.from(
           document.getElementsByTagName('*')
         ).filter(el => {}).forEach(el => el.classList.add("{}"));
-        """.format(
-                    js_selector_all, klass
-                )
-            )
-        )
+        """.format(js_selector_all, klass)))
     js_selector_javascript = "() => {" + "\n".join(js_blocks) + "}"
     return js_selector_javascript, extra_selectors, extra_selectors_all
 
