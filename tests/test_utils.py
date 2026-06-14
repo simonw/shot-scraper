@@ -75,20 +75,50 @@ def test_extension_for_content_type(content_type, expected):
         # URL has extension that matches content-type
         ("https://example.com/style.css", "text/css", [], "example-com-style.css"),
         # URL has extension that matches content-type (with charset)
-        ("https://example.com/page.html", "text/html; charset=utf-8", [], "example-com-page.html"),
+        (
+            "https://example.com/page.html",
+            "text/html; charset=utf-8",
+            [],
+            "example-com-page.html",
+        ),
         # URL has no extension, use content-type
-        ("https://example.com/api/data", "application/json", [], "example-com-api-data.json"),
+        (
+            "https://example.com/api/data",
+            "application/json",
+            [],
+            "example-com-api-data.json",
+        ),
         # URL has no extension and no content-type, use .bin
         ("https://example.com/api/data", None, [], "example-com-api-data.bin"),
         # URL has wrong extension, use content-type
         ("https://example.com/image.php", "image/png", [], "example-com-image-php.png"),
         # Handle duplicate files
-        ("https://example.com/style.css", "text/css", ["example-com-style.css"], "example-com-style.1.css"),
+        (
+            "https://example.com/style.css",
+            "text/css",
+            ["example-com-style.css"],
+            "example-com-style.1.css",
+        ),
         # Complex URL path
-        ("https://example.com/assets/v1/icons/logo.svg", "image/svg+xml", [], "example-com-assets-v1-icons-logo.svg"),
+        (
+            "https://example.com/assets/v1/icons/logo.svg",
+            "image/svg+xml",
+            [],
+            "example-com-assets-v1-icons-logo.svg",
+        ),
         # Query string should be stripped, and matching extension is not duplicated
-        ("https://example.com/image.png?v=123", "image/png", [], "example-com-image.png"),
+        (
+            "https://example.com/image.png?v=123",
+            "image/png",
+            [],
+            "example-com-image.png",
+        ),
     ),
 )
 def test_filename_for_har_entry(url, content_type, existing_files, expected):
-    assert filename_for_har_entry(url, content_type, file_exists=lambda s: s in existing_files) == expected
+    assert (
+        filename_for_har_entry(
+            url, content_type, file_exists=lambda s: s in existing_files
+        )
+        == expected
+    )
