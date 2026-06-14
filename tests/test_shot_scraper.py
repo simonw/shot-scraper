@@ -223,6 +223,25 @@ def test_html(args, expected):
             "output: demo.webm\nscenes:\n- name: one\n",
             "Error: Storyboard must define url: or open: in the first scene\n",
         ),
+        (
+            """output: demo.webm
+url: https://example.com/
+scenes:
+- do:
+  - fill:
+      into: "#q"
+""",
+            "Error: scenes.0.do.0.fill.text: Field required\n",
+        ),
+        (
+            """output: demo.webm
+url: https://example.com/
+scenes:
+- name: one
+  banana: true
+""",
+            "Error: scenes.0.banana: Extra inputs are not permitted\n",
+        ),
     ),
 )
 def test_storyboard_validation(yaml, expected):

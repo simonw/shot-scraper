@@ -17,6 +17,20 @@ import click
 from playwright.sync_api import sync_playwright, Error, TimeoutError
 
 
+from shot_scraper.storyboard import (
+    ClickAction,
+    FillAction,
+    JavascriptAction,
+    OpenAction,
+    PauseAction,
+    PressAction,
+    ScrollAction,
+    StoryboardError,
+    TypeAction,
+    WaitForAction,
+    WaitForUrlAction,
+    load_storyboard,
+)
 from shot_scraper.utils import (
     filename_for_url,
     filename_for_har_entry,
@@ -513,9 +527,12 @@ def storyboard(
     The storyboard file should define output, url and scenes. Use -o to
     override the output filename from the YAML file.
     """
-    storyboard_config = _load_storyboard(storyboard_file)
+    try:
+        storyboard_config = load_storyboard(storyboard_file)
+    except StoryboardError as ex:
+        raise click.ClickException(str(ex))
     if output:
-        storyboard_config["output"] = output
+        storyboard_config = storyboard_config.model_copy(update={"output": output})
     try:
         _record_storyboard(
             storyboard_config,
@@ -1476,15 +1493,6 @@ def _check_and_absolutize(filepath):
         return False
 
 
-def _load_storyboard(storyboard_file):
-    storyboard_config = yaml.safe_load(storyboard_file)
-    if storyboard_config is None:
-        raise click.ClickException("Storyboard YAML file cannot be empty")
-    if not isinstance(storyboard_config, dict):
-        raise click.ClickException("Storyboard YAML file must contain a mapping")
-    return storyboard_config
-
-
 def _record_storyboard(
     storyboard_config,
     auth=None,
@@ -1504,21 +1512,12 @@ def _record_storyboard(
     if skip and fail:
         raise click.ClickException("--skip and --fail cannot be used together")
 
-    output = storyboard_config.get("output")
+    output = storyboard_config.output
     if not output:
         raise click.ClickException("Storyboard must define output: or use --output")
 
-    scenes = storyboard_config.get("scenes")
-    if not isinstance(scenes, list) or not scenes:
-        raise click.ClickException("Storyboard must define a non-empty scenes: list")
-
-    viewport = _storyboard_viewport(storyboard_config)
-    start_url = storyboard_config.get("url")
-    first_scene_open = isinstance(scenes[0], dict) and scenes[0].get("open")
-    if not start_url and not first_scene_open:
-        raise click.ClickException(
-            "Storyboard must define url: or open: in the first scene"
-        )
+    viewport = storyboard_config.viewport_size()
+    start_url = storyboard_config.url
 
     with tempfile.TemporaryDirectory() as video_dir:
         with sync_playwright() as p:
@@ -1554,16 +1553,16 @@ def _record_storyboard(
                         fail=fail,
                     )
 
-                if storyboard_config.get("wait"):
-                    _storyboard_pause(storyboard_config["wait"])
-                if storyboard_config.get("wait_for"):
-                    _storyboard_wait_for(page, storyboard_config["wait_for"])
-                if storyboard_config.get("wait_for_url"):
-                    page.wait_for_url(storyboard_config["wait_for_url"])
-                if storyboard_config.get("javascript"):
-                    _evaluate_js(page, storyboard_config["javascript"])
+                if storyboard_config.wait is not None:
+                    _storyboard_pause(storyboard_config.wait)
+                if storyboard_config.wait_for:
+                    _storyboard_wait_for(page, storyboard_config.wait_for)
+                if storyboard_config.wait_for_url:
+                    page.wait_for_url(storyboard_config.wait_for_url)
+                if storyboard_config.javascript:
+                    _evaluate_js(page, storyboard_config.javascript)
 
-                for index, scene in enumerate(scenes, 1):
+                for index, scene in enumerate(storyboard_config.scenes, 1):
                     _run_storyboard_scene(
                         page,
                         scene,
@@ -1591,125 +1590,63 @@ def _record_storyboard(
         click.echo(f"Video written to '{output}'", err=True)
 
 
-def _storyboard_viewport(storyboard_config):
-    viewport = storyboard_config.get("viewport") or {}
-    if not isinstance(viewport, dict):
-        raise click.ClickException("viewport: must be a mapping")
-    width = viewport.get("width", storyboard_config.get("width", 1280))
-    height = viewport.get("height", storyboard_config.get("height", 720))
-    try:
-        width = int(width)
-        height = int(height)
-    except (TypeError, ValueError):
-        raise click.ClickException("viewport width and height must be integers")
-    if width <= 0 or height <= 0:
-        raise click.ClickException("viewport width and height must be positive")
-    return {"width": width, "height": height}
-
-
 def _run_storyboard_scene(page, scene, index, skip=False, fail=False, silent=False):
-    if not isinstance(scene, dict):
-        raise click.ClickException(f"Scene {index} must be a mapping")
-
-    name = scene.get("name") or f"Scene {index}"
+    name = scene.name or f"Scene {index}"
     if not silent:
         click.echo(f"Scene {index}: {name}", err=True)
 
-    if scene.get("open"):
-        _storyboard_goto(page, scene["open"], skip=skip, fail=fail)
-    if scene.get("wait_for"):
-        _storyboard_wait_for(page, scene["wait_for"])
-    if scene.get("wait_for_url"):
-        page.wait_for_url(scene["wait_for_url"])
+    if scene.open:
+        _storyboard_goto(page, scene.open, skip=skip, fail=fail)
+    if scene.wait_for:
+        _storyboard_wait_for(page, scene.wait_for)
+    if scene.wait_for_url:
+        page.wait_for_url(scene.wait_for_url)
 
-    actions = scene.get("do") or []
-    if not isinstance(actions, list):
-        raise click.ClickException(f"Scene {index} do: must be a list")
-    for action_index, action in enumerate(actions, 1):
+    for action_index, action in enumerate(scene.do, 1):
         _run_storyboard_action(page, action, index, action_index, skip=skip, fail=fail)
 
-    if scene.get("hold"):
-        _storyboard_pause(scene["hold"])
+    if scene.hold is not None:
+        _storyboard_pause(scene.hold)
 
 
 def _run_storyboard_action(
     page, action, scene_index, action_index, skip=False, fail=False
 ):
-    if not isinstance(action, dict) or len(action) != 1:
-        raise click.ClickException(
-            f"Scene {scene_index} action {action_index} must be a single-key mapping"
-        )
-
-    action_name, value = next(iter(action.items()))
-
-    if action_name == "click":
-        selector, options = _selector_action(value, "click")
+    if isinstance(action, ClickAction):
         click_kwargs = {}
-        if options.get("button"):
-            click_kwargs["button"] = options["button"]
-        if options.get("count"):
-            click_kwargs["click_count"] = int(options["count"])
-        page.locator(selector).click(**click_kwargs)
-    elif action_name == "type":
-        selector, text, options = _text_action(value, "type")
+        if action.button:
+            click_kwargs["button"] = action.button
+        if action.count:
+            click_kwargs["click_count"] = action.count
+        page.locator(action.selector).click(**click_kwargs)
+    elif isinstance(action, TypeAction):
         type_kwargs = {}
-        if options.get("delay") is not None:
-            type_kwargs["delay"] = float(options["delay"])
-        page.locator(selector).type(str(text), **type_kwargs)
-    elif action_name == "fill":
-        selector, text, _ = _text_action(value, "fill")
-        page.locator(selector).fill(str(text))
-    elif action_name == "press":
-        if isinstance(value, str):
-            page.keyboard.press(value)
-        elif isinstance(value, dict):
-            key = value.get("key")
-            if not key:
-                raise click.ClickException("press: must define key:")
-            if value.get("selector"):
-                page.locator(value["selector"]).press(str(key))
-            else:
-                page.keyboard.press(str(key))
+        if action.delay is not None:
+            type_kwargs["delay"] = action.delay
+        page.locator(action.target_selector).type(action.text, **type_kwargs)
+    elif isinstance(action, FillAction):
+        page.locator(action.target_selector).fill(action.text)
+    elif isinstance(action, PressAction):
+        if action.selector:
+            page.locator(action.selector).press(action.key)
         else:
-            raise click.ClickException("press: must be a key string or mapping")
-    elif action_name == "scroll":
-        _storyboard_scroll(page, value)
-    elif action_name == "pause":
-        _storyboard_pause(value)
-    elif action_name == "wait_for":
-        _storyboard_wait_for(page, value)
-    elif action_name == "wait_for_url":
-        page.wait_for_url(value)
-    elif action_name == "open":
-        _storyboard_goto(page, value, skip=skip, fail=fail)
-    elif action_name in ("javascript", "js"):
-        _evaluate_js(page, value)
+            page.keyboard.press(action.key)
+    elif isinstance(action, ScrollAction):
+        _storyboard_scroll(page, action)
+    elif isinstance(action, PauseAction):
+        _storyboard_pause(action.seconds)
+    elif isinstance(action, WaitForAction):
+        _storyboard_wait_for(page, action.selector)
+    elif isinstance(action, WaitForUrlAction):
+        page.wait_for_url(action.url)
+    elif isinstance(action, OpenAction):
+        _storyboard_goto(page, action.url, skip=skip, fail=fail)
+    elif isinstance(action, JavascriptAction):
+        _evaluate_js(page, action.code)
     else:
         raise click.ClickException(
-            f"Unknown storyboard action in scene {scene_index} action {action_index}: {action_name}"
+            f"Unknown storyboard action in scene {scene_index} action {action_index}"
         )
-
-
-def _selector_action(value, action_name):
-    if isinstance(value, str):
-        return value, {}
-    if isinstance(value, dict):
-        selector = value.get("selector")
-        if not selector:
-            raise click.ClickException(f"{action_name}: must define selector:")
-        return selector, value
-    raise click.ClickException(f"{action_name}: must be a selector string or mapping")
-
-
-def _text_action(value, action_name):
-    if not isinstance(value, dict):
-        raise click.ClickException(f"{action_name}: must be a mapping")
-    selector = value.get("into") or value.get("selector")
-    if not selector:
-        raise click.ClickException(f"{action_name}: must define into: or selector:")
-    if "text" not in value:
-        raise click.ClickException(f"{action_name}: must define text:")
-    return selector, value["text"], value
 
 
 def _storyboard_goto(page, url, skip=False, fail=False):
@@ -1749,17 +1686,10 @@ def _storyboard_pause(seconds):
 
 
 def _storyboard_scroll(page, value):
-    if isinstance(value, (int, float)):
-        value = {"y": value}
-    if not isinstance(value, dict):
-        raise click.ClickException("scroll: must be a number or mapping")
+    duration = value.duration
 
-    duration = float(value.get("duration", 0) or 0)
-    if duration < 0:
-        raise click.ClickException("scroll duration must not be negative")
-
-    if value.get("to"):
-        selector = value["to"]
+    if value.to:
+        selector = value.to
         if duration:
             page.locator(selector).evaluate(
                 "(el) => el.scrollIntoView({behavior: 'smooth', block: 'center'})"
@@ -1769,8 +1699,8 @@ def _storyboard_scroll(page, value):
             page.locator(selector).scroll_into_view_if_needed()
         return
 
-    x = float(value.get("x", 0) or 0)
-    y = float(value.get("y", 0) or 0)
+    x = value.x
+    y = value.y
     if duration:
         page.evaluate(
             """
