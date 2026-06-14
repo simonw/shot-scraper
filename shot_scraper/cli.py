@@ -24,6 +24,7 @@ from shot_scraper.storyboard import (
     OpenAction,
     PauseAction,
     PressAction,
+    ScreenshotAction,
     ScrollAction,
     StoryboardError,
     TypeAction,
@@ -1643,6 +1644,8 @@ def _run_storyboard_action(
         _storyboard_goto(page, action.url, skip=skip, fail=fail)
     elif isinstance(action, JavascriptAction):
         _evaluate_js(page, action.code)
+    elif isinstance(action, ScreenshotAction):
+        _storyboard_screenshot(page, action)
     else:
         raise click.ClickException(
             f"Unknown storyboard action in scene {scene_index} action {action_index}"
@@ -1726,6 +1729,13 @@ def _storyboard_scroll(page, value):
         )
     else:
         page.evaluate("({x, y}) => window.scrollBy(x, y)", {"x": x, "y": y})
+
+
+def _storyboard_screenshot(page, action):
+    if action.selector:
+        page.locator(action.selector).screenshot(path=action.output)
+    else:
+        page.screenshot(path=action.output, full_page=action.full_page)
 
 
 def _get_viewport(width, height):

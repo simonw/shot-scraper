@@ -215,6 +215,30 @@ Navigate during a scene:
 - open: /pricing
 ```
 
+### screenshot
+
+Take a screenshot during the storyboard:
+
+```yaml
+- screenshot: step-2.png
+```
+
+Screenshot a specific element:
+
+```yaml
+- screenshot:
+    output: form.png
+    selector: "#signup-form"
+```
+
+Use `full_page` to capture the full page instead of just the current viewport:
+
+```yaml
+- screenshot:
+    output: full-page.png
+    full_page: true
+```
+
 ### javascript
 
 Run JavaScript on the page:
@@ -251,6 +275,7 @@ scenes:
   do:
   - click: "text=Get started"
   - wait_for: "#email"
+  - screenshot: signup-form.png
   hold: 0.5
 
 - name: Complete signup

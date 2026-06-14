@@ -107,6 +107,13 @@ class JavascriptAction(StoryboardBaseModel):
     code: str
 
 
+class ScreenshotAction(StoryboardBaseModel):
+    action: Literal["screenshot"]
+    output: str
+    selector: str | None = None
+    full_page: bool = False
+
+
 StoryboardAction = Annotated[
     Union[
         ClickAction,
@@ -119,6 +126,7 @@ StoryboardAction = Annotated[
         WaitForUrlAction,
         OpenAction,
         JavascriptAction,
+        ScreenshotAction,
     ],
     Field(discriminator="action"),
 ]
@@ -135,6 +143,7 @@ STORYBOARD_ACTIONS = {
     "open",
     "javascript",
     "js",
+    "screenshot",
 }
 
 
@@ -242,6 +251,13 @@ def _normalize_storyboard_action(action):
 
     if action_name in ("javascript", "js"):
         return {"action": action_name, "code": value}
+
+    if action_name == "screenshot":
+        if isinstance(value, str):
+            return {"action": "screenshot", "output": value}
+        if isinstance(value, dict):
+            return {"action": "screenshot", **value}
+        raise ValueError("screenshot: must be an output string or mapping")
 
 
 def _format_storyboard_validation_error(validation_error):

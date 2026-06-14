@@ -293,6 +293,10 @@ scenes:
           into: "#search"
           text: "storyboard"
           delay: 5
+      - screenshot: details.png
+      - screenshot:
+          output: heading.png
+          selector: "#more-heading"
       - scroll:
           y: 200
           duration: 0.05
@@ -308,6 +312,10 @@ scenes:
         video = pathlib.Path("demo.webm")
         assert video.exists()
         assert video.stat().st_size > 0
+        for filename in ("details.png", "heading.png"):
+            screenshot = pathlib.Path(filename)
+            assert screenshot.exists()
+            assert screenshot.stat().st_size > 0
 
 
 @pytest.mark.parametrize(

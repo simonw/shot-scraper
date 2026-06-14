@@ -7,6 +7,7 @@ from shot_scraper.storyboard import (
     FillAction,
     OpenAction,
     PressAction,
+    ScreenshotAction,
     ScrollAction,
     StoryboardError,
     TypeAction,
@@ -45,6 +46,10 @@ scenes:
       duration: 0.1
   - wait_for: ".results"
   - open: /results
+  - screenshot: results.png
+  - screenshot:
+      output: result-heading.png
+      selector: h1
 """
     )
 
@@ -69,6 +74,12 @@ scenes:
     assert actions[5].selector == ".results"
     assert isinstance(actions[6], OpenAction)
     assert actions[6].url == "/results"
+    assert isinstance(actions[7], ScreenshotAction)
+    assert actions[7].output == "results.png"
+    assert actions[7].selector is None
+    assert isinstance(actions[8], ScreenshotAction)
+    assert actions[8].output == "result-heading.png"
+    assert actions[8].selector == "h1"
 
 
 def test_load_storyboard_defaults_viewport():
