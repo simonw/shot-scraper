@@ -7,7 +7,6 @@ import time
 import json
 import os
 import pathlib
-import tempfile
 import urllib.parse
 import zipfile
 from runpy import run_module
@@ -429,6 +428,7 @@ def _browser_context(
     record_har_path=None,
     record_video_dir=None,
     record_video_size=None,
+    viewport=None,
 ):
     # Playwright 1.58 removed the `devtools` launch option. Emulate the
     # previous behavior for Chromium by passing the corresponding flag.
@@ -469,6 +469,8 @@ def _browser_context(
         context_args["record_video_dir"] = record_video_dir
     if record_video_size:
         context_args["record_video_size"] = record_video_size
+    if viewport:
+        context_args["viewport"] = viewport
     context = browser_obj.new_context(**context_args)
     if timeout:
         context.set_default_timeout(timeout)
@@ -1554,78 +1556,82 @@ def _record_storyboard(
             server_processes.append(_start_server(storyboard_config.server))
             time.sleep(1)
 
-        with tempfile.TemporaryDirectory() as video_dir:
-            with sync_playwright() as p:
-                context, browser_obj = _browser_context(
-                    p,
-                    auth,
-                    browser=browser,
-                    browser_args=browser_args,
-                    user_agent=user_agent,
-                    timeout=timeout,
-                    reduced_motion=reduced_motion,
-                    bypass_csp=bypass_csp,
-                    auth_username=auth_username,
-                    auth_password=auth_password,
-                    record_video_dir=video_dir,
-                    record_video_size=viewport,
+        with sync_playwright() as p:
+            context, browser_obj = _browser_context(
+                p,
+                auth,
+                browser=browser,
+                browser_args=browser_args,
+                user_agent=user_agent,
+                timeout=timeout,
+                reduced_motion=reduced_motion,
+                bypass_csp=bypass_csp,
+                auth_username=auth_username,
+                auth_password=auth_password,
+                viewport=viewport,
+            )
+            if storyboard_config.cursor and (
+                storyboard_config.cursor.visible or storyboard_config.cursor.clicks
+            ):
+                context.add_init_script(
+                    _storyboard_cursor_script(storyboard_config.cursor)
                 )
-                if storyboard_config.cursor and (
-                    storyboard_config.cursor.visible or storyboard_config.cursor.clicks
-                ):
-                    context.add_init_script(
-                        _storyboard_cursor_script(storyboard_config.cursor)
+            page = context.new_page()
+            context_closed = False
+            recording_started = False
+            page.set_viewport_size(viewport)
+            if log_console:
+                page.on("console", console_log)
+
+            try:
+                if not silent:
+                    click.echo(f"Recording video to '{output}'", err=True)
+
+                if start_url:
+                    _storyboard_goto(
+                        page,
+                        start_url,
+                        skip=skip,
+                        fail=fail,
                     )
-                page = context.new_page()
-                context_closed = False
-                page.set_viewport_size(viewport)
-                if log_console:
-                    page.on("console", console_log)
 
-                try:
-                    if not silent:
-                        click.echo(f"Recording video to '{output}'", err=True)
+                if storyboard_config.wait is not None:
+                    _storyboard_pause(storyboard_config.wait)
+                if storyboard_config.wait_for:
+                    _storyboard_wait_for(page, storyboard_config.wait_for)
+                if storyboard_config.wait_for_url:
+                    page.wait_for_url(storyboard_config.wait_for_url)
+                if storyboard_config.javascript:
+                    _evaluate_js(page, storyboard_config.javascript)
 
-                    if start_url:
-                        _storyboard_goto(
-                            page,
-                            start_url,
-                            skip=skip,
-                            fail=fail,
-                        )
+                page.screencast.start(path=output)
+                recording_started = True
+                for index, scene in enumerate(storyboard_config.scenes, 1):
+                    _run_storyboard_scene(
+                        page,
+                        scene,
+                        index=index,
+                        skip=skip,
+                        fail=fail,
+                        silent=silent,
+                    )
 
-                    if storyboard_config.wait is not None:
-                        _storyboard_pause(storyboard_config.wait)
-                    if storyboard_config.wait_for:
-                        _storyboard_wait_for(page, storyboard_config.wait_for)
-                    if storyboard_config.wait_for_url:
-                        page.wait_for_url(storyboard_config.wait_for_url)
-                    if storyboard_config.javascript:
-                        _evaluate_js(page, storyboard_config.javascript)
-
-                    for index, scene in enumerate(storyboard_config.scenes, 1):
-                        _run_storyboard_scene(
-                            page,
-                            scene,
-                            index=index,
-                            skip=skip,
-                            fail=fail,
-                            silent=silent,
-                        )
-
-                    video = page.video
+                page.screencast.stop()
+                recording_started = False
+                page.close()
+                context.close()
+                context_closed = True
+            finally:
+                if recording_started:
+                    try:
+                        page.screencast.stop()
+                    except Error:
+                        pass
+                if not page.is_closed():
                     page.close()
+                if not context_closed:
                     context.close()
-                    context_closed = True
-                    if video is None:
-                        raise click.ClickException("Playwright did not produce a video")
-                    video.save_as(output)
-                finally:
-                    if not page.is_closed():
-                        page.close()
-                    if not context_closed:
-                        context.close()
-                    browser_obj.close()
+                browser_obj.close()
     finally:
         if server_processes:
             _cleanup_servers(server_processes, leave_server)

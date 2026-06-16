@@ -13,7 +13,7 @@ dependencies = [
     "click",
     "PyYAML",
     "pydantic",
-    "playwright",
+    "playwright>=1.60.0",
     "click-default-group",
 ]
 

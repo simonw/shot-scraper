@@ -1,9 +1,11 @@
 import pathlib
 import sys
+from types import SimpleNamespace
 from unittest.mock import patch, MagicMock
 import textwrap
 from click.testing import CliRunner
 import pytest
+import shot_scraper.cli as cli_module
 from shot_scraper.cli import cli
 import zipfile
 import json
@@ -337,6 +339,101 @@ scenes:
         assert pathlib.Path("scene-python.txt").read_text() == "scene python"
         assert pathlib.Path("action-shell.txt").read_text().strip() == "action shell"
         assert pathlib.Path("action-python.txt").read_text() == "action python"
+
+
+def test_video_starts_screencast_after_initial_navigation(mocker):
+    events = []
+
+    class FakeScreencast:
+        def start(self, path):
+            events.append(("start", path))
+
+        def stop(self):
+            events.append("stop")
+
+    class FakePage:
+        screencast = FakeScreencast()
+
+        def __init__(self):
+            self.closed = False
+
+        def set_viewport_size(self, viewport):
+            events.append(("viewport", viewport))
+
+        def is_closed(self):
+            return self.closed
+
+        def close(self):
+            events.append("page.close")
+            self.closed = True
+
+    class FakeContext:
+        def __init__(self, page):
+            self.page = page
+
+        def new_page(self):
+            return self.page
+
+        def close(self):
+            events.append("context.close")
+
+    class FakeBrowser:
+        def close(self):
+            events.append("browser.close")
+
+    class FakePlaywright:
+        def __enter__(self):
+            return object()
+
+        def __exit__(self, exc_type, exc, tb):
+            pass
+
+    fake_page = FakePage()
+    fake_context = FakeContext(fake_page)
+    fake_browser = FakeBrowser()
+    browser_context = mocker.patch.object(
+        cli_module,
+        "_browser_context",
+        return_value=(fake_context, fake_browser),
+    )
+    mocker.patch.object(cli_module, "sync_playwright", return_value=FakePlaywright())
+    mocker.patch.object(
+        cli_module,
+        "_storyboard_goto",
+        side_effect=lambda *args, **kwargs: events.append("goto"),
+    )
+    mocker.patch.object(
+        cli_module,
+        "_run_storyboard_scene",
+        side_effect=lambda *args, **kwargs: events.append("scene"),
+    )
+
+    storyboard_config = SimpleNamespace(
+        output="demo.webm",
+        url="https://example.com/",
+        server=None,
+        cursor=None,
+        wait=None,
+        wait_for=None,
+        wait_for_url=None,
+        javascript=None,
+        scenes=[SimpleNamespace(name="Scene")],
+        viewport_size=lambda: {"width": 640, "height": 360},
+    )
+
+    cli_module._record_storyboard(storyboard_config, silent=True)
+
+    assert events[:4] == [
+        ("viewport", {"width": 640, "height": 360}),
+        "goto",
+        ("start", "demo.webm"),
+        "scene",
+    ]
+    assert "stop" in events
+    assert browser_context.call_args.kwargs["viewport"] == {
+        "width": 640,
+        "height": 360,
+    }
 
 
 @pytest.mark.parametrize(
