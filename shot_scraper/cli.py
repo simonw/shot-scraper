@@ -17,7 +17,7 @@ import click
 from playwright.sync_api import sync_playwright, Error, TimeoutError
 
 
-from shot_scraper.storyboard import (
+from shot_scraper.video import (
     ClickAction,
     FillAction,
     JavascriptAction,
@@ -509,7 +509,7 @@ def _browser_context(
     is_flag=True,
     help="Leave servers running when script finishes",
 )
-def storyboard(
+def video(
     storyboard_file,
     output,
     auth,
@@ -532,7 +532,7 @@ def storyboard(
 
     Usage:
 
-        shot-scraper storyboard storyboard.yml
+        shot-scraper video storyboard.yml
 
     The storyboard file should define output, url and scenes. Use -o to
     override the output filename from the YAML file.
@@ -1580,7 +1580,7 @@ def _record_storyboard(
 
                 try:
                     if not silent:
-                        click.echo(f"Recording storyboard to '{output}'", err=True)
+                        click.echo(f"Recording video to '{output}'", err=True)
 
                     if start_url:
                         _storyboard_goto(

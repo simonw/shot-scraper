@@ -1,8 +1,8 @@
-(storyboard)=
+(video)=
 
-# Recording storyboard videos
+# Recording videos
 
-The `shot-scraper storyboard` command records a WebM video from a YAML storyboard.
+The `shot-scraper video` command records a WebM video from a YAML storyboard.
 
 Storyboards describe the video as a sequence of scenes. Each scene can open a page,
 wait for content, perform actions and then hold on the final frame for a moment.
@@ -32,7 +32,7 @@ scenes:
 Then run:
 
 ```bash
-shot-scraper storyboard storyboard.yml
+shot-scraper video storyboard.yml
 ```
 
 This opens the starting URL, records the scenes and writes the video to
@@ -41,7 +41,7 @@ This opens the starting URL, records the scenes and writes the video to
 Use `-o` or `--output` to override the output filename:
 
 ```bash
-shot-scraper storyboard storyboard.yml -o alternate.webm
+shot-scraper video storyboard.yml -o alternate.webm
 ```
 
 ## Storyboard structure
@@ -106,7 +106,7 @@ Set `visible: false` to show click rings without the cursor dot.
 
 ## Running a server for the duration of the storyboard
 
-If you need to run a server for the duration of the `shot-scraper storyboard`
+If you need to run a server for the duration of the `shot-scraper video`
 session, specify it using `server:`:
 
 ```yaml
@@ -136,7 +136,7 @@ scenes:
   wait_for: h1
 ```
 
-The server process will be automatically terminated when the storyboard command
+The server process will be automatically terminated when the video command
 completes, unless you pass `--leave-server`. In that case it will be left
 running, and the process ID will be displayed in the console output.
 
@@ -492,25 +492,36 @@ scenes:
 
 ## Command options
 
-`shot-scraper storyboard` supports the same browser selection, authentication,
+`shot-scraper video` supports the same browser selection, authentication,
 console logging, timeout, CSP bypass and HTTP Basic authentication options as
 the other browser-based commands.
 
 Use `--silent` to hide progress messages. Use `--leave-server` to leave a
 configured `server:` process running after the command finishes.
 
-## `shot-scraper storyboard --help`
+## `shot-scraper video --help`
 
 Full `--help` for this command:
 
+<!-- [[[cog
+import cog
+from shot_scraper import cli
+from click.testing import CliRunner
+runner = CliRunner()
+result = runner.invoke(cli.cli, ["video", "--help"])
+help = result.output.replace("Usage: cli", "Usage: shot-scraper")
+cog.out(
+    "```\n{}\n```\n".format(help.strip())
+)
+]]] -->
 ```
-Usage: shot-scraper storyboard [OPTIONS] STORYBOARD_FILE
+Usage: shot-scraper video [OPTIONS] STORYBOARD_FILE
 
   Record a WebM video from a YAML storyboard.
 
   Usage:
 
-      shot-scraper storyboard storyboard.yml
+      shot-scraper video storyboard.yml
 
   The storyboard file should define output, url and scenes. Use -o to override
   the output filename from the YAML file.
@@ -536,3 +547,4 @@ Options:
   --leave-server                  Leave servers running when script finishes
   --help                          Show this message and exit.
 ```
+<!-- [[[end]]] -->

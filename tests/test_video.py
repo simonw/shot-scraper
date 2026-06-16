@@ -2,7 +2,7 @@ from io import StringIO
 
 import pytest
 
-from shot_scraper.storyboard import (
+from shot_scraper.video import (
     ClickAction,
     FillAction,
     OpenAction,

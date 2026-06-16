@@ -246,14 +246,14 @@ scenes:
         ),
     ),
 )
-def test_storyboard_validation(yaml, expected):
+def test_video_validation(yaml, expected):
     runner = CliRunner()
-    result = runner.invoke(cli, ["storyboard", "-"], input=yaml)
+    result = runner.invoke(cli, ["video", "-"], input=yaml)
     assert result.exit_code == 1
     assert result.output == expected
 
 
-def test_storyboard_records_video():
+def test_video_records_video():
     runner = CliRunner()
     port = find_free_port()
     with runner.isolated_filesystem():
@@ -320,9 +320,9 @@ scenes:
       - js: document.body.dataset.storyboard = "yes"
     hold: 0.1
 """.strip())
-        result = runner.invoke(cli, ["storyboard", "storyboard.yml"])
+        result = runner.invoke(cli, ["video", "storyboard.yml"])
         assert result.exit_code == 0, result.output
-        assert "Recording storyboard to 'demo.webm'" in result.output
+        assert "Recording video to 'demo.webm'" in result.output
         assert "Scene 1: Home" in result.output
         assert "Scene 2: Details" in result.output
         assert "Video written to 'demo.webm'" in result.output
