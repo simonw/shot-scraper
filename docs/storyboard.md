@@ -62,6 +62,11 @@ A storyboard file is a YAML mapping with these keys:
 : Set to `true` to show a cursor dot and click rings in the video. This can
   also be a mapping of cursor options.
 
+`javascript`
+: Optional JavaScript to run in the initial page after `url:`, `wait:`,
+  `wait_for:` and `wait_for_url:` have completed, before scenes start. This runs
+  inside the current Playwright page context.
+
 `scenes`
 : A list of scenes to record.
 
@@ -138,6 +143,25 @@ scenes:
   - wait_for: ".results"
   hold: 1.5
 ```
+
+Use `javascript:` or `js:` inside `do:` to run code in the current Playwright
+page context. Unlike `sh:` and `python:`, this executes in the browser page, so
+it can read and modify the DOM, `localStorage` and other browser APIs:
+
+```yaml
+scenes:
+- name: Highlight the first result
+  open: http://localhost:8000/search
+  wait_for: ".result"
+  do:
+  - javascript: |
+      document.querySelector(".result").style.outline = "4px solid red";
+      localStorage.setItem("storyboard-mode", "demo");
+  - screenshot: highlighted-result.png
+```
+
+There is no scene-level `javascript:` key. To run page JavaScript during a scene,
+put it inside the scene's `do:` list.
 
 ## Actions
 
@@ -275,7 +299,7 @@ Use `full_page` to capture the full page instead of just the current viewport:
 
 ### javascript
 
-Run JavaScript on the page:
+Run JavaScript in the current Playwright page context:
 
 ```yaml
 - javascript: |
@@ -286,6 +310,24 @@ The shorter `js` key is also supported:
 
 ```yaml
 - js: window.scrollTo(0, 0)
+```
+
+Use top-level `javascript:` for JavaScript that should run once after the
+initial page has loaded and before scenes start:
+
+```yaml
+output: demo.webm
+url: http://localhost:8000/
+javascript: |
+  localStorage.setItem("theme", "dark");
+  document.documentElement.dataset.storyboard = "true";
+
+scenes:
+- name: Page with prepared browser state
+  wait_for: h1
+  do:
+  - js: document.querySelector("h1").textContent = "Storyboard demo";
+  hold: 1
 ```
 
 ## Complete example
