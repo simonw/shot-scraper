@@ -55,6 +55,10 @@ A storyboard file is a YAML mapping with these keys:
 : Starting URL for the video. This can be an `http://` or `https://` URL, a bare
   domain or a path to a local HTML file.
 
+`server`
+: Optional command to run as a server for the duration of the storyboard
+  recording. This can be a string or a list of arguments.
+
 `viewport`
 : Optional browser viewport size. Defaults to `1280` by `720`.
 
@@ -100,6 +104,42 @@ cursor:
 
 Set `visible: false` to show click rings without the cursor dot.
 
+## Running a server for the duration of the storyboard
+
+If you need to run a server for the duration of the `shot-scraper storyboard`
+session, specify it using `server:`:
+
+```yaml
+output: demo.webm
+server: python -m http.server 8000
+url: http://localhost:8000/
+
+scenes:
+- name: Home page
+  wait_for: h1
+  hold: 1
+```
+
+The `server:` key also accepts a list of arguments:
+
+```yaml
+output: demo.webm
+server:
+- python
+- -m
+- http.server
+- 8000
+url: http://localhost:8000/
+
+scenes:
+- name: Home page
+  wait_for: h1
+```
+
+The server process will be automatically terminated when the storyboard command
+completes, unless you pass `--leave-server`. In that case it will be left
+running, and the process ID will be displayed in the console output.
+
 ## Scenes
 
 Each scene can use these keys:
@@ -119,6 +159,13 @@ Each scene can use these keys:
 `wait_for_url`
 : Wait for the page URL to match a string, glob or regular expression supported
   by Playwright.
+
+`sh`
+: Shell command to run before the scene opens a page or runs actions. This can
+  be a string or a list of arguments.
+
+`python`
+: Python code to run before the scene opens a page or runs actions.
 
 `do`
 : A list of actions to run.
@@ -142,6 +189,55 @@ scenes:
   - press: Enter
   - wait_for: ".results"
   hold: 1.5
+```
+
+## Running custom code between steps
+
+Storyboard scenes support the same `sh:` and `python:` keys as `shot-scraper
+multi`. These commands run before the scene opens a page or runs actions:
+
+```yaml
+scenes:
+- name: Build local page
+  sh: echo "Hello from shell" > index.html
+  open: index.html
+  hold: 1
+```
+
+You can also specify a list of shell arguments:
+
+```yaml
+scenes:
+- name: Fetch page
+  sh:
+  - curl
+  - -o
+  - index.html
+  - https://www.example.com/
+  open: index.html
+```
+
+Use `python:` to run Python code before a scene:
+
+```yaml
+scenes:
+- name: Rewrite page
+  python: |
+    content = open("index.html").read()
+    open("index.html", "w").write(content.upper())
+  open: index.html
+```
+
+For commands between individual browser actions, use `sh:` or `python:` inside
+the `do:` list:
+
+```yaml
+scenes:
+- name: Update then reload
+  open: http://localhost:8000/
+  do:
+  - sh: echo "Updated" > index.html
+  - open: http://localhost:8000/
 ```
 
 Use `javascript:` or `js:` inside `do:` to run code in the current Playwright
@@ -297,6 +393,32 @@ Use `full_page` to capture the full page instead of just the current viewport:
     full_page: true
 ```
 
+### sh
+
+Run a shell command:
+
+```yaml
+- sh: echo "Updated" > index.html
+```
+
+Or provide a list of arguments:
+
+```yaml
+- sh:
+  - touch
+  - updated.html
+```
+
+### python
+
+Run Python code:
+
+```yaml
+- python: |
+    content = open("index.html").read()
+    open("index.html", "w").write(content.upper())
+```
+
 ### javascript
 
 Run JavaScript in the current Playwright page context:
@@ -374,7 +496,8 @@ scenes:
 console logging, timeout, CSP bypass and HTTP Basic authentication options as
 the other browser-based commands.
 
-Use `--silent` to hide progress messages.
+Use `--silent` to hide progress messages. Use `--leave-server` to leave a
+configured `server:` process running after the command finishes.
 
 ## `shot-scraper storyboard --help`
 
@@ -410,5 +533,6 @@ Options:
   --silent                        Do not output any messages
   --auth-password TEXT            Password for HTTP Basic authentication
   --auth-username TEXT            Username for HTTP Basic authentication
+  --leave-server                  Leave servers running when script finishes
   --help                          Show this message and exit.
 ```

@@ -8,10 +8,12 @@ from shot_scraper.storyboard import (
     OpenAction,
     PressAction,
     ScreenshotAction,
+    ShAction,
     ScrollAction,
     StoryboardError,
     TypeAction,
     WaitForAction,
+    PythonAction,
     load_storyboard,
 )
 
@@ -21,9 +23,13 @@ def parse_storyboard(yaml):
 
 
 def test_load_storyboard_normalizes_actions():
-    storyboard = parse_storyboard(
-        """
+    storyboard = parse_storyboard("""
 output: demo.webm
+server:
+- python
+- -m
+- http.server
+- 8000
 url: https://example.com/
 viewport:
   width: 640
@@ -31,6 +37,9 @@ viewport:
 wait: 0.25
 scenes:
 - name: Search
+  sh: echo "scene" > scene.txt
+  python: |
+    open("scene-python.txt", "w").write("ok")
   do:
   - click: "#search"
   - fill:
@@ -50,14 +59,19 @@ scenes:
   - screenshot:
       output: result-heading.png
       selector: h1
-"""
-    )
+  - sh: echo "action" > action.txt
+  - python: |
+      open("action-python.txt", "w").write("ok")
+""")
 
     assert storyboard.output == "demo.webm"
+    assert storyboard.server == ["python", "-m", "http.server", 8000]
     assert storyboard.url == "https://example.com/"
     assert storyboard.viewport_size() == {"width": 640, "height": 360}
     assert storyboard.wait == 0.25
     actions = storyboard.scenes[0].do
+    assert storyboard.scenes[0].sh == 'echo "scene" > scene.txt'
+    assert storyboard.scenes[0].python == 'open("scene-python.txt", "w").write("ok")\n'
     assert isinstance(actions[0], ClickAction)
     assert actions[0].selector == "#search"
     assert isinstance(actions[1], FillAction)
@@ -80,31 +94,31 @@ scenes:
     assert isinstance(actions[8], ScreenshotAction)
     assert actions[8].output == "result-heading.png"
     assert actions[8].selector == "h1"
+    assert isinstance(actions[9], ShAction)
+    assert actions[9].command == 'echo "action" > action.txt'
+    assert isinstance(actions[10], PythonAction)
+    assert actions[10].code == 'open("action-python.txt", "w").write("ok")\n'
 
 
 def test_load_storyboard_defaults_viewport():
-    storyboard = parse_storyboard(
-        """
+    storyboard = parse_storyboard("""
 output: demo.webm
 url: https://example.com/
 scenes:
 - name: Home
-"""
-    )
+""")
 
     assert storyboard.viewport_size() == {"width": 1280, "height": 720}
 
 
 def test_load_storyboard_cursor_true_uses_defaults():
-    storyboard = parse_storyboard(
-        """
+    storyboard = parse_storyboard("""
 output: demo.webm
 url: https://example.com/
 cursor: true
 scenes:
 - name: Home
-"""
-    )
+""")
 
     assert storyboard.cursor.visible is True
     assert storyboard.cursor.clicks is True
@@ -114,8 +128,7 @@ scenes:
 
 
 def test_load_storyboard_cursor_options():
-    storyboard = parse_storyboard(
-        """
+    storyboard = parse_storyboard("""
 output: demo.webm
 url: https://example.com/
 cursor:
@@ -126,8 +139,7 @@ cursor:
   click_size: 60
 scenes:
 - name: Home
-"""
-    )
+""")
 
     assert storyboard.cursor.visible is False
     assert storyboard.cursor.clicks is True

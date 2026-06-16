@@ -1,4 +1,5 @@
 import pathlib
+import sys
 from unittest.mock import patch, MagicMock
 import textwrap
 from click.testing import CliRunner
@@ -6,6 +7,7 @@ import pytest
 from shot_scraper.cli import cli
 import zipfile
 import json
+from conftest import find_free_port
 
 
 def test_version():
@@ -251,16 +253,18 @@ def test_storyboard_validation(yaml, expected):
     assert result.output == expected
 
 
-def test_storyboard_records_video(http_server):
+def test_storyboard_records_video():
     runner = CliRunner()
-    (http_server.base_dir / "index.html").write_text("""<!DOCTYPE html>
+    port = find_free_port()
+    with runner.isolated_filesystem():
+        pathlib.Path("index.html").write_text("""<!DOCTYPE html>
 <html>
 <body style="min-height: 1600px">
     <h1>Home</h1>
     <a id="more" href="/more.html">More</a>
 </body>
 </html>""")
-    (http_server.base_dir / "more.html").write_text("""<!DOCTYPE html>
+        pathlib.Path("more.html").write_text("""<!DOCTYPE html>
 <html>
 <body style="min-height: 1600px">
     <h1 id="more-heading">More information</h1>
@@ -268,16 +272,23 @@ def test_storyboard_records_video(http_server):
     <p class="ready">Ready</p>
 </body>
 </html>""")
-    with runner.isolated_filesystem():
         pathlib.Path("storyboard.yml").write_text(f"""
 output: demo.webm
-url: {http_server.base_url}/
+server:
+- {sys.executable}
+- -m
+- http.server
+- {port}
+url: http://localhost:{port}/
 cursor: true
 viewport:
   width: 640
   height: 360
 scenes:
   - name: Home
+    sh: echo "scene shell" > scene-shell.txt
+    python: |
+      open("scene-python.txt", "w").write("scene python")
     wait_for: "#shot-scraper-cursor"
     do:
       - wait_for: "#more"
@@ -300,6 +311,9 @@ scenes:
       - screenshot:
           output: heading.png
           selector: "#more-heading"
+      - sh: echo "action shell" > action-shell.txt
+      - python: |
+          open("action-python.txt", "w").write("action python")
       - scroll:
           y: 200
           duration: 0.05
@@ -319,6 +333,10 @@ scenes:
             screenshot = pathlib.Path(filename)
             assert screenshot.exists()
             assert screenshot.stat().st_size > 0
+        assert pathlib.Path("scene-shell.txt").read_text().strip() == "scene shell"
+        assert pathlib.Path("scene-python.txt").read_text() == "scene python"
+        assert pathlib.Path("action-shell.txt").read_text().strip() == "action shell"
+        assert pathlib.Path("action-python.txt").read_text() == "action python"
 
 
 @pytest.mark.parametrize(

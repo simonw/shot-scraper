@@ -24,7 +24,9 @@ from shot_scraper.storyboard import (
     OpenAction,
     PauseAction,
     PressAction,
+    PythonAction,
     ScreenshotAction,
+    ShAction,
     ScrollAction,
     StoryboardError,
     TypeAction,
@@ -501,6 +503,12 @@ def _browser_context(
 @bypass_csp_option
 @silent_option
 @http_auth_options
+@click.option(
+    "leave_server",
+    "--leave-server",
+    is_flag=True,
+    help="Leave servers running when script finishes",
+)
 def storyboard(
     storyboard_file,
     output,
@@ -517,6 +525,7 @@ def storyboard(
     silent,
     auth_username,
     auth_password,
+    leave_server,
 ):
     """
     Record a WebM video from a YAML storyboard.
@@ -550,6 +559,7 @@ def storyboard(
             silent=silent,
             auth_username=auth_username,
             auth_password=auth_password,
+            leave_server=leave_server,
         )
     except TimeoutError as e:
         raise click.ClickException(str(e))
@@ -703,27 +713,13 @@ def multi(
                     continue
                 # Run "sh" key
                 if shot.get("sh"):
-                    sh = shot["sh"]
-                    if isinstance(sh, str):
-                        subprocess.run(shot["sh"], shell=True)
-                    elif isinstance(sh, list):
-                        subprocess.run(sh)
-                    else:
-                        raise click.ClickException("- sh: must be a string or list")
+                    _run_sh_command(shot["sh"])
                 # And "python" key
                 if shot.get("python"):
-                    subprocess.run([sys.executable, "-c", shot["python"]])
+                    _run_python_code(shot["python"])
                 if "server" in shot:
                     # Start that subprocess and remember the pid
-                    server = shot["server"]
-                    proc = None
-                    if isinstance(server, str):
-                        proc = subprocess.Popen(server, shell=True)
-                    elif isinstance(server, list):
-                        proc = subprocess.Popen(map(str, server))
-                    else:
-                        raise click.ClickException("server: must be a string or list")
-                    server_processes.append((proc, server))
+                    server_processes.append(_start_server(shot["server"]))
                     time.sleep(1)
                 if "url" in shot:
                     try:
@@ -744,16 +740,8 @@ def multi(
         finally:
             context.close()
             browser_obj.close()
-            if leave_server:
-                for process, details in server_processes:
-                    click.echo(
-                        f"Leaving server PID: {process.pid} details: {details}",
-                        err=True,
-                    )
-            else:
-                if server_processes:
-                    for process, _ in server_processes:
-                        process.kill()
+            if server_processes:
+                _cleanup_servers(server_processes, leave_server)
             if har_file and not silent:
                 click.echo(f"Wrote to HAR file: {har_file}", err=True)
 
@@ -1494,6 +1482,41 @@ def _check_and_absolutize(filepath):
         return False
 
 
+def _run_sh_command(sh):
+    if isinstance(sh, str):
+        subprocess.run(sh, shell=True)
+    elif isinstance(sh, list):
+        subprocess.run(sh)
+    else:
+        raise click.ClickException("- sh: must be a string or list")
+
+
+def _run_python_code(code):
+    subprocess.run([sys.executable, "-c", code])
+
+
+def _start_server(server):
+    if isinstance(server, str):
+        proc = subprocess.Popen(server, shell=True)
+    elif isinstance(server, list):
+        proc = subprocess.Popen(map(str, server))
+    else:
+        raise click.ClickException("server: must be a string or list")
+    return proc, server
+
+
+def _cleanup_servers(server_processes, leave_server):
+    if leave_server:
+        for process, details in server_processes:
+            click.echo(
+                f"Leaving server PID: {process.pid} details: {details}",
+                err=True,
+            )
+    else:
+        for process, _ in server_processes:
+            process.kill()
+
+
 def _record_storyboard(
     storyboard_config,
     auth=None,
@@ -1509,6 +1532,7 @@ def _record_storyboard(
     silent=False,
     auth_username=None,
     auth_password=None,
+    leave_server=False,
 ):
     if skip and fail:
         raise click.ClickException("--skip and --fail cannot be used together")
@@ -1519,79 +1543,88 @@ def _record_storyboard(
 
     viewport = storyboard_config.viewport_size()
     start_url = storyboard_config.url
+    server_processes = []
 
-    with tempfile.TemporaryDirectory() as video_dir:
-        with sync_playwright() as p:
-            context, browser_obj = _browser_context(
-                p,
-                auth,
-                browser=browser,
-                browser_args=browser_args,
-                user_agent=user_agent,
-                timeout=timeout,
-                reduced_motion=reduced_motion,
-                bypass_csp=bypass_csp,
-                auth_username=auth_username,
-                auth_password=auth_password,
-                record_video_dir=video_dir,
-                record_video_size=viewport,
-            )
-            if storyboard_config.cursor and (
-                storyboard_config.cursor.visible or storyboard_config.cursor.clicks
-            ):
-                context.add_init_script(
-                    _storyboard_cursor_script(storyboard_config.cursor)
+    try:
+        if storyboard_config.server is not None:
+            server_processes.append(_start_server(storyboard_config.server))
+            time.sleep(1)
+
+        with tempfile.TemporaryDirectory() as video_dir:
+            with sync_playwright() as p:
+                context, browser_obj = _browser_context(
+                    p,
+                    auth,
+                    browser=browser,
+                    browser_args=browser_args,
+                    user_agent=user_agent,
+                    timeout=timeout,
+                    reduced_motion=reduced_motion,
+                    bypass_csp=bypass_csp,
+                    auth_username=auth_username,
+                    auth_password=auth_password,
+                    record_video_dir=video_dir,
+                    record_video_size=viewport,
                 )
-            page = context.new_page()
-            context_closed = False
-            page.set_viewport_size(viewport)
-            if log_console:
-                page.on("console", console_log)
-
-            try:
-                if not silent:
-                    click.echo(f"Recording storyboard to '{output}'", err=True)
-
-                if start_url:
-                    _storyboard_goto(
-                        page,
-                        start_url,
-                        skip=skip,
-                        fail=fail,
+                if storyboard_config.cursor and (
+                    storyboard_config.cursor.visible or storyboard_config.cursor.clicks
+                ):
+                    context.add_init_script(
+                        _storyboard_cursor_script(storyboard_config.cursor)
                     )
+                page = context.new_page()
+                context_closed = False
+                page.set_viewport_size(viewport)
+                if log_console:
+                    page.on("console", console_log)
 
-                if storyboard_config.wait is not None:
-                    _storyboard_pause(storyboard_config.wait)
-                if storyboard_config.wait_for:
-                    _storyboard_wait_for(page, storyboard_config.wait_for)
-                if storyboard_config.wait_for_url:
-                    page.wait_for_url(storyboard_config.wait_for_url)
-                if storyboard_config.javascript:
-                    _evaluate_js(page, storyboard_config.javascript)
+                try:
+                    if not silent:
+                        click.echo(f"Recording storyboard to '{output}'", err=True)
 
-                for index, scene in enumerate(storyboard_config.scenes, 1):
-                    _run_storyboard_scene(
-                        page,
-                        scene,
-                        index=index,
-                        skip=skip,
-                        fail=fail,
-                        silent=silent,
-                    )
+                    if start_url:
+                        _storyboard_goto(
+                            page,
+                            start_url,
+                            skip=skip,
+                            fail=fail,
+                        )
 
-                video = page.video
-                page.close()
-                context.close()
-                context_closed = True
-                if video is None:
-                    raise click.ClickException("Playwright did not produce a video")
-                video.save_as(output)
-            finally:
-                if not page.is_closed():
+                    if storyboard_config.wait is not None:
+                        _storyboard_pause(storyboard_config.wait)
+                    if storyboard_config.wait_for:
+                        _storyboard_wait_for(page, storyboard_config.wait_for)
+                    if storyboard_config.wait_for_url:
+                        page.wait_for_url(storyboard_config.wait_for_url)
+                    if storyboard_config.javascript:
+                        _evaluate_js(page, storyboard_config.javascript)
+
+                    for index, scene in enumerate(storyboard_config.scenes, 1):
+                        _run_storyboard_scene(
+                            page,
+                            scene,
+                            index=index,
+                            skip=skip,
+                            fail=fail,
+                            silent=silent,
+                        )
+
+                    video = page.video
                     page.close()
-                if not context_closed:
                     context.close()
-                browser_obj.close()
+                    context_closed = True
+                    if video is None:
+                        raise click.ClickException("Playwright did not produce a video")
+                    video.save_as(output)
+                finally:
+                    if not page.is_closed():
+                        page.close()
+                    if not context_closed:
+                        context.close()
+                    browser_obj.close()
+    finally:
+        if server_processes:
+            _cleanup_servers(server_processes, leave_server)
 
     if not silent:
         click.echo(f"Video written to '{output}'", err=True)
@@ -1601,6 +1634,11 @@ def _run_storyboard_scene(page, scene, index, skip=False, fail=False, silent=Fal
     name = scene.name or f"Scene {index}"
     if not silent:
         click.echo(f"Scene {index}: {name}", err=True)
+
+    if scene.sh is not None:
+        _run_sh_command(scene.sh)
+    if scene.python is not None:
+        _run_python_code(scene.python)
 
     if scene.open:
         _storyboard_goto(page, scene.open, skip=skip, fail=fail)
@@ -1652,6 +1690,10 @@ def _run_storyboard_action(
         _evaluate_js(page, action.code)
     elif isinstance(action, ScreenshotAction):
         _storyboard_screenshot(page, action)
+    elif isinstance(action, ShAction):
+        _run_sh_command(action.command)
+    elif isinstance(action, PythonAction):
+        _run_python_code(action.code)
     else:
         raise click.ClickException(
             f"Unknown storyboard action in scene {scene_index} action {action_index}"

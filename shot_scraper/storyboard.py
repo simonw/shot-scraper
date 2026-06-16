@@ -122,6 +122,16 @@ class ScreenshotAction(StoryboardBaseModel):
     full_page: bool = False
 
 
+class ShAction(StoryboardBaseModel):
+    action: Literal["sh"]
+    command: str | list[str]
+
+
+class PythonAction(StoryboardBaseModel):
+    action: Literal["python"]
+    code: str
+
+
 StoryboardAction = Annotated[
     Union[
         ClickAction,
@@ -135,6 +145,8 @@ StoryboardAction = Annotated[
         OpenAction,
         JavascriptAction,
         ScreenshotAction,
+        ShAction,
+        PythonAction,
     ],
     Field(discriminator="action"),
 ]
@@ -152,6 +164,8 @@ STORYBOARD_ACTIONS = {
     "javascript",
     "js",
     "screenshot",
+    "sh",
+    "python",
 }
 
 
@@ -160,6 +174,8 @@ class StoryboardScene(StoryboardBaseModel):
     open: str | None = None
     wait_for: str | None = None
     wait_for_url: str | None = None
+    sh: str | list[str] | None = None
+    python: str | None = None
     do: list[StoryboardAction] = Field(default_factory=list)
     hold: NonNegativeFloat | None = None
 
@@ -176,6 +192,7 @@ class StoryboardScene(StoryboardBaseModel):
 class Storyboard(StoryboardBaseModel):
     output: str | None = None
     url: str | None = None
+    server: str | list[str | int] | None = None
     viewport: StoryboardViewport = Field(default_factory=StoryboardViewport)
     cursor: CursorOptions | None = None
     width: PositiveInt | None = None
@@ -276,6 +293,16 @@ def _normalize_storyboard_action(action):
         if isinstance(value, dict):
             return {"action": "screenshot", **value}
         raise ValueError("screenshot: must be an output string or mapping")
+
+    if action_name == "sh":
+        if isinstance(value, (str, list)):
+            return {"action": "sh", "command": value}
+        raise ValueError("sh: must be a string or list")
+
+    if action_name == "python":
+        if isinstance(value, str):
+            return {"action": "python", "code": value}
+        raise ValueError("python: must be a string")
 
 
 def _format_storyboard_validation_error(validation_error):
