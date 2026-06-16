@@ -536,6 +536,10 @@ def video(
 
     The storyboard file should define output, url and scenes. Use -o to
     override the output filename from the YAML file.
+
+    \b
+    For full YAML syntax documentation, see:
+    https://shot-scraper.datasette.io/en/stable/video.html
     """
     try:
         storyboard_config = load_storyboard(storyboard_file)

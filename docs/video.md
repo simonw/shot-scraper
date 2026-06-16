@@ -526,6 +526,9 @@ Usage: shot-scraper video [OPTIONS] STORYBOARD_FILE
   The storyboard file should define output, url and scenes. Use -o to override
   the output filename from the YAML file.
 
+  For full YAML syntax documentation, see:
+  https://shot-scraper.datasette.io/en/stable/video.html
+
 Options:
   -o, --output FILE               Output video filename (.webm), overriding
                                   output: in the storyboard
