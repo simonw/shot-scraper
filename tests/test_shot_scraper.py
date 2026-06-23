@@ -540,9 +540,9 @@ def test_multi_har(http_server, args, expect_zip, record_shots):
     with runner.isolated_filesystem():
         pathlib.Path("shots.yml").write_text(
             f"- url: {http_server.base_url}/\n"
-            + (f"  output: index.png\n" if record_shots else "")
+            + ("  output: index.png\n" if record_shots else "")
             + f"- url: {http_server.base_url}/two.html\n"
-            + (f"  output: two.png\n" if record_shots else "")
+            + ("  output: two.png\n" if record_shots else "")
         )
         # Should be no files
         here = pathlib.Path(".")
