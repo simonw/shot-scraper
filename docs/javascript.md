@@ -22,6 +22,18 @@ Output:
 ```
 Datasette: An open source multi-tool for exploring and publishing data
 ```
+
+## Setting the browser viewport
+
+The page used to run JavaScript defaults to a 1280x720 viewport. You can change that using `--width` and `--height`:
+
+```bash
+shot-scraper javascript https://datasette.io/ \
+  --width 390 \
+  --height 844 \
+  "({width: window.innerWidth, height: window.innerHeight})"
+```
+
 To return a JSON object, wrap an object literal in parenthesis:
 ```bash
 shot-scraper javascript https://datasette.io/ "({
@@ -231,6 +243,8 @@ Options:
                                   github.com/username/shot-scraper-
                                   scripts/script.js
   -a, --auth FILENAME             Path to JSON authentication context file
+  -w, --width INTEGER             Width of browser window, defaults to 1280
+  -h, --height INTEGER            Height of browser window, defaults to 720
   -o, --output FILENAME           Save output JSON to this file
   -r, --raw                       Output JSON strings as raw text
   -b, --browser [chromium|firefox|webkit|chrome|chrome-beta]

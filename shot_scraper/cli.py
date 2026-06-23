@@ -948,6 +948,19 @@ def _extract_har_entry(entry, extract_dir, existing_files, file_exists_fn, zip_f
     help="Path to JSON authentication context file",
 )
 @click.option(
+    "-w",
+    "--width",
+    type=int,
+    help="Width of browser window, defaults to 1280",
+    default=1280,
+)
+@click.option(
+    "-h",
+    "--height",
+    type=int,
+    help="Height of browser window, defaults to 720",
+)
+@click.option(
     "-o",
     "--output",
     type=click.File("w"),
@@ -973,6 +986,8 @@ def javascript(
     javascript,
     input,
     auth,
+    width,
+    height,
     output,
     raw,
     browser,
@@ -1042,6 +1057,9 @@ def javascript(
         page = context.new_page()
         if log_console:
             page.on("console", console_log)
+        viewport = _get_viewport(width, height)
+        if viewport:
+            page.set_viewport_size(viewport)
         response = page.goto(url)
         skip_or_fail(response, skip, fail)
         result = _evaluate_js(page, javascript)

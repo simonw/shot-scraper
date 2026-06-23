@@ -133,6 +133,26 @@ def test_javascript(args, expected):
         assert result.output == expected
 
 
+def test_javascript_width_height():
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        open("index.html", "w").write(TEST_HTML)
+        result = runner.invoke(
+            cli,
+            [
+                "javascript",
+                "index.html",
+                "--width",
+                "555",
+                "--height",
+                "444",
+                "({width: window.innerWidth, height: window.innerHeight})",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        assert json.loads(result.output) == {"width": 555, "height": 444}
+
+
 def test_javascript_input_file():
     runner = CliRunner()
     with runner.isolated_filesystem():
@@ -312,9 +332,9 @@ def test_multi_har(http_server, args, expect_zip, record_shots):
     with runner.isolated_filesystem():
         pathlib.Path("shots.yml").write_text(
             f"- url: {http_server.base_url}/\n"
-            + (f"  output: index.png\n" if record_shots else "")
+            + ("  output: index.png\n" if record_shots else "")
             + f"- url: {http_server.base_url}/two.html\n"
-            + (f"  output: two.png\n" if record_shots else "")
+            + ("  output: two.png\n" if record_shots else "")
         )
         # Should be no files
         here = pathlib.Path(".")
