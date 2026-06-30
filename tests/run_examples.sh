@@ -176,7 +176,7 @@ shot-scraper multi empty.yml
   output: from-server.png
 ' | shot-scraper multi - --fail)
 # --bypass-csp
-shot-scraper javascript github.com "async () => { await import('https://cdn.jsdelivr.net/npm/left-pad/+esm'); return 'content-security-policy ignored' }" -o examples/github-csp.json --bypass-csp
+shot-scraper javascript github.com "async () => { await import('data:text/javascript,export default 1'); return 'content-security-policy ignored' }" -o examples/github-csp.json --bypass-csp
 # --retina
 shot-scraper https://simonwillison.net/ -h 400 -w 800 \
   -o examples/simonwillison-retina.png --retina
