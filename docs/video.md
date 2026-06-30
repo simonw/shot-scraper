@@ -111,7 +111,7 @@ A storyboard file is a YAML mapping with these keys:
 If a `sh:` or `python:` command exits with a non-zero status, `shot-scraper video` stops and exits with an error.
 
 `server`
-: Optional command to run as a server for the duration of the storyboard recording. This can be a string, which is run through the shell, or a list of arguments, which is run directly. See [Running a server for the duration of the storyboard](#running-a-server-for-the-duration-of-the-storyboard) for more details.
+: Optional command to run as a server for the duration of the storyboard recording. This can be a string, which is run through the shell, or a list of arguments, which is run directly. See {ref}`Running a server for the duration of the storyboard<video-server>` for more details.
 
   ```yaml
   server: python -m http.server 8000
@@ -220,6 +220,8 @@ cursor:
 
 `visible` controls whether the cursor dot is shown. `clicks` controls whether click rings are shown. `color` is any CSS color value. `size` is the cursor dot diameter in pixels. `click_size` is the click ring diameter in pixels. Set `visible: false` to show click rings without the cursor dot.
 
+(video-server)=
+
 ## Running a server for the duration of the storyboard
 
 If you need to run a server for the duration of the `shot-scraper video` session, specify it using `server:`:
@@ -316,7 +318,7 @@ Each scene can use these keys:
   ```
 
 `do`
-: A list of actions to run. Actions run in the order listed, after `sh:`, `python:`, `open:`, `wait_for:` and `wait_for_url:` for the scene. Use a `pause` action at the end of this list to keep recording the final frame for a moment.
+: A list of {ref}`actions<video-actions>` to run. Actions run in the order listed, after `sh:`, `python:`, `open:`, `wait_for:` and `wait_for_url:` for the scene. Use a `pause` action at the end of this list to keep recording the final frame for a moment.
 
   ```yaml
   do:
@@ -420,6 +422,8 @@ scenes:
 ```
 
 There is no scene-level `javascript:` key. To run page JavaScript during a scene, put it inside the scene's `do:` list.
+
+(video-actions)=
 
 ## Actions
 
