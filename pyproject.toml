@@ -12,7 +12,8 @@ authors = [
 dependencies = [
     "click",
     "PyYAML",
-    "playwright",
+    "pydantic",
+    "playwright>=1.61.0",
     "click-default-group",
 ]
 

@@ -24,6 +24,7 @@ screenshots
 authentication
 multi
 javascript
+video
 pdf
 html
 har

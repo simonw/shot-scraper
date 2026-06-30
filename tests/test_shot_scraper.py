@@ -1,11 +1,15 @@
 import pathlib
+import sys
+from types import SimpleNamespace
 from unittest.mock import patch, MagicMock
 import textwrap
 from click.testing import CliRunner
 import pytest
+import shot_scraper.cli as cli_module
 from shot_scraper.cli import cli
 import zipfile
 import json
+from conftest import find_free_port
 
 
 def test_version():
@@ -65,6 +69,37 @@ def test_multi_commands():
         assert open("index.html").read().strip() == "HELLO WORLD"
 
 
+@pytest.mark.parametrize(
+    ("yaml", "expected"),
+    (
+        (
+            """
+- sh: exit 3
+- sh: touch should-not-run
+""".strip(),
+            "Error: sh command exited with status 3\n",
+        ),
+        (
+            """
+- python: |
+    raise SystemExit(4)
+- sh: touch should-not-run
+""".strip(),
+            "Error: python code exited with status 4\n",
+        ),
+    ),
+)
+def test_multi_commands_fail_on_non_zero_exit(yaml, expected):
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        yaml_file = "commands.yaml"
+        open(yaml_file, "w").write(yaml)
+        result = runner.invoke(cli, ["multi", yaml_file])
+        assert result.exit_code == 1
+        assert result.output == expected
+        assert not pathlib.Path("should-not-run").exists()
+
+
 @pytest.mark.parametrize("input", ("key: value", "This is a string", "3.55"))
 def test_multi_error_on_non_list(input):
     runner = CliRunner()
@@ -85,14 +120,12 @@ def test_multi_noclobber(mocker, args, expected_shot_count):
     take_shot = mocker.patch("shot_scraper.cli.take_shot")
     runner = CliRunner()
     with runner.isolated_filesystem():
-        yaml = textwrap.dedent(
-            """
+        yaml = textwrap.dedent("""
         - url: https://www.example.com/
           output: example.jpg
         - url: https://www.google.com/
           output: google.jpg
-        """
-        ).strip()
+        """).strip()
         open("shots.yaml", "w").write(yaml)
         open("example.jpg", "wb").write(b"")
         result = runner.invoke(cli, ["multi", "shots.yaml"] + args, input=yaml)
@@ -226,6 +259,472 @@ def test_html(args, expected):
         assert result.exit_code == 0, result.output
         # Whitespace is not preserved
         assert result.output.replace("\n", "") == expected.replace("\n", "")
+
+
+@pytest.mark.parametrize(
+    "yaml,expected",
+    (
+        ("", "Error: Storyboard YAML file cannot be empty\n"),
+        ("- output: demo.webm", "Error: Storyboard YAML file must contain a mapping\n"),
+        (
+            "url: https://example.com/\nscenes:\n- name: one\n",
+            "Error: Storyboard must define output: or use --output\n",
+        ),
+        (
+            "output: demo.webm\nurl: https://example.com/\n",
+            "Error: Storyboard must define a non-empty scenes: list\n",
+        ),
+        (
+            "output: demo.webm\nscenes:\n- name: one\n",
+            "Error: Storyboard must define url: or open: in the first scene\n",
+        ),
+        (
+            """output: demo.webm
+url: https://example.com/
+scenes:
+- do:
+  - fill:
+      into: "#q"
+""",
+            "Error: scenes.0.do.0.fill.text: Field required\n",
+        ),
+        (
+            """output: demo.webm
+url: https://example.com/
+scenes:
+- name: one
+  banana: true
+""",
+            "Error: scenes.0.banana: Extra inputs are not permitted\n",
+        ),
+    ),
+)
+def test_video_validation(yaml, expected):
+    runner = CliRunner()
+    result = runner.invoke(cli, ["video", "-"], input=yaml)
+    assert result.exit_code == 1
+    assert result.output == expected
+
+
+def test_video_help_documents_storyboard_format():
+    runner = CliRunner()
+    result = runner.invoke(cli, ["video", "--help"])
+    assert result.exit_code == 0
+    assert "Example storyboard.yml:" in result.output
+    assert (
+        "      output: demo.webm\n"
+        "      url: https://shot-scraper.datasette.io/en/stable/"
+    ) in result.output
+    assert "      - name: Open installation docs" in result.output
+    assert (
+        "        - click: \".sidebar-tree a[href='installation.html']\""
+        in result.output
+    )
+    assert "        - wait_for: 'h1:has-text(\"Installation\")'" in result.output
+    assert "      - name: Search the docs" in result.output
+    assert '        - click: "input.sidebar-search"' in result.output
+    assert "Top-level YAML keys:" in result.output
+    assert "Scene YAML keys:" in result.output
+    assert "Actions for a scene's do: list:" in result.output
+    assert '      - click: "selector"' in result.output
+    assert (
+        '      - type: {into: "selector", text: "value", delay_ms: 25}' in result.output
+    )
+    assert "  --mp4" in result.output
+    assert "\b" not in result.output
+
+
+def test_video_records_video():
+    runner = CliRunner()
+    port = find_free_port()
+    with runner.isolated_filesystem():
+        pathlib.Path("index.html").write_text("""<!DOCTYPE html>
+<html>
+<body style="min-height: 1600px">
+    <h1>Home</h1>
+    <a id="more" href="/more.html">More</a>
+</body>
+</html>""")
+        pathlib.Path("more.html").write_text("""<!DOCTYPE html>
+<html>
+<body style="min-height: 1600px">
+    <h1 id="more-heading">More information</h1>
+    <input id="search">
+    <p class="ready">Ready</p>
+</body>
+</html>""")
+        pathlib.Path("storyboard.yml").write_text(f"""
+output: demo.webm
+server:
+- {sys.executable}
+- -m
+- http.server
+- {port}
+url: http://localhost:{port}/
+cursor: true
+viewport:
+  width: 640
+  height: 360
+scenes:
+  - name: Home
+    sh: echo "scene shell" > scene-shell.txt
+    python: |
+      open("scene-python.txt", "w").write("scene python")
+    wait_for: "#shot-scraper-cursor"
+    do:
+      - wait_for: "#more"
+      - pause: 0.1
+  - name: Details
+    do:
+      - click: "#more"
+      - wait_for: "#more-heading"
+      - fill:
+          into: "#search"
+          text: "shot-scraper"
+      - press:
+          selector: "#search"
+          key: "Control+A"
+      - type:
+          into: "#search"
+          text: "storyboard"
+          delay_ms: 5
+      - screenshot: details.png
+      - screenshot:
+          output: heading.png
+          selector: "#more-heading"
+      - sh: echo "action shell" > action-shell.txt
+      - python: |
+          open("action-python.txt", "w").write("action python")
+      - scroll:
+          y: 200
+          duration: 0.05
+      - js: document.body.dataset.storyboard = "yes"
+      - pause: 0.1
+""".strip())
+        result = runner.invoke(cli, ["video", "storyboard.yml"])
+        assert result.exit_code == 0, result.output
+        assert "Recording video to 'demo.webm'" in result.output
+        assert "Scene 1: Home" in result.output
+        assert "Scene 2: Details" in result.output
+        assert "Video written to 'demo.webm'" in result.output
+        video = pathlib.Path("demo.webm")
+        assert video.exists()
+        assert video.stat().st_size > 0
+        for filename in ("details.png", "heading.png"):
+            screenshot = pathlib.Path(filename)
+            assert screenshot.exists()
+            assert screenshot.stat().st_size > 0
+        assert pathlib.Path("scene-shell.txt").read_text().strip() == "scene shell"
+        assert pathlib.Path("scene-python.txt").read_text() == "scene python"
+        assert pathlib.Path("action-shell.txt").read_text().strip() == "action shell"
+        assert pathlib.Path("action-python.txt").read_text() == "action python"
+
+
+@pytest.mark.parametrize(
+    ("output_filename", "mp4_filename"),
+    (
+        ("demo.webm", "demo.mp4"),
+        ("recording.video", "recording.mp4"),
+        ("demo", "demo.mp4"),
+    ),
+)
+def test_video_mp4_converts_webm_after_recording(mocker, output_filename, mp4_filename):
+    runner = CliRunner()
+    events = []
+
+    def record_storyboard(storyboard_config, **kwargs):
+        events.append(("record", storyboard_config.output))
+        pathlib.Path(storyboard_config.output).write_bytes(b"webm")
+
+    def run_ffmpeg(args, **kwargs):
+        events.append(("ffmpeg", args, kwargs))
+        assert pathlib.Path(args[3]).exists()
+        pathlib.Path(args[-1]).write_bytes(b"mp4")
+        return cli_module.subprocess.CompletedProcess(args, 0)
+
+    mocker.patch.object(cli_module, "_record_storyboard", side_effect=record_storyboard)
+    mocker.patch.object(cli_module.subprocess, "run", side_effect=run_ffmpeg)
+
+    with runner.isolated_filesystem():
+        pathlib.Path("storyboard.yml").write_text("""
+output: {output_filename}
+url: https://example.com/
+scenes:
+- name: One
+  do:
+  - pause: 0.1
+""".format(output_filename=output_filename).strip())
+        result = runner.invoke(cli, ["video", "storyboard.yml", "--mp4"])
+
+        assert result.exit_code == 0, result.output
+        assert pathlib.Path(output_filename).read_bytes() == b"webm"
+        assert pathlib.Path(mp4_filename).read_bytes() == b"mp4"
+        assert events == [
+            ("record", output_filename),
+            (
+                "ffmpeg",
+                [
+                    "ffmpeg",
+                    "-y",
+                    "-i",
+                    output_filename,
+                    "-c:v",
+                    "libx264",
+                    "-pix_fmt",
+                    "yuv420p",
+                    "-movflags",
+                    "+faststart",
+                    mp4_filename,
+                ],
+                {"check": True, "capture_output": True, "text": True},
+            ),
+        ]
+        assert f"MP4 written to '{mp4_filename}'" in result.output
+
+
+def test_video_mp4_missing_ffmpeg_leaves_webm(mocker):
+    runner = CliRunner()
+
+    def record_storyboard(storyboard_config, **kwargs):
+        pathlib.Path(storyboard_config.output).write_bytes(b"webm")
+
+    mocker.patch.object(cli_module, "_record_storyboard", side_effect=record_storyboard)
+    mocker.patch.object(
+        cli_module.subprocess,
+        "run",
+        side_effect=FileNotFoundError("ffmpeg"),
+    )
+
+    with runner.isolated_filesystem():
+        pathlib.Path("storyboard.yml").write_text("""
+output: demo.webm
+url: https://example.com/
+scenes:
+- name: One
+  do:
+  - pause: 0.1
+""".strip())
+        result = runner.invoke(cli, ["video", "storyboard.yml", "--mp4"])
+
+        assert result.exit_code == 1
+        assert pathlib.Path("demo.webm").read_bytes() == b"webm"
+        assert not pathlib.Path("demo.mp4").exists()
+        assert (
+            "Error: WebM was created, but MP4 conversion failed: ffmpeg is not "
+            "installed or not on PATH\n"
+        ) in result.output
+
+
+def test_video_starts_screencast_after_initial_navigation(mocker):
+    events = []
+
+    class FakeScreencast:
+        def start(self, path, size):
+            events.append(("start", path, size))
+
+        def stop(self):
+            events.append("stop")
+
+    class FakePage:
+        screencast = FakeScreencast()
+
+        def __init__(self):
+            self.closed = False
+
+        def set_viewport_size(self, viewport):
+            events.append(("viewport", viewport))
+
+        def is_closed(self):
+            return self.closed
+
+        def close(self):
+            events.append("page.close")
+            self.closed = True
+
+    class FakeContext:
+        def __init__(self, page):
+            self.page = page
+
+        def new_page(self):
+            return self.page
+
+        def close(self):
+            events.append("context.close")
+
+    class FakeBrowser:
+        def close(self):
+            events.append("browser.close")
+
+    class FakePlaywright:
+        def __enter__(self):
+            return object()
+
+        def __exit__(self, exc_type, exc, tb):
+            pass
+
+    fake_page = FakePage()
+    fake_context = FakeContext(fake_page)
+    fake_browser = FakeBrowser()
+    browser_context = mocker.patch.object(
+        cli_module,
+        "_browser_context",
+        return_value=(fake_context, fake_browser),
+    )
+    mocker.patch.object(cli_module, "sync_playwright", return_value=FakePlaywright())
+    mocker.patch.object(
+        cli_module,
+        "_storyboard_goto",
+        side_effect=lambda *args, **kwargs: events.append("goto"),
+    )
+    mocker.patch.object(
+        cli_module,
+        "_run_storyboard_scene",
+        side_effect=lambda *args, **kwargs: events.append("scene"),
+    )
+
+    storyboard_config = SimpleNamespace(
+        output="demo.webm",
+        url="https://example.com/",
+        sh=None,
+        python=None,
+        server=None,
+        cursor=None,
+        wait=None,
+        wait_for=None,
+        wait_for_url=None,
+        javascript=None,
+        scenes=[SimpleNamespace(name="Scene")],
+        viewport_size=lambda: {"width": 640, "height": 360},
+    )
+
+    cli_module._record_storyboard(storyboard_config, silent=True)
+
+    assert events[:4] == [
+        ("viewport", {"width": 640, "height": 360}),
+        "goto",
+        ("start", "demo.webm", {"width": 640, "height": 360}),
+        "scene",
+    ]
+    assert "stop" in events
+    assert browser_context.call_args.kwargs["viewport"] == {
+        "width": 640,
+        "height": 360,
+    }
+
+
+def test_video_runs_top_level_setup_before_server(mocker):
+    events = []
+
+    class FakeScreencast:
+        def start(self, path, size):
+            events.append(("start", path, size))
+
+        def stop(self):
+            events.append("stop")
+
+    class FakePage:
+        screencast = FakeScreencast()
+
+        def __init__(self):
+            self.closed = False
+
+        def set_viewport_size(self, viewport):
+            events.append(("viewport", viewport))
+
+        def is_closed(self):
+            return self.closed
+
+        def close(self):
+            events.append("page.close")
+            self.closed = True
+
+    class FakeContext:
+        def __init__(self, page):
+            self.page = page
+
+        def new_page(self):
+            return self.page
+
+        def close(self):
+            events.append("context.close")
+
+    class FakeBrowser:
+        def close(self):
+            events.append("browser.close")
+
+    class FakePlaywright:
+        def __enter__(self):
+            return object()
+
+        def __exit__(self, exc_type, exc, tb):
+            pass
+
+    class FakeServerProcess:
+        def kill(self):
+            events.append("server.kill")
+
+    fake_page = FakePage()
+    fake_context = FakeContext(fake_page)
+    fake_browser = FakeBrowser()
+    mocker.patch.object(
+        cli_module,
+        "_browser_context",
+        return_value=(fake_context, fake_browser),
+    )
+    mocker.patch.object(cli_module, "sync_playwright", return_value=FakePlaywright())
+    mocker.patch.object(
+        cli_module,
+        "_run_sh_command",
+        side_effect=lambda command: events.append(("sh", command)),
+    )
+    mocker.patch.object(
+        cli_module,
+        "_run_python_code",
+        side_effect=lambda code: events.append(("python", code)),
+    )
+    mocker.patch.object(
+        cli_module,
+        "_start_server",
+        side_effect=lambda server: (
+            events.append(("server", server)) or (FakeServerProcess(), server)
+        ),
+    )
+    mocker.patch.object(
+        cli_module.time,
+        "sleep",
+        side_effect=lambda seconds: events.append(("sleep", seconds)),
+    )
+    mocker.patch.object(
+        cli_module,
+        "_run_storyboard_scene",
+        side_effect=lambda *args, **kwargs: events.append("scene"),
+    )
+
+    storyboard_config = SimpleNamespace(
+        output="demo.webm",
+        url=None,
+        sh="setup shell",
+        python="setup python",
+        server="serve",
+        cursor=None,
+        wait=None,
+        wait_for=None,
+        wait_for_url=None,
+        javascript=None,
+        scenes=[SimpleNamespace(name="Scene")],
+        viewport_size=lambda: {"width": 640, "height": 360},
+    )
+
+    cli_module._record_storyboard(storyboard_config, silent=True)
+
+    assert events[:4] == [
+        ("sh", "setup shell"),
+        ("python", "setup python"),
+        ("server", "serve"),
+        ("sleep", 1),
+    ]
+    assert "scene" in events
+    assert events[-1] == "server.kill"
 
 
 @pytest.mark.parametrize(
@@ -385,16 +884,14 @@ def test_har_extract(http_server, args, expect_zip):
     (http_server.base_dir / "style.css").write_text("body { color: red; }")
     (http_server.base_dir / "script.js").write_text("console.log('hello');")
     # Create an HTML file that references the CSS and JS
-    (http_server.base_dir / "page.html").write_text(
-        """<!DOCTYPE html>
+    (http_server.base_dir / "page.html").write_text("""<!DOCTYPE html>
 <html>
 <head>
     <link rel="stylesheet" href="style.css">
     <script src="script.js"></script>
 </head>
 <body>Hello</body>
-</html>"""
-    )
+</html>""")
     with runner.isolated_filesystem():
         here = pathlib.Path(".")
         result = runner.invoke(cli, ["har", f"{http_server.base_url}/page.html"] + args)
@@ -438,7 +935,14 @@ def test_har_extract_filenames(http_server):
     with runner.isolated_filesystem():
         here = pathlib.Path(".")
         result = runner.invoke(
-            cli, ["har", f"{http_server.base_url}/loader.html", "--extract", "-o", "test.har"]
+            cli,
+            [
+                "har",
+                f"{http_server.base_url}/loader.html",
+                "--extract",
+                "-o",
+                "test.har",
+            ],
         )
         assert result.exit_code == 0, result.output
 
@@ -449,18 +953,29 @@ def test_har_extract_filenames(http_server):
         assert len(extracted_files) >= 1
         # The /api/data.json file should be extracted with derived name
         file_names = [f.name for f in extracted_files]
-        assert any("api-data" in name for name in file_names), f"Expected api-data in {file_names}"
+        assert any(
+            "api-data" in name for name in file_names
+        ), f"Expected api-data in {file_names}"
 
 
 def test_har_extract_content_type_extension(http_server):
     """Test that extracted files have correct extension based on content-type."""
     runner = CliRunner()
     # Create an HTML file that will be served with text/html content-type
-    (http_server.base_dir / "test-page.html").write_text("<html><body>Test page</body></html>")
+    (http_server.base_dir / "test-page.html").write_text(
+        "<html><body>Test page</body></html>"
+    )
     with runner.isolated_filesystem():
         here = pathlib.Path(".")
         result = runner.invoke(
-            cli, ["har", f"{http_server.base_url}/test-page.html", "--extract", "-o", "test.har"]
+            cli,
+            [
+                "har",
+                f"{http_server.base_url}/test-page.html",
+                "--extract",
+                "-o",
+                "test.har",
+            ],
         )
         assert result.exit_code == 0, result.output
 
@@ -469,4 +984,6 @@ def test_har_extract_content_type_extension(http_server):
 
         # The file should have .html extension based on content-type text/html
         html_files = list(extract_dir.glob("*.html"))
-        assert len(html_files) >= 1, f"Should have .html file, got: {list(extract_dir.glob('*'))}"
+        assert (
+            len(html_files) >= 1
+        ), f"Should have .html file, got: {list(extract_dir.glob('*'))}"

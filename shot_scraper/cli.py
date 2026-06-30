@@ -7,6 +7,7 @@ import time
 import json
 import os
 import pathlib
+import urllib.parse
 import zipfile
 from runpy import run_module
 from click_default_group import DefaultGroup
@@ -15,6 +16,23 @@ import click
 from playwright.sync_api import sync_playwright, Error, TimeoutError
 
 
+from shot_scraper.video import (
+    ClickAction,
+    FillAction,
+    JavascriptAction,
+    OpenAction,
+    PauseAction,
+    PressAction,
+    PythonAction,
+    ScreenshotAction,
+    ShAction,
+    ScrollAction,
+    StoryboardError,
+    TypeAction,
+    WaitForAction,
+    WaitForUrlAction,
+    load_storyboard,
+)
 from shot_scraper.utils import (
     filename_for_url,
     filename_for_har_entry,
@@ -408,6 +426,9 @@ def _browser_context(
     auth_username=None,
     auth_password=None,
     record_har_path=None,
+    record_video_dir=None,
+    record_video_size=None,
+    viewport=None,
 ):
     # Playwright 1.58 removed the `devtools` launch option. Emulate the
     # previous behavior for Chromium by passing the corresponding flag.
@@ -444,10 +465,240 @@ def _browser_context(
         }
     if record_har_path:
         context_args["record_har_path"] = record_har_path
+    if record_video_dir:
+        context_args["record_video_dir"] = record_video_dir
+    if record_video_size:
+        context_args["record_video_size"] = record_video_size
+    if viewport:
+        context_args["viewport"] = viewport
     context = browser_obj.new_context(**context_args)
     if timeout:
         context.set_default_timeout(timeout)
     return context, browser_obj
+
+
+@cli.command()
+@click.argument("storyboard_file", type=click.File(mode="r"))
+@click.option(
+    "-o",
+    "--output",
+    type=click.Path(file_okay=True, writable=True, dir_okay=False, allow_dash=False),
+    help="Output video filename (.webm), overriding output: in the storyboard",
+)
+@click.option(
+    "-a",
+    "--auth",
+    type=click.File("r"),
+    help="Path to JSON authentication context file",
+)
+@click.option(
+    "--timeout",
+    type=int,
+    help="Wait this many milliseconds before failing",
+)
+@browser_option
+@browser_args_option
+@user_agent_option
+@reduced_motion_option
+@log_console_option
+@skip_fail_options
+@bypass_csp_option
+@silent_option
+@http_auth_options
+@click.option(
+    "leave_server",
+    "--leave-server",
+    is_flag=True,
+    help="Leave servers running when script finishes",
+)
+@click.option(
+    "--mp4",
+    is_flag=True,
+    help="Also convert the recorded WebM video to MP4 using ffmpeg",
+)
+def video(
+    storyboard_file,
+    output,
+    auth,
+    timeout,
+    browser,
+    browser_args,
+    user_agent,
+    reduced_motion,
+    log_console,
+    skip,
+    fail,
+    bypass_csp,
+    silent,
+    auth_username,
+    auth_password,
+    leave_server,
+    mp4,
+):
+    """
+    Record a WebM video from a YAML storyboard.
+
+    Common usage:
+
+    \b
+        shot-scraper video storyboard.yml
+        shot-scraper video storyboard.yml -o demo.webm --mp4
+
+    A storyboard is a YAML mapping with an output filename, a starting URL (or
+    an opening scene), and a list of scenes. Each scene can wait, run commands,
+    run browser actions, and pause between steps.
+
+    Example storyboard.yml:
+
+    \b
+        output: demo.webm
+        url: https://shot-scraper.datasette.io/en/stable/
+        viewport:
+          width: 1280
+          height: 720
+        cursor: true
+        wait_for: "text=Quick start"
+        scenes:
+        - name: Documentation home
+          do:
+          - pause: 1
+        - name: Open installation docs
+          do:
+          - click: ".sidebar-tree a[href='installation.html']"
+          - wait_for: 'h1:has-text("Installation")'
+          - screenshot: installation.png
+          - pause: 1
+        - name: Search the docs
+          do:
+          - click: "input.sidebar-search"
+          - type:
+              into: "input.sidebar-search"
+              text: "authentication"
+              delay_ms: 25
+          - press:
+              selector: "input.sidebar-search"
+              key: Enter
+          - wait_for: "text=Search Results"
+          - pause: 2
+
+    Top-level YAML keys:
+
+    \b
+        output: WebM filename. -o/--output overrides this. With --mp4, an MP4
+          is also written using the same filename with the suffix replaced by
+          .mp4.
+        url: Starting URL, bare domain, or local HTML path. Omit this only if
+          the first scene has open:.
+        sh: Shell command string or argument list to run before python: and
+          server:.
+        python: Python code to run after sh: and before server:.
+        server: Optional command string or argument list to run while recording.
+        viewport: Mapping with width: and height:. Defaults to 1280 by 720.
+        cursor: true, false, or a mapping with visible, clicks, color, size and
+          click_size.
+        wait: Seconds to pause after the starting page loads.
+        wait_for: Selector or Playwright text selector to wait for.
+        wait_for_url: URL pattern to wait for.
+        javascript: JavaScript to run before scene recording starts.
+        scenes: Required list of scenes.
+
+    Scene YAML keys:
+
+    \b
+        name: Label shown in progress output.
+        open: URL/path to open at the start of this scene.
+        wait_for: Selector to wait for.
+        wait_for_url: URL pattern to wait for.
+        sh: Shell command string or argument list to run before actions.
+        python: Python code to run before actions.
+        do: List of browser/page actions.
+
+    Actions for a scene's do: list:
+
+    \b
+        - click: "selector"
+        - click: {selector: "selector", button: right, count: 2}
+        - fill: {into: "selector", text: "value"}
+        - type: {into: "selector", text: "value", delay_ms: 25}
+        - press: {selector: "selector", key: "ControlOrMeta+A"}
+        - scroll: {x: 0, y: 500, duration: 0.5}
+        - scroll: {to: "selector", duration: 0.5}
+        - pause: 1.5
+        - wait_for: "selector"
+        - wait_for_url: "**/finished"
+        - open: "installation.html"
+        - js: "document.body.dataset.demo = '1'"
+        - screenshot: output.png
+        - screenshot: {output: heading.png, selector: "h1"}
+        - sh: "echo scene > scene.txt"
+        - python: "open('scene.txt', 'w').write('ok')"
+
+    \b
+    For full YAML syntax documentation, see:
+    https://shot-scraper.datasette.io/en/stable/video.html
+    """
+    try:
+        storyboard_config = load_storyboard(storyboard_file)
+    except StoryboardError as ex:
+        raise click.ClickException(str(ex))
+    if output:
+        storyboard_config = storyboard_config.model_copy(update={"output": output})
+    try:
+        _record_storyboard(
+            storyboard_config,
+            auth=auth,
+            timeout=timeout,
+            browser=browser,
+            browser_args=browser_args,
+            user_agent=user_agent,
+            reduced_motion=reduced_motion,
+            log_console=log_console,
+            skip=skip,
+            fail=fail,
+            bypass_csp=bypass_csp,
+            silent=silent,
+            auth_username=auth_username,
+            auth_password=auth_password,
+            leave_server=leave_server,
+        )
+        if mp4:
+            _convert_video_to_mp4(storyboard_config.output, silent=silent)
+    except TimeoutError as e:
+        raise click.ClickException(str(e))
+
+
+def _convert_video_to_mp4(output, silent=False):
+    mp4_output = str(pathlib.Path(output).with_suffix(".mp4"))
+    args = [
+        "ffmpeg",
+        "-y",
+        "-i",
+        output,
+        "-c:v",
+        "libx264",
+        "-pix_fmt",
+        "yuv420p",
+        "-movflags",
+        "+faststart",
+        mp4_output,
+    ]
+    try:
+        subprocess.run(args, check=True, capture_output=True, text=True)
+    except FileNotFoundError:
+        raise click.ClickException(
+            "WebM was created, but MP4 conversion failed: ffmpeg is not installed "
+            "or not on PATH"
+        )
+    except subprocess.CalledProcessError as ex:
+        reason = (ex.stderr or ex.stdout or "").strip()
+        if not reason:
+            reason = f"ffmpeg exited with status {ex.returncode}"
+        raise click.ClickException(
+            f"WebM was created, but MP4 conversion failed: {reason}"
+        )
+    if not silent:
+        click.echo(f"MP4 written to '{mp4_output}'", err=True)
+    return mp4_output
 
 
 @cli.command()
@@ -598,27 +849,13 @@ def multi(
                     continue
                 # Run "sh" key
                 if shot.get("sh"):
-                    sh = shot["sh"]
-                    if isinstance(sh, str):
-                        subprocess.run(shot["sh"], shell=True)
-                    elif isinstance(sh, list):
-                        subprocess.run(sh)
-                    else:
-                        raise click.ClickException("- sh: must be a string or list")
+                    _run_sh_command(shot["sh"])
                 # And "python" key
                 if shot.get("python"):
-                    subprocess.run([sys.executable, "-c", shot["python"]])
+                    _run_python_code(shot["python"])
                 if "server" in shot:
                     # Start that subprocess and remember the pid
-                    server = shot["server"]
-                    proc = None
-                    if isinstance(server, str):
-                        proc = subprocess.Popen(server, shell=True)
-                    elif isinstance(server, list):
-                        proc = subprocess.Popen(map(str, server))
-                    else:
-                        raise click.ClickException("server: must be a string or list")
-                    server_processes.append((proc, server))
+                    server_processes.append(_start_server(shot["server"]))
                     time.sleep(1)
                 if "url" in shot:
                     try:
@@ -639,16 +876,8 @@ def multi(
         finally:
             context.close()
             browser_obj.close()
-            if leave_server:
-                for process, details in server_processes:
-                    click.echo(
-                        f"Leaving server PID: {process.pid} details: {details}",
-                        err=True,
-                    )
-            else:
-                if server_processes:
-                    for process, _ in server_processes:
-                        process.kill()
+            if server_processes:
+                _cleanup_servers(server_processes, leave_server)
             if har_file and not silent:
                 click.echo(f"Wrote to HAR file: {har_file}", err=True)
 
@@ -864,14 +1093,18 @@ def _extract_har_resources(har_path):
 
             # Extract each entry (with zip file open for _file references)
             for entry in har_data.get("log", {}).get("entries", []):
-                _extract_har_entry(entry, extract_dir, existing_files, file_exists_in_dir, zf)
+                _extract_har_entry(
+                    entry, extract_dir, existing_files, file_exists_in_dir, zf
+                )
     else:
         with open(har_path) as har_file:
             har_data = json.load(har_file)
 
         # Extract each entry
         for entry in har_data.get("log", {}).get("entries", []):
-            _extract_har_entry(entry, extract_dir, existing_files, file_exists_in_dir, None)
+            _extract_har_entry(
+                entry, extract_dir, existing_files, file_exists_in_dir, None
+            )
 
     click.echo(f"Extracted resources to: {extract_dir}", err=True)
 
@@ -1403,6 +1636,436 @@ def _check_and_absolutize(filepath):
         return False
 
 
+def _run_sh_command(sh):
+    try:
+        if isinstance(sh, str):
+            subprocess.run(sh, shell=True, check=True)
+        elif isinstance(sh, list):
+            subprocess.run(list(map(str, sh)), check=True)
+        else:
+            raise click.ClickException("- sh: must be a string or list")
+    except FileNotFoundError as ex:
+        raise click.ClickException(f"sh command failed: {ex}") from ex
+    except subprocess.CalledProcessError as ex:
+        raise click.ClickException(
+            f"sh command exited with status {ex.returncode}"
+        ) from ex
+
+
+def _run_python_code(code):
+    try:
+        subprocess.run([sys.executable, "-c", code], check=True)
+    except subprocess.CalledProcessError as ex:
+        raise click.ClickException(
+            f"python code exited with status {ex.returncode}"
+        ) from ex
+
+
+def _start_server(server):
+    if isinstance(server, str):
+        proc = subprocess.Popen(server, shell=True)
+    elif isinstance(server, list):
+        proc = subprocess.Popen(map(str, server))
+    else:
+        raise click.ClickException("server: must be a string or list")
+    return proc, server
+
+
+def _cleanup_servers(server_processes, leave_server):
+    if leave_server:
+        for process, details in server_processes:
+            click.echo(
+                f"Leaving server PID: {process.pid} details: {details}",
+                err=True,
+            )
+    else:
+        for process, _ in server_processes:
+            process.kill()
+
+
+def _record_storyboard(
+    storyboard_config,
+    auth=None,
+    timeout=None,
+    browser="chromium",
+    browser_args=None,
+    user_agent=None,
+    reduced_motion=False,
+    log_console=False,
+    skip=False,
+    fail=False,
+    bypass_csp=False,
+    silent=False,
+    auth_username=None,
+    auth_password=None,
+    leave_server=False,
+):
+    if skip and fail:
+        raise click.ClickException("--skip and --fail cannot be used together")
+
+    output = storyboard_config.output
+    if not output:
+        raise click.ClickException("Storyboard must define output: or use --output")
+
+    viewport = storyboard_config.viewport_size()
+    start_url = storyboard_config.url
+    server_processes = []
+
+    try:
+        if storyboard_config.sh is not None:
+            _run_sh_command(storyboard_config.sh)
+        if storyboard_config.python is not None:
+            _run_python_code(storyboard_config.python)
+        if storyboard_config.server is not None:
+            server_processes.append(_start_server(storyboard_config.server))
+            time.sleep(1)
+
+        with sync_playwright() as p:
+            context, browser_obj = _browser_context(
+                p,
+                auth,
+                browser=browser,
+                browser_args=browser_args,
+                user_agent=user_agent,
+                timeout=timeout,
+                reduced_motion=reduced_motion,
+                bypass_csp=bypass_csp,
+                auth_username=auth_username,
+                auth_password=auth_password,
+                viewport=viewport,
+            )
+            if storyboard_config.cursor and (
+                storyboard_config.cursor.visible or storyboard_config.cursor.clicks
+            ):
+                context.add_init_script(
+                    _storyboard_cursor_script(storyboard_config.cursor)
+                )
+            page = context.new_page()
+            context_closed = False
+            recording_started = False
+            page.set_viewport_size(viewport)
+            if log_console:
+                page.on("console", console_log)
+
+            try:
+                if not silent:
+                    click.echo(f"Recording video to '{output}'", err=True)
+
+                if start_url:
+                    _storyboard_goto(
+                        page,
+                        start_url,
+                        skip=skip,
+                        fail=fail,
+                    )
+
+                if storyboard_config.wait is not None:
+                    _storyboard_pause(storyboard_config.wait)
+                if storyboard_config.wait_for:
+                    _storyboard_wait_for(page, storyboard_config.wait_for)
+                if storyboard_config.wait_for_url:
+                    page.wait_for_url(storyboard_config.wait_for_url)
+                if storyboard_config.javascript:
+                    _evaluate_js(page, storyboard_config.javascript)
+
+                page.screencast.start(path=output, size=viewport)
+                recording_started = True
+                for index, scene in enumerate(storyboard_config.scenes, 1):
+                    _run_storyboard_scene(
+                        page,
+                        scene,
+                        index=index,
+                        skip=skip,
+                        fail=fail,
+                        silent=silent,
+                    )
+
+                page.screencast.stop()
+                recording_started = False
+                page.close()
+                context.close()
+                context_closed = True
+            finally:
+                if recording_started:
+                    try:
+                        page.screencast.stop()
+                    except Error:
+                        pass
+                if not page.is_closed():
+                    page.close()
+                if not context_closed:
+                    context.close()
+                browser_obj.close()
+    finally:
+        if server_processes:
+            _cleanup_servers(server_processes, leave_server)
+
+    if not silent:
+        click.echo(f"Video written to '{output}'", err=True)
+
+
+def _run_storyboard_scene(page, scene, index, skip=False, fail=False, silent=False):
+    name = scene.name or f"Scene {index}"
+    if not silent:
+        click.echo(f"Scene {index}: {name}", err=True)
+
+    if scene.sh is not None:
+        _run_sh_command(scene.sh)
+    if scene.python is not None:
+        _run_python_code(scene.python)
+
+    if scene.open:
+        _storyboard_goto(page, scene.open, skip=skip, fail=fail)
+    if scene.wait_for:
+        _storyboard_wait_for(page, scene.wait_for)
+    if scene.wait_for_url:
+        page.wait_for_url(scene.wait_for_url)
+
+    for action_index, action in enumerate(scene.do, 1):
+        _run_storyboard_action(page, action, index, action_index, skip=skip, fail=fail)
+
+
+def _run_storyboard_action(
+    page, action, scene_index, action_index, skip=False, fail=False
+):
+    if isinstance(action, ClickAction):
+        click_kwargs = {}
+        if action.button:
+            click_kwargs["button"] = action.button
+        if action.count:
+            click_kwargs["click_count"] = action.count
+        page.locator(action.selector).click(**click_kwargs)
+    elif isinstance(action, TypeAction):
+        type_kwargs = {}
+        if action.delay_ms is not None:
+            type_kwargs["delay"] = action.delay_ms
+        page.locator(action.target_selector).type(action.text, **type_kwargs)
+    elif isinstance(action, FillAction):
+        page.locator(action.target_selector).fill(action.text)
+    elif isinstance(action, PressAction):
+        if action.selector:
+            page.locator(action.selector).press(action.key)
+        else:
+            page.keyboard.press(action.key)
+    elif isinstance(action, ScrollAction):
+        _storyboard_scroll(page, action)
+    elif isinstance(action, PauseAction):
+        _storyboard_pause(action.seconds)
+    elif isinstance(action, WaitForAction):
+        _storyboard_wait_for(page, action.selector)
+    elif isinstance(action, WaitForUrlAction):
+        page.wait_for_url(action.url)
+    elif isinstance(action, OpenAction):
+        _storyboard_goto(page, action.url, skip=skip, fail=fail)
+    elif isinstance(action, JavascriptAction):
+        _evaluate_js(page, action.code)
+    elif isinstance(action, ScreenshotAction):
+        _storyboard_screenshot(page, action)
+    elif isinstance(action, ShAction):
+        _run_sh_command(action.command)
+    elif isinstance(action, PythonAction):
+        _run_python_code(action.code)
+    else:
+        raise click.ClickException(
+            f"Unknown storyboard action in scene {scene_index} action {action_index}"
+        )
+
+
+def _storyboard_goto(page, url, skip=False, fail=False):
+    resolved_url = _resolve_storyboard_url(url, page.url)
+    response = page.goto(resolved_url)
+    if response is not None:
+        skip_or_fail(response, skip, fail)
+
+
+def _resolve_storyboard_url(url, base_url=None):
+    if not isinstance(url, str):
+        raise click.ClickException("URL values must be strings")
+    if pathlib.Path(url).exists():
+        return url_or_file_path(url, _check_and_absolutize)
+    parsed_url = urllib.parse.urlparse(url)
+    if parsed_url.scheme:
+        return url
+    if base_url and base_url != "about:blank":
+        return urllib.parse.urljoin(base_url, url)
+    return url_or_file_path(url, _check_and_absolutize)
+
+
+def _storyboard_wait_for(page, selector):
+    if not isinstance(selector, str):
+        raise click.ClickException("wait_for: must be a selector string")
+    page.locator(selector).wait_for()
+
+
+def _storyboard_pause(seconds):
+    try:
+        seconds = float(seconds)
+    except (TypeError, ValueError):
+        raise click.ClickException("pause values must be numbers")
+    if seconds < 0:
+        raise click.ClickException("pause values must not be negative")
+    time.sleep(seconds)
+
+
+def _storyboard_scroll(page, value):
+    duration = value.duration
+
+    if value.to:
+        selector = value.to
+        if duration:
+            page.locator(selector).evaluate(
+                "(el) => el.scrollIntoView({behavior: 'smooth', block: 'center'})"
+            )
+            time.sleep(duration)
+        else:
+            page.locator(selector).scroll_into_view_if_needed()
+        return
+
+    x = value.x
+    y = value.y
+    if duration:
+        page.evaluate(
+            """
+            ({x, y, duration}) => new Promise(resolve => {
+                const startX = window.scrollX;
+                const startY = window.scrollY;
+                const start = performance.now();
+                const durationMs = duration * 1000;
+                const ease = t => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+                const step = now => {
+                    const progress = Math.min((now - start) / durationMs, 1);
+                    window.scrollTo(startX + x * ease(progress), startY + y * ease(progress));
+                    if (progress < 1) {
+                        requestAnimationFrame(step);
+                    } else {
+                        resolve();
+                    }
+                };
+                requestAnimationFrame(step);
+            })
+            """,
+            {"x": x, "y": y, "duration": duration},
+        )
+    else:
+        page.evaluate("({x, y}) => window.scrollBy(x, y)", {"x": x, "y": y})
+
+
+def _storyboard_screenshot(page, action):
+    if action.selector:
+        page.locator(action.selector).screenshot(path=action.output)
+    else:
+        page.screenshot(path=action.output, full_page=action.full_page)
+
+
+def _storyboard_cursor_script(cursor):
+    options = json.dumps(
+        {
+            "visible": cursor.visible,
+            "clicks": cursor.clicks,
+            "color": cursor.color,
+            "size": cursor.size,
+            "clickSize": cursor.click_size,
+        }
+    )
+    return f"""
+(() => {{
+    const options = {options};
+    if (window.__shotScraperCursorInstalled) {{
+        return;
+    }}
+    window.__shotScraperCursorInstalled = true;
+
+    function install() {{
+        if (!document.body) {{
+            requestAnimationFrame(install);
+            return;
+        }}
+
+        const style = document.createElement("style");
+        style.textContent = `
+            #shot-scraper-cursor {{
+                position: fixed;
+                left: 0;
+                top: 0;
+                width: ${{options.size}}px;
+                height: ${{options.size}}px;
+                margin-left: ${{-options.size / 2}}px;
+                margin-top: ${{-options.size / 2}}px;
+                border-radius: 999px;
+                background: ${{options.color}};
+                border: 2px solid white;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+                opacity: 0;
+                pointer-events: none;
+                z-index: 2147483647;
+                transition: left 120ms ease-out, top 120ms ease-out, opacity 120ms ease-out;
+            }}
+            .shot-scraper-click-ring {{
+                position: fixed;
+                width: ${{options.clickSize}}px;
+                height: ${{options.clickSize}}px;
+                margin-left: ${{-options.clickSize / 2}}px;
+                margin-top: ${{-options.clickSize / 2}}px;
+                border: 3px solid ${{options.color}};
+                border-radius: 999px;
+                pointer-events: none;
+                z-index: 2147483646;
+                animation: shot-scraper-click-ring 650ms ease-out forwards;
+            }}
+            @keyframes shot-scraper-click-ring {{
+                from {{
+                    opacity: 0.85;
+                    transform: scale(0.25);
+                }}
+                to {{
+                    opacity: 0;
+                    transform: scale(1.25);
+                }}
+            }}
+        `;
+        document.documentElement.appendChild(style);
+
+        let cursor = null;
+        if (options.visible) {{
+            cursor = document.createElement("div");
+            cursor.id = "shot-scraper-cursor";
+            document.body.appendChild(cursor);
+        }}
+
+        function move(event) {{
+            if (!cursor) {{
+                return;
+            }}
+            cursor.style.left = `${{event.clientX}}px`;
+            cursor.style.top = `${{event.clientY}}px`;
+            cursor.style.opacity = "1";
+        }}
+
+        function ring(event) {{
+            if (!options.clicks) {{
+                return;
+            }}
+            const el = document.createElement("div");
+            el.className = "shot-scraper-click-ring";
+            el.style.left = `${{event.clientX}}px`;
+            el.style.top = `${{event.clientY}}px`;
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 700);
+        }}
+
+        document.addEventListener("mousemove", move, true);
+        document.addEventListener("mousedown", event => {{
+            move(event);
+            ring(event);
+        }}, true);
+        document.addEventListener("click", move, true);
+    }}
+
+    install();
+}})();
+"""
+
+
 def _get_viewport(width, height):
     if width or height:
         return {
@@ -1581,29 +2244,19 @@ def _js_selector_javascript(js_selectors, js_selectors_all):
     for js_selector in js_selectors:
         klass = f"js-selector-{secrets.token_hex(16)}"
         extra_selectors.append(f".{klass}")
-        js_blocks.append(
-            textwrap.dedent(
-                f"""
+        js_blocks.append(textwrap.dedent(f"""
         Array.from(
           document.getElementsByTagName('*')
         ).find(el => {js_selector}).classList.add("{klass}");
-        """
-            )
-        )
+        """))
     for js_selector_all in js_selectors_all:
         klass = f"js-selector-all-{secrets.token_hex(16)}"
         extra_selectors_all.append(f".{klass}")
-        js_blocks.append(
-            textwrap.dedent(
-                """
+        js_blocks.append(textwrap.dedent("""
         Array.from(
           document.getElementsByTagName('*')
         ).filter(el => {}).forEach(el => el.classList.add("{}"));
-        """.format(
-                    js_selector_all, klass
-                )
-            )
-        )
+        """.format(js_selector_all, klass)))
     js_selector_javascript = "() => {" + "\n".join(js_blocks) + "}"
     return js_selector_javascript, extra_selectors, extra_selectors_all
 
