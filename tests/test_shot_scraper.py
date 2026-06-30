@@ -345,8 +345,8 @@ def test_video_starts_screencast_after_initial_navigation(mocker):
     events = []
 
     class FakeScreencast:
-        def start(self, path):
-            events.append(("start", path))
+        def start(self, path, size):
+            events.append(("start", path, size))
 
         def stop(self):
             events.append("stop")
@@ -426,7 +426,7 @@ def test_video_starts_screencast_after_initial_navigation(mocker):
     assert events[:4] == [
         ("viewport", {"width": 640, "height": 360}),
         "goto",
-        ("start", "demo.webm"),
+        ("start", "demo.webm", {"width": 640, "height": 360}),
         "scene",
     ]
     assert "stop" in events

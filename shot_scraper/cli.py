@@ -1604,7 +1604,7 @@ def _record_storyboard(
                 if storyboard_config.javascript:
                     _evaluate_js(page, storyboard_config.javascript)
 
-                page.screencast.start(path=output)
+                page.screencast.start(path=output, size=viewport)
                 recording_started = True
                 for index, scene in enumerate(storyboard_config.scenes, 1):
                     _run_storyboard_scene(
