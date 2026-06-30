@@ -4,8 +4,7 @@
 
 The `shot-scraper video` command records a WebM video from a YAML storyboard.
 
-Storyboards describe the video as a sequence of scenes. Each scene can open a page,
-wait for content, perform actions and then hold on the final frame for a moment.
+Storyboards describe the video as a sequence of scenes. Each scene can open a page, wait for content, perform actions and then hold on the final frame for a moment.
 
 Create a file called `storyboard.yml` like this:
 
@@ -35,8 +34,7 @@ Then run:
 shot-scraper video storyboard.yml
 ```
 
-This opens the starting URL, records the scenes and writes the video to
-`demo.webm`.
+This opens the starting URL, records the scenes and writes the video to `demo.webm`.
 
 Use `-o` or `--output` to override the output filename:
 
@@ -44,17 +42,13 @@ Use `-o` or `--output` to override the output filename:
 shot-scraper video storyboard.yml -o alternate.webm
 ```
 
-Use `--mp4` to also convert the recorded WebM video to MP4 using `ffmpeg`.
-The WebM is still written first, then the MP4 is written using the same filename
-with the extension replaced by `.mp4`:
+Use `--mp4` to also convert the recorded WebM video to MP4 using `ffmpeg`. The WebM is still written first, then the MP4 is written using the same filename with the extension replaced by `.mp4`:
 
 ```bash
 shot-scraper video storyboard.yml --mp4
 ```
 
-If `ffmpeg` is not installed, the WebM file is still created but the command
-exits with a non-zero status and an error explaining that the MP4 was not
-created.
+If `ffmpeg` is not installed, the WebM file is still created but the command exits with a non-zero status and an error explaining that the MP4 was not created.
 
 ## Storyboard structure
 
@@ -64,32 +58,26 @@ A storyboard file is a YAML mapping with these keys:
 : Filename for the recorded WebM video. This can be omitted if `-o` is used.
 
 `url`
-: Starting URL for the video. This can be an `http://` or `https://` URL, a bare
-  domain or a path to a local HTML file.
+: Starting URL for the video. This can be an `http://` or `https://` URL, a bare domain or a path to a local HTML file.
 
 `server`
-: Optional command to run as a server for the duration of the storyboard
-  recording. This can be a string or a list of arguments.
+: Optional command to run as a server for the duration of the storyboard recording. This can be a string or a list of arguments.
 
 `viewport`
 : Optional browser viewport size. Defaults to `1280` by `720`.
 
 `cursor`
-: Set to `true` to show a cursor dot and click rings in the video. This can
-  also be a mapping of cursor options.
+: Set to `true` to show a cursor dot and click rings in the video. This can also be a mapping of cursor options.
 
 `javascript`
-: Optional JavaScript to run in the initial page after `url:`, `wait:`,
-  `wait_for:` and `wait_for_url:` have completed, before scenes start. This runs
-  inside the current Playwright page context.
+: Optional JavaScript to run in the initial page after `url:`, `wait:`, `wait_for:` and `wait_for_url:` have completed, before scenes start. This runs inside the current Playwright page context.
 
 `scenes`
 : A list of scenes to record.
 
 ## Cursor and click visualization
 
-Playwright videos do not show the system cursor. Add `cursor: true` to inject a
-visible cursor dot and click rings into the page while recording:
+Playwright videos do not show the system cursor. Add `cursor: true` to inject a visible cursor dot and click rings into the page while recording:
 
 ```yaml
 output: demo.webm
@@ -118,8 +106,7 @@ Set `visible: false` to show click rings without the cursor dot.
 
 ## Running a server for the duration of the storyboard
 
-If you need to run a server for the duration of the `shot-scraper video`
-session, specify it using `server:`:
+If you need to run a server for the duration of the `shot-scraper video` session, specify it using `server:`:
 
 ```yaml
 output: demo.webm
@@ -148,9 +135,7 @@ scenes:
   wait_for: h1
 ```
 
-The server process will be automatically terminated when the video command
-completes, unless you pass `--leave-server`. In that case it will be left
-running, and the process ID will be displayed in the console output.
+The server process will be automatically terminated when the video command completes, unless you pass `--leave-server`. In that case it will be left running, and the process ID will be displayed in the console output.
 
 ## Scenes
 
@@ -160,21 +145,16 @@ Each scene can use these keys:
 : Optional label used in progress messages.
 
 `open`
-: Navigate to a URL at the start of the scene. Relative URLs are resolved against
-  the current page URL.
+: Navigate to a URL at the start of the scene. Relative URLs are resolved against the current page URL.
 
 `wait_for`
-: Wait for a selector before running the scene actions. This uses Playwright
-  locator syntax, so CSS selectors and selectors such as `text=Welcome` are
-  both supported.
+: Wait for a selector before running the scene actions. This uses Playwright locator syntax, so CSS selectors and selectors such as `text=Welcome` are both supported.
 
 `wait_for_url`
-: Wait for the page URL to match a string, glob or regular expression supported
-  by Playwright.
+: Wait for the page URL to match a string, glob or regular expression supported by Playwright.
 
 `sh`
-: Shell command to run before the scene opens a page or runs actions. This can
-  be a string or a list of arguments.
+: Shell command to run before the scene opens a page or runs actions. This can be a string or a list of arguments.
 
 `python`
 : Python code to run before the scene opens a page or runs actions.
@@ -183,8 +163,7 @@ Each scene can use these keys:
 : A list of actions to run.
 
 `hold`
-: Seconds to pause after the scene actions complete. This is useful for making
-  the resulting video easier to watch.
+: Seconds to pause after the scene actions complete. This is useful for making the resulting video easier to watch.
 
 Example:
 
@@ -205,8 +184,7 @@ scenes:
 
 ## Running custom code between steps
 
-Storyboard scenes support the same `sh:` and `python:` keys as `shot-scraper
-multi`. These commands run before the scene opens a page or runs actions:
+Storyboard scenes support the same `sh:` and `python:` keys as `shot-scraper multi`. These commands run before the scene opens a page or runs actions:
 
 ```yaml
 scenes:
@@ -240,8 +218,7 @@ scenes:
   open: index.html
 ```
 
-For commands between individual browser actions, use `sh:` or `python:` inside
-the `do:` list:
+For commands between individual browser actions, use `sh:` or `python:` inside the `do:` list:
 
 ```yaml
 scenes:
@@ -252,9 +229,7 @@ scenes:
   - open: http://localhost:8000/
 ```
 
-Use `javascript:` or `js:` inside `do:` to run code in the current Playwright
-page context. Unlike `sh:` and `python:`, this executes in the browser page, so
-it can read and modify the DOM, `localStorage` and other browser APIs:
+Use `javascript:` or `js:` inside `do:` to run code in the current Playwright page context. Unlike `sh:` and `python:`, this executes in the browser page, so it can read and modify the DOM, `localStorage` and other browser APIs:
 
 ```yaml
 scenes:
@@ -268,8 +243,7 @@ scenes:
   - screenshot: highlighted-result.png
 ```
 
-There is no scene-level `javascript:` key. To run page JavaScript during a scene,
-put it inside the scene's `do:` list.
+There is no scene-level `javascript:` key. To run page JavaScript during a scene, put it inside the scene's `do:` list.
 
 ## Actions
 
@@ -446,8 +420,7 @@ The shorter `js` key is also supported:
 - js: window.scrollTo(0, 0)
 ```
 
-Use top-level `javascript:` for JavaScript that should run once after the
-initial page has loaded and before scenes start:
+Use top-level `javascript:` for JavaScript that should run once after the initial page has loaded and before scenes start:
 
 ```yaml
 output: demo.webm
@@ -504,15 +477,11 @@ scenes:
 
 ## Command options
 
-`shot-scraper video` supports the same browser selection, authentication,
-console logging, timeout, CSP bypass and HTTP Basic authentication options as
-the other browser-based commands.
+`shot-scraper video` supports the same browser selection, authentication, console logging, timeout, CSP bypass and HTTP Basic authentication options as the other browser-based commands.
 
-Use `--silent` to hide progress messages. Use `--leave-server` to leave a
-configured `server:` process running after the command finishes.
+Use `--silent` to hide progress messages. Use `--leave-server` to leave a configured `server:` process running after the command finishes.
 
-Use `--mp4` to create an MP4 copy of the recorded WebM video. This requires
-`ffmpeg` to be installed. The command will then create both a `filename.webm` and  `filename.mp4` file.
+Use `--mp4` to create an MP4 copy of the recorded WebM video. This requires `ffmpeg` to be installed. The command will then create both a `filename.webm` and `filename.mp4` file.
 
 ## `shot-scraper video --help`
 
