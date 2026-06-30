@@ -25,6 +25,9 @@ def parse_storyboard(yaml):
 def test_load_storyboard_normalizes_actions():
     storyboard = parse_storyboard("""
 output: demo.webm
+sh: echo "top level" > top-level.txt
+python: |
+  open("top-level-python.txt", "w").write("ok")
 server:
 - python
 - -m
@@ -65,6 +68,8 @@ scenes:
 """)
 
     assert storyboard.output == "demo.webm"
+    assert storyboard.sh == 'echo "top level" > top-level.txt'
+    assert storyboard.python == 'open("top-level-python.txt", "w").write("ok")\n'
     assert storyboard.server == ["python", "-m", "http.server", 8000]
     assert storyboard.url == "https://example.com/"
     assert storyboard.viewport_size() == {"width": 640, "height": 360}

@@ -191,6 +191,8 @@ class StoryboardScene(StoryboardBaseModel):
 class Storyboard(StoryboardBaseModel):
     output: str | None = None
     url: str | None = None
+    sh: str | list[str] | None = None
+    python: str | None = None
     server: str | list[str | int] | None = None
     viewport: StoryboardViewport = Field(default_factory=StoryboardViewport)
     cursor: CursorOptions | None = None

@@ -589,6 +589,9 @@ def video(
           .mp4.
         url: Starting URL, bare domain, or local HTML path. Omit this only if
           the first scene has open:.
+        sh: Shell command string or argument list to run before python: and
+          server:.
+        python: Python code to run after sh: and before server:.
         server: Optional command string or argument list to run while recording.
         viewport: Mapping with width: and height:. Defaults to 1280 by 720.
         cursor: true, false, or a mapping with visible, clicks, color, size and
@@ -1679,6 +1682,10 @@ def _record_storyboard(
     server_processes = []
 
     try:
+        if storyboard_config.sh is not None:
+            _run_sh_command(storyboard_config.sh)
+        if storyboard_config.python is not None:
+            _run_python_code(storyboard_config.python)
         if storyboard_config.server is not None:
             server_processes.append(_start_server(storyboard_config.server))
             time.sleep(1)

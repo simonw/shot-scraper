@@ -534,6 +534,8 @@ def test_video_starts_screencast_after_initial_navigation(mocker):
     storyboard_config = SimpleNamespace(
         output="demo.webm",
         url="https://example.com/",
+        sh=None,
+        python=None,
         server=None,
         cursor=None,
         wait=None,
@@ -557,6 +559,121 @@ def test_video_starts_screencast_after_initial_navigation(mocker):
         "width": 640,
         "height": 360,
     }
+
+
+def test_video_runs_top_level_setup_before_server(mocker):
+    events = []
+
+    class FakeScreencast:
+        def start(self, path, size):
+            events.append(("start", path, size))
+
+        def stop(self):
+            events.append("stop")
+
+    class FakePage:
+        screencast = FakeScreencast()
+
+        def __init__(self):
+            self.closed = False
+
+        def set_viewport_size(self, viewport):
+            events.append(("viewport", viewport))
+
+        def is_closed(self):
+            return self.closed
+
+        def close(self):
+            events.append("page.close")
+            self.closed = True
+
+    class FakeContext:
+        def __init__(self, page):
+            self.page = page
+
+        def new_page(self):
+            return self.page
+
+        def close(self):
+            events.append("context.close")
+
+    class FakeBrowser:
+        def close(self):
+            events.append("browser.close")
+
+    class FakePlaywright:
+        def __enter__(self):
+            return object()
+
+        def __exit__(self, exc_type, exc, tb):
+            pass
+
+    class FakeServerProcess:
+        def kill(self):
+            events.append("server.kill")
+
+    fake_page = FakePage()
+    fake_context = FakeContext(fake_page)
+    fake_browser = FakeBrowser()
+    mocker.patch.object(
+        cli_module,
+        "_browser_context",
+        return_value=(fake_context, fake_browser),
+    )
+    mocker.patch.object(cli_module, "sync_playwright", return_value=FakePlaywright())
+    mocker.patch.object(
+        cli_module,
+        "_run_sh_command",
+        side_effect=lambda command: events.append(("sh", command)),
+    )
+    mocker.patch.object(
+        cli_module,
+        "_run_python_code",
+        side_effect=lambda code: events.append(("python", code)),
+    )
+    mocker.patch.object(
+        cli_module,
+        "_start_server",
+        side_effect=lambda server: (
+            events.append(("server", server)) or (FakeServerProcess(), server)
+        ),
+    )
+    mocker.patch.object(
+        cli_module.time,
+        "sleep",
+        side_effect=lambda seconds: events.append(("sleep", seconds)),
+    )
+    mocker.patch.object(
+        cli_module,
+        "_run_storyboard_scene",
+        side_effect=lambda *args, **kwargs: events.append("scene"),
+    )
+
+    storyboard_config = SimpleNamespace(
+        output="demo.webm",
+        url=None,
+        sh="setup shell",
+        python="setup python",
+        server="serve",
+        cursor=None,
+        wait=None,
+        wait_for=None,
+        wait_for_url=None,
+        javascript=None,
+        scenes=[SimpleNamespace(name="Scene")],
+        viewport_size=lambda: {"width": 640, "height": 360},
+    )
+
+    cli_module._record_storyboard(storyboard_config, silent=True)
+
+    assert events[:4] == [
+        ("sh", "setup shell"),
+        ("python", "setup python"),
+        ("server", "serve"),
+        ("sleep", 1),
+    ]
+    assert "scene" in events
+    assert events[-1] == "server.kill"
 
 
 @pytest.mark.parametrize(

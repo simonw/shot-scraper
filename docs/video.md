@@ -85,6 +85,26 @@ A storyboard file is a YAML mapping with these keys:
   url: https://shot-scraper.datasette.io/en/stable/
   ```
 
+`sh`
+: Optional shell command to run before `server:` starts and before the browser opens. If both top-level `sh:` and `python:` are present, `sh:` runs first. This can be a string, which is run through the shell, or a list of arguments, which is run directly.
+
+  ```yaml
+  sh: |
+    echo "Preparing storyboard files"
+    date > /tmp/storyboard-started.txt
+  ```
+
+`python`
+: Optional Python code to run before `server:` starts and before the browser opens. If both top-level `sh:` and `python:` are present, `python:` runs after `sh:`.
+
+  ```yaml
+  python: |
+    from pathlib import Path
+    root = Path("/tmp/demo-root")
+    root.mkdir(parents=True, exist_ok=True)
+    (root / "index.html").write_text("<h1>Local demo</h1>")
+  ```
+
 `server`
 : Optional command to run as a server for the duration of the storyboard recording. This can be a string, which is run through the shell, or a list of arguments, which is run directly. See [Running a server for the duration of the storyboard](#running-a-server-for-the-duration-of-the-storyboard) for more details.
 
@@ -201,12 +221,17 @@ If you need to run a server for the duration of the `shot-scraper video` session
 
 ```yaml
 output: demo.webm
-server: python -m http.server 8000
+python: |
+  from pathlib import Path
+  root = Path("/tmp/demo-root")
+  root.mkdir(parents=True, exist_ok=True)
+  (root / "index.html").write_text("<h1>Local demo</h1>")
+server: python -m http.server 8000 --directory /tmp/demo-root
 url: http://localhost:8000/
+wait_for: h1
 
 scenes:
 - name: Home page
-  wait_for: h1
   do:
   - pause: 1
 ```
@@ -215,16 +240,25 @@ The `server:` key also accepts a list of arguments:
 
 ```yaml
 output: demo.webm
+python: |
+  from pathlib import Path
+  root = Path("/tmp/demo-root")
+  root.mkdir(parents=True, exist_ok=True)
+  (root / "index.html").write_text("<h1>Local demo</h1>")
 server:
 - python
 - -m
 - http.server
 - 8000
+- --directory
+- /tmp/demo-root
 url: http://localhost:8000/
+wait_for: h1
 
 scenes:
 - name: Home page
-  wait_for: h1
+  do:
+  - pause: 1
 ```
 
 The server process will be automatically terminated when the video command completes, unless you pass `--leave-server`. In that case it will be left running, and the process ID will be displayed in the console output.
@@ -290,16 +324,18 @@ Example:
 
 ```yaml
 scenes:
-- name: Search
-  open: /search
-  wait_for: "#q"
+- name: Search the docs
+  open: https://shot-scraper.datasette.io/en/stable/
+  wait_for: "input.sidebar-search"
   do:
   - type:
-      into: "#q"
-      text: "shot-scraper"
+      into: "input.sidebar-search"
+      text: "authentication"
       delay_ms: 40
-  - press: Enter
-  - wait_for: ".results"
+  - press:
+      selector: "input.sidebar-search"
+      key: Enter
+  - wait_for: "text=Search Results"
   - pause: 1.5
 ```
 
@@ -323,9 +359,10 @@ scenes:
 - name: Fetch page
   sh:
   - curl
+  - -L
   - -o
   - index.html
-  - https://www.example.com/
+  - https://shot-scraper.datasette.io/en/stable/installation.html
   open: index.html
 ```
 
@@ -343,26 +380,36 @@ scenes:
 For commands between individual browser actions, use `sh:` or `python:` inside the `do:` list:
 
 ```yaml
+output: demo.webm
+python: |
+  from pathlib import Path
+  root = Path("/tmp/demo-root")
+  root.mkdir(parents=True, exist_ok=True)
+  (root / "index.html").write_text("<h1>First version</h1>")
+server: python -m http.server 8000 --directory /tmp/demo-root
+url: http://localhost:8000/
+wait_for: 'h1:has-text("First version")'
+
 scenes:
 - name: Update then reload
-  open: http://localhost:8000/
   do:
-  - sh: echo "Updated" > index.html
+  - sh: echo "<h1>Updated</h1>" > /tmp/demo-root/index.html
   - open: http://localhost:8000/
+  - wait_for: 'h1:has-text("Updated")'
 ```
 
 Use `javascript:` or `js:` inside `do:` to run code in the current Playwright page context. Unlike `sh:` and `python:`, this executes in the browser page, so it can read and modify the DOM, `localStorage` and other browser APIs:
 
 ```yaml
 scenes:
-- name: Highlight the first result
-  open: http://localhost:8000/search
-  wait_for: ".result"
+- name: Highlight the installation heading
+  open: https://shot-scraper.datasette.io/en/stable/installation.html
+  wait_for: 'h1:has-text("Installation")'
   do:
   - javascript: |
-      document.querySelector(".result").style.outline = "4px solid red";
+      document.querySelector("h1").style.outline = "4px solid red";
       localStorage.setItem("storyboard-mode", "demo");
-  - screenshot: highlighted-result.png
+  - screenshot: highlighted-installation.png
 ```
 
 There is no scene-level `javascript:` key. To run page JavaScript during a scene, put it inside the scene's `do:` list.
@@ -550,14 +597,14 @@ Use top-level `javascript:` for JavaScript that should run once after the initia
 
 ```yaml
 output: demo.webm
-url: http://localhost:8000/
+url: https://shot-scraper.datasette.io/en/stable/
 javascript: |
-  localStorage.setItem("theme", "dark");
   document.documentElement.dataset.storyboard = "true";
+  document.body.style.backgroundColor = "#fffdf7";
 
 scenes:
 - name: Page with prepared browser state
-  wait_for: h1
+  wait_for: "text=Quick start"
   do:
   - js: document.querySelector("h1").textContent = "Storyboard demo";
   - pause: 1
@@ -689,6 +736,9 @@ Usage: shot-scraper video [OPTIONS] STORYBOARD_FILE
         .mp4.
       url: Starting URL, bare domain, or local HTML path. Omit this only if
         the first scene has open:.
+      sh: Shell command string or argument list to run before python: and
+        server:.
+      python: Python code to run after sh: and before server:.
       server: Optional command string or argument list to run while recording.
       viewport: Mapping with width: and height:. Defaults to 1280 by 720.
       cursor: true, false, or a mapping with visible, clicks, color, size and
