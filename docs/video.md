@@ -4,7 +4,7 @@
 
 The `shot-scraper video` command records a WebM video from a YAML storyboard.
 
-Storyboards describe the video as a sequence of scenes. Each scene can open a page, wait for content, perform actions and then hold on the final frame for a moment.
+Storyboards describe the video as a sequence of scenes. Each scene can open a page, wait for content, perform actions and pause between steps.
 
 Create a file called `storyboard.yml` like this:
 
@@ -21,14 +21,15 @@ wait_for: "text=Quick start"
 
 scenes:
 - name: Documentation home
-  hold: 1
+  do:
+  - pause: 1
 
 - name: Open installation docs
   do:
   - click: ".sidebar-tree a[href='installation.html']"
   - wait_for: 'h1:has-text("Installation")'
   - screenshot: installation.png
-  hold: 1
+  - pause: 1
 
 - name: Search the docs
   do:
@@ -36,12 +37,12 @@ scenes:
   - type:
       into: "input.sidebar-search"
       text: "authentication"
-      delay: 25
+      delay_ms: 25
   - press:
       selector: "input.sidebar-search"
       key: Enter
   - wait_for: "text=Search Results"
-  hold: 2
+  - pause: 2
 ```
 
 Then run:
@@ -73,23 +74,96 @@ A storyboard file is a YAML mapping with these keys:
 `output`
 : Filename for the recorded WebM video. This can be omitted if `-o` is used.
 
+  ```yaml
+  output: demo.webm
+  ```
+
 `url`
 : Starting URL for the video. This can be an `http://` or `https://` URL, a bare domain or a path to a local HTML file.
 
+  ```yaml
+  url: https://shot-scraper.datasette.io/en/stable/
+  ```
+
 `server`
-: Optional command to run as a server for the duration of the storyboard recording. This can be a string or a list of arguments.
+: Optional command to run as a server for the duration of the storyboard recording. This can be a string, which is run through the shell, or a list of arguments, which is run directly. See [Running a server for the duration of the storyboard](#running-a-server-for-the-duration-of-the-storyboard) for more details.
+
+  ```yaml
+  server: python -m http.server 8000
+  ```
+
+  ```yaml
+  server:
+  - python
+  - -m
+  - http.server
+  - 8000
+  ```
 
 `viewport`
-: Optional browser viewport size. Defaults to `1280` by `720`.
+: Optional browser viewport size. Defaults to `1280` by `720`. Use a mapping with `width` and `height` values:
+
+  ```yaml
+  viewport:
+    width: 1440
+    height: 900
+  ```
 
 `cursor`
-: Set to `true` to show a cursor dot and click rings in the video. This can also be a mapping of cursor options.
+: Set to `true` to show a cursor dot and click rings in the video. Set to `false` or omit it to leave the cursor hidden. Use a mapping to configure the cursor:
+
+  ```yaml
+  cursor:
+    visible: true
+    clicks: true
+    color: "#ff4f00"
+    size: 18
+    click_size: 44
+  ```
+
+  `visible` shows or hides the cursor dot. `clicks` shows or hides click rings. `color` is a CSS color for the cursor and rings. `size` is the cursor dot diameter in pixels. `click_size` is the click ring diameter in pixels.
+
+`wait`
+: Seconds to pause after the starting page has loaded and before recording scenes. Use this when the page needs a fixed amount of time before the first scene starts.
+
+  ```yaml
+  wait: 0.5
+  ```
+
+`wait_for`
+: Selector to wait for after the starting page has loaded and before recording scenes. This uses [Playwright locator syntax](https://playwright.dev/docs/locators#locate-by-css-or-xpath), so CSS selectors and selectors such as `text=Quick start` are supported.
+
+  ```yaml
+  wait_for: "text=Quick start"
+  ```
+
+`wait_for_url`
+: URL string or glob pattern to wait for after the starting page has loaded and before recording scenes.
+
+  ```yaml
+  wait_for_url: "**/dashboard"
+  ```
 
 `javascript`
 : Optional JavaScript to run in the initial page after `url:`, `wait:`, `wait_for:` and `wait_for_url:` have completed, before scenes start. This runs inside the current Playwright page context.
 
+  ```yaml
+  javascript: |
+    localStorage.setItem("theme", "dark");
+    document.documentElement.dataset.storyboard = "true";
+  ```
+
 `scenes`
-: A list of scenes to record.
+: Required list of scenes to record. If you omit the top-level `url:`, the first scene must define `open:`.
+
+  ```yaml
+  scenes:
+  - name: Open docs
+    open: https://shot-scraper.datasette.io/en/stable/
+    wait_for: "text=Quick start"
+    do:
+    - pause: 1
+  ```
 
 ## Cursor and click visualization
 
@@ -97,17 +171,18 @@ Playwright videos do not show the system cursor. Add `cursor: true` to inject a 
 
 ```yaml
 output: demo.webm
-url: https://example.com/
+url: https://shot-scraper.datasette.io/en/stable/
 cursor: true
 
 scenes:
-- name: Open menu
+- name: Click installation link
   do:
-  - click: "button[aria-label='Menu']"
-  hold: 1
+  - click: ".sidebar-tree a[href='installation.html']"
+  - wait_for: 'h1:has-text("Installation")'
+  - pause: 1
 ```
 
-You can also configure the cursor:
+You can also configure the cursor using these fields:
 
 ```yaml
 cursor:
@@ -118,7 +193,7 @@ cursor:
   click_size: 44
 ```
 
-Set `visible: false` to show click rings without the cursor dot.
+`visible` controls whether the cursor dot is shown. `clicks` controls whether click rings are shown. `color` is any CSS color value. `size` is the cursor dot diameter in pixels. `click_size` is the click ring diameter in pixels. Set `visible: false` to show click rings without the cursor dot.
 
 ## Running a server for the duration of the storyboard
 
@@ -132,7 +207,8 @@ url: http://localhost:8000/
 scenes:
 - name: Home page
   wait_for: h1
-  hold: 1
+  do:
+  - pause: 1
 ```
 
 The `server:` key also accepts a list of arguments:
@@ -160,26 +236,55 @@ Each scene can use these keys:
 `name`
 : Optional label used in progress messages.
 
+  ```yaml
+  name: Search the docs
+  ```
+
 `open`
 : Navigate to a URL at the start of the scene. Relative URLs are resolved against the current page URL.
 
+  ```yaml
+  open: installation.html
+  ```
+
 `wait_for`
-: Wait for a selector before running the scene actions. This uses Playwright locator syntax, so CSS selectors and selectors such as `text=Welcome` are both supported.
+: Wait for a selector before running the scene actions. This uses [Playwright locator syntax](https://playwright.dev/docs/locators#locate-by-css-or-xpath), so CSS selectors and selectors such as `text=Welcome` are both supported.
+
+  ```yaml
+  wait_for: 'h1:has-text("Installation")'
+  ```
 
 `wait_for_url`
-: Wait for the page URL to match a string, glob or regular expression supported by Playwright.
+: Wait for the page URL to match a string or glob pattern supported by Playwright.
+
+  ```yaml
+  wait_for_url: "**/installation.html"
+  ```
 
 `sh`
-: Shell command to run before the scene opens a page or runs actions. This can be a string or a list of arguments.
+: Shell command to run before the scene opens a page or runs actions. This can be a string, which is run through the shell, or a list of arguments, which is run directly.
+
+  ```yaml
+  sh: echo "scene" > scene.txt
+  ```
 
 `python`
 : Python code to run before the scene opens a page or runs actions.
 
-`do`
-: A list of actions to run.
+  ```yaml
+  python: |
+    open("scene.txt", "w").write("ok")
+  ```
 
-`hold`
-: Seconds to pause after the scene actions complete. This is useful for making the resulting video easier to watch.
+`do`
+: A list of actions to run. Actions run in the order listed, after `sh:`, `python:`, `open:`, `wait_for:` and `wait_for_url:` for the scene. Use a `pause` action at the end of this list to keep recording the final frame for a moment.
+
+  ```yaml
+  do:
+  - click: ".sidebar-tree a[href='installation.html']"
+  - wait_for: 'h1:has-text("Installation")'
+  - pause: 1
+  ```
 
 Example:
 
@@ -192,10 +297,10 @@ scenes:
   - type:
       into: "#q"
       text: "shot-scraper"
-      delay: 40
+      delay_ms: 40
   - press: Enter
   - wait_for: ".results"
-  hold: 1.5
+  - pause: 1.5
 ```
 
 ## Running custom code between steps
@@ -207,7 +312,8 @@ scenes:
 - name: Build local page
   sh: echo "Hello from shell" > index.html
   open: index.html
-  hold: 1
+  do:
+  - pause: 1
 ```
 
 You can also specify a list of shell arguments:
@@ -267,13 +373,13 @@ Actions are single-key mappings in a scene's `do` list.
 
 ### click
 
-Click a selector:
+Click a selector. The string form is shorthand for a mapping with `selector:`.
 
 ```yaml
 - click: "button[aria-label='Menu']"
 ```
 
-You can also provide click options:
+You can also provide click options. `button` can be `left`, `right` or `middle`. `count` is the number of clicks.
 
 ```yaml
 - click:
@@ -284,20 +390,18 @@ You can also provide click options:
 
 ### type
 
-Type text into an input or textarea:
+Type text into an input, textarea or focused editable element. Use `into:` or `selector:` to identify the target; both names mean the same thing. `delay_ms` is optional and sets the milliseconds between keystrokes.
 
 ```yaml
 - type:
     into: "#search"
     text: "datasette"
-    delay: 50
+    delay_ms: 50
 ```
-
-`delay` is optional and sets the milliseconds between keystrokes.
 
 ### fill
 
-Fill a field immediately:
+Fill a field immediately. Use `into:` or `selector:` to identify the target; both names mean the same thing.
 
 ```yaml
 - fill:
@@ -307,13 +411,13 @@ Fill a field immediately:
 
 ### press
 
-Press a key:
+Press a key. The string form presses the key using the page keyboard, so it acts on whichever element is currently focused.
 
 ```yaml
 - press: Enter
 ```
 
-Or focus a selector before pressing the key:
+Use the mapping form to send the key press to a specific selector:
 
 ```yaml
 - press:
@@ -323,7 +427,13 @@ Or focus a selector before pressing the key:
 
 ### scroll
 
-Scroll by a number of pixels:
+Scroll by a number of pixels. The numeric shorthand scrolls vertically by that many pixels:
+
+```yaml
+- scroll: 800
+```
+
+Use the mapping form for `x`, `y`, `to` and `duration`. `duration` is in seconds and enables smooth scrolling.
 
 ```yaml
 - scroll:
@@ -349,7 +459,7 @@ Pause for a number of seconds:
 
 ### wait_for
 
-Wait for a selector:
+Wait for a selector using [Playwright locator syntax](https://playwright.dev/docs/locators#locate-by-css-or-xpath). CSS selectors and text selectors such as `text=Search Results` are supported.
 
 ```yaml
 - wait_for: ".loaded"
@@ -357,7 +467,7 @@ Wait for a selector:
 
 ### wait_for_url
 
-Wait for the current URL:
+Wait for the current URL to match a string or glob pattern:
 
 ```yaml
 - wait_for_url: "**/pricing"
@@ -365,7 +475,7 @@ Wait for the current URL:
 
 ### open
 
-Navigate during a scene:
+Navigate during a scene. Relative URLs are resolved against the current page URL.
 
 ```yaml
 - open: /pricing
@@ -373,13 +483,13 @@ Navigate during a scene:
 
 ### screenshot
 
-Take a screenshot during the storyboard:
+Take a screenshot during the storyboard. The string form writes a viewport screenshot to that path.
 
 ```yaml
 - screenshot: step-2.png
 ```
 
-Screenshot a specific element:
+Use the mapping form for `output`, `selector` and `full_page`. `selector` captures just that element.
 
 ```yaml
 - screenshot:
@@ -397,13 +507,13 @@ Use `full_page` to capture the full page instead of just the current viewport:
 
 ### sh
 
-Run a shell command:
+Run a shell command. The string form is run through the shell.
 
 ```yaml
 - sh: echo "Updated" > index.html
 ```
 
-Or provide a list of arguments:
+Provide a list of arguments to run without a shell:
 
 ```yaml
 - sh:
@@ -413,7 +523,7 @@ Or provide a list of arguments:
 
 ### python
 
-Run Python code:
+Run Python code using the same Python executable that is running `shot-scraper`:
 
 ```yaml
 - python: |
@@ -423,7 +533,7 @@ Run Python code:
 
 ### javascript
 
-Run JavaScript in the current Playwright page context:
+Run JavaScript in the current Playwright page context. This can read and modify the DOM, `localStorage` and other browser APIs:
 
 ```yaml
 - javascript: |
@@ -450,45 +560,57 @@ scenes:
   wait_for: h1
   do:
   - js: document.querySelector("h1").textContent = "Storyboard demo";
-  hold: 1
+  - pause: 1
 ```
 
 ## Complete example
 
-This example records a short product walkthrough:
+This example records a short walkthrough of the `shot-scraper` documentation site:
 
 ```yaml
-output: signup-demo.webm
-url: https://app.example.com/
+output: shot-scraper-docs-demo.webm
+url: https://shot-scraper.datasette.io/en/stable/
 
 viewport:
-  width: 1440
-  height: 900
+  width: 1280
+  height: 720
+
+cursor:
+  visible: true
+  clicks: true
+  color: "#ff4f00"
+  size: 18
+  click_size: 44
+
+wait_for: "text=Quick start"
 
 scenes:
-- name: Home page
-  wait_for: "text=Get started"
-  hold: 1
-
-- name: Open signup form
+- name: Documentation home
   do:
-  - click: "text=Get started"
-  - wait_for: "#email"
-  - screenshot: signup-form.png
-  hold: 0.5
+  - pause: 1
 
-- name: Complete signup
+- name: Open installation docs
   do:
-  - fill:
-      into: "#email"
-      text: "demo@example.com"
+  - click: ".sidebar-tree a[href='installation.html']"
+  - wait_for: 'h1:has-text("Installation")'
+  - screenshot: installation.png
+  - pause: 1
+
+- name: Search the docs
+  do:
+  - click: "input.sidebar-search"
   - type:
-      into: "#name"
-      text: "Demo User"
-      delay: 40
-  - click: "button[type=submit]"
-  - wait_for: "text=Welcome"
-  hold: 2
+      into: "input.sidebar-search"
+      text: "authentication"
+      delay_ms: 25
+  - press:
+      selector: "input.sidebar-search"
+      key: Enter
+  - wait_for: "text=Search Results"
+  - js: |
+      document.body.style.outline = "4px solid #ff4f00";
+  - screenshot: search-results.png
+  - pause: 2
 ```
 
 ## Command options
@@ -526,7 +648,7 @@ Usage: shot-scraper video [OPTIONS] STORYBOARD_FILE
 
   A storyboard is a YAML mapping with an output filename, a starting URL (or an
   opening scene), and a list of scenes. Each scene can wait, run commands, run
-  browser actions, and hold on the final frame.
+  browser actions, and pause between steps.
 
   Example storyboard.yml:
 
@@ -539,25 +661,26 @@ Usage: shot-scraper video [OPTIONS] STORYBOARD_FILE
       wait_for: "text=Quick start"
       scenes:
       - name: Documentation home
-        hold: 1
+        do:
+        - pause: 1
       - name: Open installation docs
         do:
         - click: ".sidebar-tree a[href='installation.html']"
         - wait_for: 'h1:has-text("Installation")'
         - screenshot: installation.png
-        hold: 1
+        - pause: 1
       - name: Search the docs
         do:
         - click: "input.sidebar-search"
         - type:
             into: "input.sidebar-search"
             text: "authentication"
-            delay: 25
+            delay_ms: 25
         - press:
             selector: "input.sidebar-search"
             key: Enter
         - wait_for: "text=Search Results"
-        hold: 2
+        - pause: 2
 
   Top-level YAML keys:
 
@@ -568,7 +691,6 @@ Usage: shot-scraper video [OPTIONS] STORYBOARD_FILE
         the first scene has open:.
       server: Optional command string or argument list to run while recording.
       viewport: Mapping with width: and height:. Defaults to 1280 by 720.
-      width, height: Shortcut viewport size keys.
       cursor: true, false, or a mapping with visible, clicks, color, size and
         click_size.
       wait: Seconds to pause after the starting page loads.
@@ -586,21 +708,20 @@ Usage: shot-scraper video [OPTIONS] STORYBOARD_FILE
       sh: Shell command string or argument list to run before actions.
       python: Python code to run before actions.
       do: List of browser/page actions.
-      hold: Seconds to keep recording after the scene actions finish.
 
   Actions for a scene's do: list:
 
       - click: "selector"
       - click: {selector: "selector", button: right, count: 2}
       - fill: {into: "selector", text: "value"}
-      - type: {into: "selector", text: "value", delay: 25}
+      - type: {into: "selector", text: "value", delay_ms: 25}
       - press: {selector: "selector", key: "ControlOrMeta+A"}
       - scroll: {x: 0, y: 500, duration: 0.5}
       - scroll: {to: "selector", duration: 0.5}
       - pause: 1.5
       - wait_for: "selector"
       - wait_for_url: "**/finished"
-      - open: "https://example.com/next"
+      - open: "installation.html"
       - js: "document.body.dataset.demo = '1'"
       - screenshot: output.png
       - screenshot: {output: heading.png, selector: "h1"}

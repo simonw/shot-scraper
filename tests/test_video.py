@@ -49,7 +49,7 @@ scenes:
   - type:
       selector: "#search"
       text: " demos"
-      delay: 10
+      delay_ms: 10
   - scroll:
       y: 200
       duration: 0.1
@@ -80,7 +80,7 @@ scenes:
     assert actions[2].key == "Enter"
     assert isinstance(actions[3], TypeAction)
     assert actions[3].target_selector == "#search"
-    assert actions[3].delay == 10
+    assert actions[3].delay_ms == 10
     assert isinstance(actions[4], ScrollAction)
     assert actions[4].y == 200
     assert actions[4].duration == 0.1

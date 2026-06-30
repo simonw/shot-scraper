@@ -276,7 +276,7 @@ def test_video_help_documents_storyboard_format():
     assert "Scene YAML keys:" in result.output
     assert "Actions for a scene's do: list:" in result.output
     assert '      - click: "selector"' in result.output
-    assert '      - type: {into: "selector", text: "value", delay: 25}' in result.output
+    assert '      - type: {into: "selector", text: "value", delay_ms: 25}' in result.output
     assert "  --mp4" in result.output
     assert "\b" not in result.output
 
@@ -320,7 +320,7 @@ scenes:
     wait_for: "#shot-scraper-cursor"
     do:
       - wait_for: "#more"
-    hold: 0.1
+      - pause: 0.1
   - name: Details
     do:
       - click: "#more"
@@ -334,7 +334,7 @@ scenes:
       - type:
           into: "#search"
           text: "storyboard"
-          delay: 5
+          delay_ms: 5
       - screenshot: details.png
       - screenshot:
           output: heading.png
@@ -346,7 +346,7 @@ scenes:
           y: 200
           duration: 0.05
       - js: document.body.dataset.storyboard = "yes"
-    hold: 0.1
+      - pause: 0.1
 """.strip())
         result = runner.invoke(cli, ["video", "storyboard.yml"])
         assert result.exit_code == 0, result.output
@@ -398,7 +398,8 @@ output: {output_filename}
 url: https://example.com/
 scenes:
 - name: One
-  hold: 0.1
+  do:
+  - pause: 0.1
 """.format(output_filename=output_filename).strip())
         result = runner.invoke(cli, ["video", "storyboard.yml", "--mp4"])
 
@@ -447,7 +448,8 @@ output: demo.webm
 url: https://example.com/
 scenes:
 - name: One
-  hold: 0.1
+  do:
+  - pause: 0.1
 """.strip())
         result = runner.invoke(cli, ["video", "storyboard.yml", "--mp4"])
 

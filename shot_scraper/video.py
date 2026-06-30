@@ -46,7 +46,7 @@ class TypeAction(StoryboardBaseModel):
     into: str | None = None
     selector: str | None = None
     text: str
-    delay: NonNegativeFloat | None = None
+    delay_ms: NonNegativeFloat | None = None
 
     @model_validator(mode="after")
     def require_selector(self):
@@ -177,7 +177,6 @@ class StoryboardScene(StoryboardBaseModel):
     sh: str | list[str] | None = None
     python: str | None = None
     do: list[StoryboardAction] = Field(default_factory=list)
-    hold: NonNegativeFloat | None = None
 
     @field_validator("do", mode="before")
     @classmethod
@@ -195,8 +194,6 @@ class Storyboard(StoryboardBaseModel):
     server: str | list[str | int] | None = None
     viewport: StoryboardViewport = Field(default_factory=StoryboardViewport)
     cursor: CursorOptions | None = None
-    width: PositiveInt | None = None
-    height: PositiveInt | None = None
     wait: NonNegativeFloat | None = None
     wait_for: str | None = None
     wait_for_url: str | None = None
@@ -221,8 +218,8 @@ class Storyboard(StoryboardBaseModel):
         return self
 
     def viewport_size(self):
-        width = self.viewport.width or self.width or 1280
-        height = self.viewport.height or self.height or 720
+        width = self.viewport.width or 1280
+        height = self.viewport.height or 720
         return {"width": width, "height": height}
 
 

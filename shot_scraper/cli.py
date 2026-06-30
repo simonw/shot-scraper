@@ -546,7 +546,7 @@ def video(
 
     A storyboard is a YAML mapping with an output filename, a starting URL (or
     an opening scene), and a list of scenes. Each scene can wait, run commands,
-    run browser actions, and hold on the final frame.
+    run browser actions, and pause between steps.
 
     Example storyboard.yml:
 
@@ -560,25 +560,26 @@ def video(
         wait_for: "text=Quick start"
         scenes:
         - name: Documentation home
-          hold: 1
+          do:
+          - pause: 1
         - name: Open installation docs
           do:
           - click: ".sidebar-tree a[href='installation.html']"
           - wait_for: 'h1:has-text("Installation")'
           - screenshot: installation.png
-          hold: 1
+          - pause: 1
         - name: Search the docs
           do:
           - click: "input.sidebar-search"
           - type:
               into: "input.sidebar-search"
               text: "authentication"
-              delay: 25
+              delay_ms: 25
           - press:
               selector: "input.sidebar-search"
               key: Enter
           - wait_for: "text=Search Results"
-          hold: 2
+          - pause: 2
 
     Top-level YAML keys:
 
@@ -590,7 +591,6 @@ def video(
           the first scene has open:.
         server: Optional command string or argument list to run while recording.
         viewport: Mapping with width: and height:. Defaults to 1280 by 720.
-        width, height: Shortcut viewport size keys.
         cursor: true, false, or a mapping with visible, clicks, color, size and
           click_size.
         wait: Seconds to pause after the starting page loads.
@@ -609,7 +609,6 @@ def video(
         sh: Shell command string or argument list to run before actions.
         python: Python code to run before actions.
         do: List of browser/page actions.
-        hold: Seconds to keep recording after the scene actions finish.
 
     Actions for a scene's do: list:
 
@@ -617,14 +616,14 @@ def video(
         - click: "selector"
         - click: {selector: "selector", button: right, count: 2}
         - fill: {into: "selector", text: "value"}
-        - type: {into: "selector", text: "value", delay: 25}
+        - type: {into: "selector", text: "value", delay_ms: 25}
         - press: {selector: "selector", key: "ControlOrMeta+A"}
         - scroll: {x: 0, y: 500, duration: 0.5}
         - scroll: {to: "selector", duration: 0.5}
         - pause: 1.5
         - wait_for: "selector"
         - wait_for_url: "**/finished"
-        - open: "https://example.com/next"
+        - open: "installation.html"
         - js: "document.body.dataset.demo = '1'"
         - screenshot: output.png
         - screenshot: {output: heading.png, selector: "h1"}
@@ -1788,9 +1787,6 @@ def _run_storyboard_scene(page, scene, index, skip=False, fail=False, silent=Fal
     for action_index, action in enumerate(scene.do, 1):
         _run_storyboard_action(page, action, index, action_index, skip=skip, fail=fail)
 
-    if scene.hold is not None:
-        _storyboard_pause(scene.hold)
-
 
 def _run_storyboard_action(
     page, action, scene_index, action_index, skip=False, fail=False
@@ -1804,8 +1800,8 @@ def _run_storyboard_action(
         page.locator(action.selector).click(**click_kwargs)
     elif isinstance(action, TypeAction):
         type_kwargs = {}
-        if action.delay is not None:
-            type_kwargs["delay"] = action.delay
+        if action.delay_ms is not None:
+            type_kwargs["delay"] = action.delay_ms
         page.locator(action.target_selector).type(action.text, **type_kwargs)
     elif isinstance(action, FillAction):
         page.locator(action.target_selector).fill(action.text)
@@ -1868,9 +1864,9 @@ def _storyboard_pause(seconds):
     try:
         seconds = float(seconds)
     except (TypeError, ValueError):
-        raise click.ClickException("pause and hold values must be numbers")
+        raise click.ClickException("pause values must be numbers")
     if seconds < 0:
-        raise click.ClickException("pause and hold values must not be negative")
+        raise click.ClickException("pause values must not be negative")
     time.sleep(seconds)
 
 
