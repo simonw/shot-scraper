@@ -276,7 +276,9 @@ def test_video_help_documents_storyboard_format():
     assert "Scene YAML keys:" in result.output
     assert "Actions for a scene's do: list:" in result.output
     assert '      - click: "selector"' in result.output
-    assert '      - type: {into: "selector", text: "value", delay_ms: 25}' in result.output
+    assert (
+        '      - type: {into: "selector", text: "value", delay_ms: 25}' in result.output
+    )
     assert "  --mp4" in result.output
     assert "\b" not in result.output
 
