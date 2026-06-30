@@ -10,21 +10,37 @@ Create a file called `storyboard.yml` like this:
 
 ```yaml
 output: demo.webm
-url: https://example.com/
+url: https://shot-scraper.datasette.io/en/stable/
 
 viewport:
   width: 1280
   height: 720
 
+cursor: true
+wait_for: "text=Quick start"
+
 scenes:
-- name: Landing page
-  wait_for: h1
+- name: Documentation home
   hold: 1
 
-- name: Open more information
+- name: Open installation docs
   do:
-  - click: "a[href='/more']"
-  - wait_for: h1
+  - click: ".sidebar-tree a[href='installation.html']"
+  - wait_for: 'h1:has-text("Installation")'
+  - screenshot: installation.png
+  hold: 1
+
+- name: Search the docs
+  do:
+  - click: "input.sidebar-search"
+  - type:
+      into: "input.sidebar-search"
+      text: "authentication"
+      delay: 25
+  - press:
+      selector: "input.sidebar-search"
+      key: Enter
+  - wait_for: "text=Search Results"
   hold: 2
 ```
 
