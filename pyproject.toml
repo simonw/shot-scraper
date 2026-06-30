@@ -1,7 +1,7 @@
 [project]
 name = "shot-scraper"
 version = "1.9.1"
-description = "A command-line utility for scraping and taking automated screenshots of websites"
+description = "A CLI utility for taking screenshots of websites, recording video demos and scraping sites using JavaScript"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "Apache-2.0"

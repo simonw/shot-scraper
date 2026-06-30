@@ -6,7 +6,7 @@
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/simonw/shot-scraper/blob/master/LICENSE)
 [![discord](https://img.shields.io/discord/823971286308356157?label=discord)](https://discord.gg/EE7Hx4Kbny)
 
-A command-line utility for taking automated screenshots of websites
+A CLI utility for taking screenshots of websites, recording video demos and scraping sites using JavaScript
 
 For background on this project see [shot-scraper: automated screenshots for documentation, built on Playwright](https://simonwillison.net/2022/Mar/10/shot-scraper/).
 
