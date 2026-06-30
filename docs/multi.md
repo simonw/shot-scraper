@@ -196,6 +196,10 @@ If you specify these steps without a `url:` key they will still execute as indiv
     open("index.html", "w").write(content.upper())
 ```
 
+If a `sh:` or `python:` command exits with a non-zero status, `shot-scraper multi` stops and exits with an error.
+
+For multi-line `sh: |` blocks, use `set -e` if you want the shell to stop at the first failing command.
+
 ## `shot-scraper multi --help`
 
 Full `--help` for this command:

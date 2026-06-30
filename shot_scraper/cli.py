@@ -1619,16 +1619,28 @@ def _check_and_absolutize(filepath):
 
 
 def _run_sh_command(sh):
-    if isinstance(sh, str):
-        subprocess.run(sh, shell=True)
-    elif isinstance(sh, list):
-        subprocess.run(sh)
-    else:
-        raise click.ClickException("- sh: must be a string or list")
+    try:
+        if isinstance(sh, str):
+            subprocess.run(sh, shell=True, check=True)
+        elif isinstance(sh, list):
+            subprocess.run(list(map(str, sh)), check=True)
+        else:
+            raise click.ClickException("- sh: must be a string or list")
+    except FileNotFoundError as ex:
+        raise click.ClickException(f"sh command failed: {ex}") from ex
+    except subprocess.CalledProcessError as ex:
+        raise click.ClickException(
+            f"sh command exited with status {ex.returncode}"
+        ) from ex
 
 
 def _run_python_code(code):
-    subprocess.run([sys.executable, "-c", code])
+    try:
+        subprocess.run([sys.executable, "-c", code], check=True)
+    except subprocess.CalledProcessError as ex:
+        raise click.ClickException(
+            f"python code exited with status {ex.returncode}"
+        ) from ex
 
 
 def _start_server(server):

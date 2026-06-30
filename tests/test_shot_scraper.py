@@ -69,6 +69,37 @@ def test_multi_commands():
         assert open("index.html").read().strip() == "HELLO WORLD"
 
 
+@pytest.mark.parametrize(
+    ("yaml", "expected"),
+    (
+        (
+            """
+- sh: exit 3
+- sh: touch should-not-run
+""".strip(),
+            "Error: sh command exited with status 3\n",
+        ),
+        (
+            """
+- python: |
+    raise SystemExit(4)
+- sh: touch should-not-run
+""".strip(),
+            "Error: python code exited with status 4\n",
+        ),
+    ),
+)
+def test_multi_commands_fail_on_non_zero_exit(yaml, expected):
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        yaml_file = "commands.yaml"
+        open(yaml_file, "w").write(yaml)
+        result = runner.invoke(cli, ["multi", yaml_file])
+        assert result.exit_code == 1
+        assert result.output == expected
+        assert not pathlib.Path("should-not-run").exists()
+
+
 @pytest.mark.parametrize("input", ("key: value", "This is a string", "3.55"))
 def test_multi_error_on_non_list(input):
     runner = CliRunner()

@@ -90,9 +90,12 @@ A storyboard file is a YAML mapping with these keys:
 
   ```yaml
   sh: |
+    set -e
     echo "Preparing storyboard files"
     date > /tmp/storyboard-started.txt
   ```
+
+  The shell process must exit with status `0`. For multi-line `sh: |` blocks, use `set -e` if you want the shell to stop at the first failing command.
 
 `python`
 : Optional Python code to run before `server:` starts and before the browser opens. If both top-level `sh:` and `python:` are present, `python:` runs after `sh:`.
@@ -104,6 +107,8 @@ A storyboard file is a YAML mapping with these keys:
     root.mkdir(parents=True, exist_ok=True)
     (root / "index.html").write_text("<h1>Local demo</h1>")
   ```
+
+If a `sh:` or `python:` command exits with a non-zero status, `shot-scraper video` stops and exits with an error.
 
 `server`
 : Optional command to run as a server for the duration of the storyboard recording. This can be a string, which is run through the shell, or a list of arguments, which is run directly. See [Running a server for the duration of the storyboard](#running-a-server-for-the-duration-of-the-storyboard) for more details.
@@ -351,6 +356,8 @@ scenes:
   do:
   - pause: 1
 ```
+
+If a scene-level or action-level `sh:` or `python:` command exits with a non-zero status, `shot-scraper video` stops and exits with an error.
 
 You can also specify a list of shell arguments:
 
