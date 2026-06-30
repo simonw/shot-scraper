@@ -44,6 +44,18 @@ Use `-o` or `--output` to override the output filename:
 shot-scraper video storyboard.yml -o alternate.webm
 ```
 
+Use `--mp4` to also convert the recorded WebM video to MP4 using `ffmpeg`.
+The WebM is still written first, then the MP4 is written using the same filename
+with the extension replaced by `.mp4`:
+
+```bash
+shot-scraper video storyboard.yml --mp4
+```
+
+If `ffmpeg` is not installed, the WebM file is still created but the command
+exits with a non-zero status and an error explaining that the MP4 was not
+created.
+
 ## Storyboard structure
 
 A storyboard file is a YAML mapping with these keys:
@@ -499,6 +511,9 @@ the other browser-based commands.
 Use `--silent` to hide progress messages. Use `--leave-server` to leave a
 configured `server:` process running after the command finishes.
 
+Use `--mp4` to create an MP4 copy of the recorded WebM video. This requires
+`ffmpeg` to be installed. The command will then create both a `filename.webm` and  `filename.mp4` file.
+
 ## `shot-scraper video --help`
 
 Full `--help` for this command:
@@ -519,12 +534,93 @@ Usage: shot-scraper video [OPTIONS] STORYBOARD_FILE
 
   Record a WebM video from a YAML storyboard.
 
-  Usage:
+  Common usage:
 
       shot-scraper video storyboard.yml
+      shot-scraper video storyboard.yml -o demo.webm --mp4
 
-  The storyboard file should define output, url and scenes. Use -o to override
-  the output filename from the YAML file.
+  A storyboard is a YAML mapping with an output filename, a starting URL (or an
+  opening scene), and a list of scenes. Each scene can wait, run commands, run
+  browser actions, and hold on the final frame.
+
+  Example storyboard.yml:
+
+      output: demo.webm
+      url: https://shot-scraper.datasette.io/en/stable/
+      viewport:
+        width: 1280
+        height: 720
+      cursor: true
+      wait_for: "text=Quick start"
+      scenes:
+      - name: Documentation home
+        hold: 1
+      - name: Open installation docs
+        do:
+        - click: ".sidebar-tree a[href='installation.html']"
+        - wait_for: 'h1:has-text("Installation")'
+        - screenshot: installation.png
+        hold: 1
+      - name: Search the docs
+        do:
+        - click: "input.sidebar-search"
+        - type:
+            into: "input.sidebar-search"
+            text: "authentication"
+            delay: 25
+        - press:
+            selector: "input.sidebar-search"
+            key: Enter
+        - wait_for: "text=Search Results"
+        hold: 2
+
+  Top-level YAML keys:
+
+      output: WebM filename. -o/--output overrides this. With --mp4, an MP4
+        is also written using the same filename with the suffix replaced by
+        .mp4.
+      url: Starting URL, bare domain, or local HTML path. Omit this only if
+        the first scene has open:.
+      server: Optional command string or argument list to run while recording.
+      viewport: Mapping with width: and height:. Defaults to 1280 by 720.
+      width, height: Shortcut viewport size keys.
+      cursor: true, false, or a mapping with visible, clicks, color, size and
+        click_size.
+      wait: Seconds to pause after the starting page loads.
+      wait_for: Selector or Playwright text selector to wait for.
+      wait_for_url: URL pattern to wait for.
+      javascript: JavaScript to run before scene recording starts.
+      scenes: Required list of scenes.
+
+  Scene YAML keys:
+
+      name: Label shown in progress output.
+      open: URL/path to open at the start of this scene.
+      wait_for: Selector to wait for.
+      wait_for_url: URL pattern to wait for.
+      sh: Shell command string or argument list to run before actions.
+      python: Python code to run before actions.
+      do: List of browser/page actions.
+      hold: Seconds to keep recording after the scene actions finish.
+
+  Actions for a scene's do: list:
+
+      - click: "selector"
+      - click: {selector: "selector", button: right, count: 2}
+      - fill: {into: "selector", text: "value"}
+      - type: {into: "selector", text: "value", delay: 25}
+      - press: {selector: "selector", key: "ControlOrMeta+A"}
+      - scroll: {x: 0, y: 500, duration: 0.5}
+      - scroll: {to: "selector", duration: 0.5}
+      - pause: 1.5
+      - wait_for: "selector"
+      - wait_for_url: "**/finished"
+      - open: "https://example.com/next"
+      - js: "document.body.dataset.demo = '1'"
+      - screenshot: output.png
+      - screenshot: {output: heading.png, selector: "h1"}
+      - sh: "echo scene > scene.txt"
+      - python: "open('scene.txt', 'w').write('ok')"
 
   For full YAML syntax documentation, see:
   https://shot-scraper.datasette.io/en/stable/video.html
@@ -548,6 +644,8 @@ Options:
   --auth-password TEXT            Password for HTTP Basic authentication
   --auth-username TEXT            Username for HTTP Basic authentication
   --leave-server                  Leave servers running when script finishes
+  --mp4                           Also convert the recorded WebM video to MP4
+                                  using ffmpeg
   --help                          Show this message and exit.
 ```
 <!-- [[[end]]] -->

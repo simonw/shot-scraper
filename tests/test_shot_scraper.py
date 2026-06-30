@@ -255,6 +255,32 @@ def test_video_validation(yaml, expected):
     assert result.output == expected
 
 
+def test_video_help_documents_storyboard_format():
+    runner = CliRunner()
+    result = runner.invoke(cli, ["video", "--help"])
+    assert result.exit_code == 0
+    assert "Example storyboard.yml:" in result.output
+    assert (
+        "      output: demo.webm\n"
+        "      url: https://shot-scraper.datasette.io/en/stable/"
+    ) in result.output
+    assert "      - name: Open installation docs" in result.output
+    assert (
+        "        - click: \".sidebar-tree a[href='installation.html']\""
+        in result.output
+    )
+    assert "        - wait_for: 'h1:has-text(\"Installation\")'" in result.output
+    assert "      - name: Search the docs" in result.output
+    assert '        - click: "input.sidebar-search"' in result.output
+    assert "Top-level YAML keys:" in result.output
+    assert "Scene YAML keys:" in result.output
+    assert "Actions for a scene's do: list:" in result.output
+    assert '      - click: "selector"' in result.output
+    assert '      - type: {into: "selector", text: "value", delay: 25}' in result.output
+    assert "  --mp4" in result.output
+    assert "\b" not in result.output
+
+
 def test_video_records_video():
     runner = CliRunner()
     port = find_free_port()
@@ -339,6 +365,99 @@ scenes:
         assert pathlib.Path("scene-python.txt").read_text() == "scene python"
         assert pathlib.Path("action-shell.txt").read_text().strip() == "action shell"
         assert pathlib.Path("action-python.txt").read_text() == "action python"
+
+
+@pytest.mark.parametrize(
+    ("output_filename", "mp4_filename"),
+    (
+        ("demo.webm", "demo.mp4"),
+        ("recording.video", "recording.mp4"),
+        ("demo", "demo.mp4"),
+    ),
+)
+def test_video_mp4_converts_webm_after_recording(mocker, output_filename, mp4_filename):
+    runner = CliRunner()
+    events = []
+
+    def record_storyboard(storyboard_config, **kwargs):
+        events.append(("record", storyboard_config.output))
+        pathlib.Path(storyboard_config.output).write_bytes(b"webm")
+
+    def run_ffmpeg(args, **kwargs):
+        events.append(("ffmpeg", args, kwargs))
+        assert pathlib.Path(args[3]).exists()
+        pathlib.Path(args[-1]).write_bytes(b"mp4")
+        return cli_module.subprocess.CompletedProcess(args, 0)
+
+    mocker.patch.object(cli_module, "_record_storyboard", side_effect=record_storyboard)
+    mocker.patch.object(cli_module.subprocess, "run", side_effect=run_ffmpeg)
+
+    with runner.isolated_filesystem():
+        pathlib.Path("storyboard.yml").write_text("""
+output: {output_filename}
+url: https://example.com/
+scenes:
+- name: One
+  hold: 0.1
+""".format(output_filename=output_filename).strip())
+        result = runner.invoke(cli, ["video", "storyboard.yml", "--mp4"])
+
+        assert result.exit_code == 0, result.output
+        assert pathlib.Path(output_filename).read_bytes() == b"webm"
+        assert pathlib.Path(mp4_filename).read_bytes() == b"mp4"
+        assert events == [
+            ("record", output_filename),
+            (
+                "ffmpeg",
+                [
+                    "ffmpeg",
+                    "-y",
+                    "-i",
+                    output_filename,
+                    "-c:v",
+                    "libx264",
+                    "-pix_fmt",
+                    "yuv420p",
+                    "-movflags",
+                    "+faststart",
+                    mp4_filename,
+                ],
+                {"check": True, "capture_output": True, "text": True},
+            ),
+        ]
+        assert f"MP4 written to '{mp4_filename}'" in result.output
+
+
+def test_video_mp4_missing_ffmpeg_leaves_webm(mocker):
+    runner = CliRunner()
+
+    def record_storyboard(storyboard_config, **kwargs):
+        pathlib.Path(storyboard_config.output).write_bytes(b"webm")
+
+    mocker.patch.object(cli_module, "_record_storyboard", side_effect=record_storyboard)
+    mocker.patch.object(
+        cli_module.subprocess,
+        "run",
+        side_effect=FileNotFoundError("ffmpeg"),
+    )
+
+    with runner.isolated_filesystem():
+        pathlib.Path("storyboard.yml").write_text("""
+output: demo.webm
+url: https://example.com/
+scenes:
+- name: One
+  hold: 0.1
+""".strip())
+        result = runner.invoke(cli, ["video", "storyboard.yml", "--mp4"])
+
+        assert result.exit_code == 1
+        assert pathlib.Path("demo.webm").read_bytes() == b"webm"
+        assert not pathlib.Path("demo.mp4").exists()
+        assert (
+            "Error: WebM was created, but MP4 conversion failed: ffmpeg is not "
+            "installed or not on PATH\n"
+        ) in result.output
 
 
 def test_video_starts_screencast_after_initial_navigation(mocker):

@@ -511,6 +511,11 @@ def _browser_context(
     is_flag=True,
     help="Leave servers running when script finishes",
 )
+@click.option(
+    "--mp4",
+    is_flag=True,
+    help="Also convert the recorded WebM video to MP4 using ffmpeg",
+)
 def video(
     storyboard_file,
     output,
@@ -528,16 +533,103 @@ def video(
     auth_username,
     auth_password,
     leave_server,
+    mp4,
 ):
     """
     Record a WebM video from a YAML storyboard.
 
-    Usage:
+    Common usage:
 
+    \b
         shot-scraper video storyboard.yml
+        shot-scraper video storyboard.yml -o demo.webm --mp4
 
-    The storyboard file should define output, url and scenes. Use -o to
-    override the output filename from the YAML file.
+    A storyboard is a YAML mapping with an output filename, a starting URL (or
+    an opening scene), and a list of scenes. Each scene can wait, run commands,
+    run browser actions, and hold on the final frame.
+
+    Example storyboard.yml:
+
+    \b
+        output: demo.webm
+        url: https://shot-scraper.datasette.io/en/stable/
+        viewport:
+          width: 1280
+          height: 720
+        cursor: true
+        wait_for: "text=Quick start"
+        scenes:
+        - name: Documentation home
+          hold: 1
+        - name: Open installation docs
+          do:
+          - click: ".sidebar-tree a[href='installation.html']"
+          - wait_for: 'h1:has-text("Installation")'
+          - screenshot: installation.png
+          hold: 1
+        - name: Search the docs
+          do:
+          - click: "input.sidebar-search"
+          - type:
+              into: "input.sidebar-search"
+              text: "authentication"
+              delay: 25
+          - press:
+              selector: "input.sidebar-search"
+              key: Enter
+          - wait_for: "text=Search Results"
+          hold: 2
+
+    Top-level YAML keys:
+
+    \b
+        output: WebM filename. -o/--output overrides this. With --mp4, an MP4
+          is also written using the same filename with the suffix replaced by
+          .mp4.
+        url: Starting URL, bare domain, or local HTML path. Omit this only if
+          the first scene has open:.
+        server: Optional command string or argument list to run while recording.
+        viewport: Mapping with width: and height:. Defaults to 1280 by 720.
+        width, height: Shortcut viewport size keys.
+        cursor: true, false, or a mapping with visible, clicks, color, size and
+          click_size.
+        wait: Seconds to pause after the starting page loads.
+        wait_for: Selector or Playwright text selector to wait for.
+        wait_for_url: URL pattern to wait for.
+        javascript: JavaScript to run before scene recording starts.
+        scenes: Required list of scenes.
+
+    Scene YAML keys:
+
+    \b
+        name: Label shown in progress output.
+        open: URL/path to open at the start of this scene.
+        wait_for: Selector to wait for.
+        wait_for_url: URL pattern to wait for.
+        sh: Shell command string or argument list to run before actions.
+        python: Python code to run before actions.
+        do: List of browser/page actions.
+        hold: Seconds to keep recording after the scene actions finish.
+
+    Actions for a scene's do: list:
+
+    \b
+        - click: "selector"
+        - click: {selector: "selector", button: right, count: 2}
+        - fill: {into: "selector", text: "value"}
+        - type: {into: "selector", text: "value", delay: 25}
+        - press: {selector: "selector", key: "ControlOrMeta+A"}
+        - scroll: {x: 0, y: 500, duration: 0.5}
+        - scroll: {to: "selector", duration: 0.5}
+        - pause: 1.5
+        - wait_for: "selector"
+        - wait_for_url: "**/finished"
+        - open: "https://example.com/next"
+        - js: "document.body.dataset.demo = '1'"
+        - screenshot: output.png
+        - screenshot: {output: heading.png, selector: "h1"}
+        - sh: "echo scene > scene.txt"
+        - python: "open('scene.txt', 'w').write('ok')"
 
     \b
     For full YAML syntax documentation, see:
@@ -567,8 +659,44 @@ def video(
             auth_password=auth_password,
             leave_server=leave_server,
         )
+        if mp4:
+            _convert_video_to_mp4(storyboard_config.output, silent=silent)
     except TimeoutError as e:
         raise click.ClickException(str(e))
+
+
+def _convert_video_to_mp4(output, silent=False):
+    mp4_output = str(pathlib.Path(output).with_suffix(".mp4"))
+    args = [
+        "ffmpeg",
+        "-y",
+        "-i",
+        output,
+        "-c:v",
+        "libx264",
+        "-pix_fmt",
+        "yuv420p",
+        "-movflags",
+        "+faststart",
+        mp4_output,
+    ]
+    try:
+        subprocess.run(args, check=True, capture_output=True, text=True)
+    except FileNotFoundError:
+        raise click.ClickException(
+            "WebM was created, but MP4 conversion failed: ffmpeg is not installed "
+            "or not on PATH"
+        )
+    except subprocess.CalledProcessError as ex:
+        reason = (ex.stderr or ex.stdout or "").strip()
+        if not reason:
+            reason = f"ffmpeg exited with status {ex.returncode}"
+        raise click.ClickException(
+            f"WebM was created, but MP4 conversion failed: {reason}"
+        )
+    if not silent:
+        click.echo(f"MP4 written to '{mp4_output}'", err=True)
+    return mp4_output
 
 
 @cli.command()
