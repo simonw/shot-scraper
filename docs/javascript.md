@@ -252,6 +252,8 @@ Options:
   --browser-arg TEXT              Additional arguments to pass to the browser
   --user-agent TEXT               User-Agent header to use
   --reduced-motion                Emulate 'prefers-reduced-motion' media feature
+  --color-scheme [light|dark|no-preference]
+                                  Emulate 'prefers-color-scheme' media feature
   --log-console                   Write console.log() to stderr
   --fail                          Fail with an error code if a page returns an
                                   HTTP error
