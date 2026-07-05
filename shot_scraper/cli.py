@@ -2,6 +2,7 @@ import base64
 import secrets
 import subprocess
 import sys
+import tempfile
 import textwrap
 import time
 import json
@@ -32,6 +33,11 @@ from shot_scraper.video import (
     WaitForAction,
     WaitForUrlAction,
     load_storyboard,
+)
+from shot_scraper.narration import (
+    NarrationError,
+    mux_narration,
+    plan_narration,
 )
 from shot_scraper.utils import (
     filename_for_url,
@@ -643,6 +649,27 @@ def video(
         raise click.ClickException(str(ex))
     if output:
         storyboard_config = storyboard_config.model_copy(update={"output": output})
+
+    # Narration: any scene with a say: line is synthesized to speech, the
+    # storyboard is padded to hold each frame for its line, and the audio is
+    # muxed into the MP4. It therefore requires --mp4.
+    narration_lines = None
+    narration_tmp = None
+    if storyboard_config.has_narration():
+        if not mp4:
+            raise click.ClickException(
+                "This storyboard has say: narration, which is rendered into the "
+                "MP4 audio track — re-run with --mp4."
+            )
+        narration_tmp = tempfile.TemporaryDirectory(prefix="shot-scraper-narration-")
+        try:
+            narration_lines = plan_narration(
+                storyboard_config, pathlib.Path(narration_tmp.name) / "audio"
+            )
+        except NarrationError as ex:
+            narration_tmp.cleanup()
+            raise click.ClickException(str(ex))
+
     try:
         _record_storyboard(
             storyboard_config,
@@ -662,9 +689,27 @@ def video(
             leave_server=leave_server,
         )
         if mp4:
-            _convert_video_to_mp4(storyboard_config.output, silent=silent)
+            if narration_lines:
+                mp4_output = str(
+                    pathlib.Path(storyboard_config.output).with_suffix(".mp4")
+                )
+                try:
+                    mux_narration(
+                        pathlib.Path(storyboard_config.output),
+                        pathlib.Path(mp4_output),
+                        narration_lines,
+                    )
+                except NarrationError as ex:
+                    raise click.ClickException(str(ex))
+                if not silent:
+                    click.echo(f"Narrated MP4 written to '{mp4_output}'", err=True)
+            else:
+                _convert_video_to_mp4(storyboard_config.output, silent=silent)
     except TimeoutError as e:
         raise click.ClickException(str(e))
+    finally:
+        if narration_tmp is not None:
+            narration_tmp.cleanup()
 
 
 def _convert_video_to_mp4(output, silent=False):
