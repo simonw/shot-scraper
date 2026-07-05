@@ -18,6 +18,8 @@ from playwright.sync_api import sync_playwright, Error, TimeoutError
 
 from shot_scraper.video import (
     ClickAction,
+    ExpectAction,
+    ExpectGoneAction,
     FillAction,
     JavascriptAction,
     OpenAction,
@@ -1855,6 +1857,8 @@ def _run_storyboard_action(
         _storyboard_wait_for(page, action.selector)
     elif isinstance(action, WaitForUrlAction):
         page.wait_for_url(action.url)
+    elif isinstance(action, (ExpectAction, ExpectGoneAction)):
+        _storyboard_expect(page, action)
     elif isinstance(action, OpenAction):
         _storyboard_goto(page, action.url, skip=skip, fail=fail)
     elif isinstance(action, JavascriptAction):
@@ -1895,6 +1899,36 @@ def _storyboard_wait_for(page, selector):
     if not isinstance(selector, str):
         raise click.ClickException("wait_for: must be a selector string")
     page.locator(selector).wait_for()
+
+
+def _storyboard_expect(page, action):
+    """Assert a post-condition, failing the recording if it is never met.
+
+    `expect` waits for the target to be present; `expect_gone` waits for it to be
+    absent. The target is a CSS `selector`, a `text` substring of the page (or of
+    the selected element's text, if both are given), or both. Polls up to the
+    context timeout, or `timeout` milliseconds if the action sets one.
+    """
+    negate = isinstance(action, ExpectGoneAction)
+    present = (
+        "() => {"
+        f"const sel={json.dumps(action.selector)}, text={json.dumps(action.text)};"
+        "const scope = sel ? document.querySelector(sel) : document.body;"
+        "if (sel && !scope) return false;"
+        "if (text == null) return sel ? !!scope : true;"
+        "return (scope ? scope.innerText : '').includes(text);"
+        "}"
+    )
+    expression = f"() => !(({present})())" if negate else present
+    try:
+        page.wait_for_function(expression, timeout=action.timeout)
+    except TimeoutError:
+        label = "expect_gone" if negate else "expect"
+        raise click.ClickException(
+            f"{label} assertion failed (selector={action.selector!r}, "
+            f"text={action.text!r}): post-condition not met — the page never "
+            f"reached the {'absent' if negate else 'present'} state in time"
+        )
 
 
 def _storyboard_pause(seconds):
