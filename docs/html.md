@@ -72,6 +72,12 @@ Options:
                                   HTTP error
   --skip                          Skip pages that return HTTP errors
   --bypass-csp                    Bypass Content-Security-Policy
+  --wait-until [commit|domcontentloaded|load|networkidle]
+                                  When to consider navigation succeeded, passed
+                                  to Playwright's page.goto(). Defaults to
+                                  'load'; use 'domcontentloaded' for single page
+                                  apps that hold open connections and never fire
+                                  the load event.
   --silent                        Do not output any messages
   --auth-password TEXT            Password for HTTP Basic authentication
   --auth-username TEXT            Username for HTTP Basic authentication

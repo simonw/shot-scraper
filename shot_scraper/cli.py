@@ -158,6 +158,19 @@ def reduced_motion_option(fn):
     return fn
 
 
+def wait_until_option(fn):
+    click.option(
+        "--wait-until",
+        type=click.Choice(["commit", "domcontentloaded", "load", "networkidle"]),
+        help=(
+            "When to consider navigation succeeded, passed to Playwright's "
+            "page.goto(). Defaults to 'load'; use 'domcontentloaded' for single "
+            "page apps that hold open connections and never fire the load event."
+        ),
+    )(fn)
+    return fn
+
+
 @click.group(
     cls=DefaultGroup,
     default="shot",
@@ -266,6 +279,7 @@ def cli():
 @browser_args_option
 @user_agent_option
 @reduced_motion_option
+@wait_until_option
 @skip_fail_options
 @bypass_csp_option
 @silent_option
@@ -297,6 +311,7 @@ def shot(
     browser_args,
     user_agent,
     reduced_motion,
+    wait_until,
     skip,
     fail,
     bypass_csp,
@@ -348,6 +363,7 @@ def shot(
         "quality": quality,
         "wait": wait,
         "wait_for": wait_for,
+        "wait_until": wait_until,
         "timeout": timeout,
         "padding": padding,
         "omit_background": omit_background,
@@ -376,7 +392,7 @@ def shot(
             page = context.new_page()
             if width or height:
                 page.set_viewport_size(_get_viewport(width, height))
-            page.goto(url)
+            page.goto(url, wait_until=wait_until)
             context = page
             click.echo(
                 "Hit <enter> to take the shot and close the browser window:", err=True
@@ -500,6 +516,7 @@ def _browser_context(
 @browser_args_option
 @user_agent_option
 @reduced_motion_option
+@wait_until_option
 @log_console_option
 @skip_fail_options
 @bypass_csp_option
@@ -525,6 +542,7 @@ def video(
     browser_args,
     user_agent,
     reduced_motion,
+    wait_until,
     log_console,
     skip,
     fail,
@@ -652,6 +670,7 @@ def video(
             browser_args=browser_args,
             user_agent=user_agent,
             reduced_motion=reduced_motion,
+            wait_until=wait_until,
             log_console=log_console,
             skip=skip,
             fail=fail,
@@ -738,6 +757,7 @@ def _convert_video_to_mp4(output, silent=False):
 @browser_args_option
 @user_agent_option
 @reduced_motion_option
+@wait_until_option
 @log_console_option
 @skip_fail_options
 @silent_option
@@ -776,6 +796,7 @@ def multi(
     browser_args,
     user_agent,
     reduced_motion,
+    wait_until,
     log_console,
     skip,
     fail,
@@ -858,6 +879,9 @@ def multi(
                     server_processes.append(_start_server(shot["server"]))
                     time.sleep(1)
                 if "url" in shot:
+                    # CLI --wait-until is the default; a per-shot wait_until: in
+                    # the YAML takes precedence.
+                    shot.setdefault("wait_until", wait_until)
                     try:
                         take_shot(
                             context,
@@ -905,6 +929,7 @@ def multi(
 @log_console_option
 @skip_fail_options
 @bypass_csp_option
+@wait_until_option
 @http_auth_options
 def accessibility(
     url,
@@ -916,6 +941,7 @@ def accessibility(
     skip,
     fail,
     bypass_csp,
+    wait_until,
     auth_username,
     auth_password,
 ):
@@ -939,7 +965,7 @@ def accessibility(
         page = context.new_page()
         if log_console:
             page.on("console", console_log)
-        response = page.goto(url)
+        response = page.goto(url, wait_until=wait_until)
         skip_or_fail(response, skip, fail)
         if javascript:
             _evaluate_js(page, javascript)
@@ -985,6 +1011,7 @@ def accessibility(
 @log_console_option
 @skip_fail_options
 @bypass_csp_option
+@wait_until_option
 @http_auth_options
 def har(
     url,
@@ -1000,6 +1027,7 @@ def har(
     skip,
     fail,
     bypass_csp,
+    wait_until,
     auth_username,
     auth_password,
 ):
@@ -1045,7 +1073,7 @@ def har(
         page = context.new_page()
         if log_console:
             page.on("console", console_log)
-        response = page.goto(url)
+        response = page.goto(url, wait_until=wait_until)
         skip_or_fail(response, skip, fail)
         if wait:
             time.sleep(wait / 1000)
@@ -1210,6 +1238,7 @@ def _extract_har_entry(entry, extract_dir, existing_files, file_exists_fn, zip_f
 @browser_args_option
 @user_agent_option
 @reduced_motion_option
+@wait_until_option
 @log_console_option
 @skip_fail_options
 @bypass_csp_option
@@ -1227,6 +1256,7 @@ def javascript(
     browser_args,
     user_agent,
     reduced_motion,
+    wait_until,
     log_console,
     skip,
     fail,
@@ -1293,7 +1323,7 @@ def javascript(
         viewport = _get_viewport(width, height)
         if viewport:
             page.set_viewport_size(viewport)
-        response = page.goto(url)
+        response = page.goto(url, wait_until=wait_until)
         skip_or_fail(response, skip, fail)
         result = _evaluate_js(page, javascript)
         browser_obj.close()
@@ -1363,6 +1393,7 @@ def javascript(
 @log_console_option
 @skip_fail_options
 @bypass_csp_option
+@wait_until_option
 @silent_option
 @http_auth_options
 def pdf(
@@ -1384,6 +1415,7 @@ def pdf(
     skip,
     fail,
     bypass_csp,
+    wait_until,
     silent,
     auth_username,
     auth_password,
@@ -1418,7 +1450,7 @@ def pdf(
         page = context.new_page()
         if log_console:
             page.on("console", console_log)
-        response = page.goto(url)
+        response = page.goto(url, wait_until=wait_until)
         skip_or_fail(response, skip, fail)
         if wait:
             time.sleep(wait / 1000)
@@ -1480,6 +1512,7 @@ def pdf(
 @user_agent_option
 @skip_fail_options
 @bypass_csp_option
+@wait_until_option
 @silent_option
 @http_auth_options
 def html(
@@ -1496,6 +1529,7 @@ def html(
     skip,
     fail,
     bypass_csp,
+    wait_until,
     silent,
     auth_username,
     auth_password,
@@ -1528,7 +1562,7 @@ def html(
         page = context.new_page()
         if log_console:
             page.on("console", console_log)
-        response = page.goto(url)
+        response = page.goto(url, wait_until=wait_until)
         skip_or_fail(response, skip, fail)
         if wait:
             time.sleep(wait / 1000)
@@ -1691,6 +1725,7 @@ def _record_storyboard(
     browser_args=None,
     user_agent=None,
     reduced_motion=False,
+    wait_until=None,
     log_console=False,
     skip=False,
     fail=False,
@@ -1757,6 +1792,7 @@ def _record_storyboard(
                         start_url,
                         skip=skip,
                         fail=fail,
+                        wait_until=wait_until,
                     )
 
                 if storyboard_config.wait is not None:
@@ -1778,6 +1814,7 @@ def _record_storyboard(
                         skip=skip,
                         fail=fail,
                         silent=silent,
+                        wait_until=wait_until,
                     )
 
                 page.screencast.stop()
@@ -1804,7 +1841,9 @@ def _record_storyboard(
         click.echo(f"Video written to '{output}'", err=True)
 
 
-def _run_storyboard_scene(page, scene, index, skip=False, fail=False, silent=False):
+def _run_storyboard_scene(
+    page, scene, index, skip=False, fail=False, silent=False, wait_until=None
+):
     name = scene.name or f"Scene {index}"
     if not silent:
         click.echo(f"Scene {index}: {name}", err=True)
@@ -1815,18 +1854,20 @@ def _run_storyboard_scene(page, scene, index, skip=False, fail=False, silent=Fal
         _run_python_code(scene.python)
 
     if scene.open:
-        _storyboard_goto(page, scene.open, skip=skip, fail=fail)
+        _storyboard_goto(page, scene.open, skip=skip, fail=fail, wait_until=wait_until)
     if scene.wait_for:
         _storyboard_wait_for(page, scene.wait_for)
     if scene.wait_for_url:
         page.wait_for_url(scene.wait_for_url)
 
     for action_index, action in enumerate(scene.do, 1):
-        _run_storyboard_action(page, action, index, action_index, skip=skip, fail=fail)
+        _run_storyboard_action(
+            page, action, index, action_index, skip=skip, fail=fail, wait_until=wait_until
+        )
 
 
 def _run_storyboard_action(
-    page, action, scene_index, action_index, skip=False, fail=False
+    page, action, scene_index, action_index, skip=False, fail=False, wait_until=None
 ):
     if isinstance(action, ClickAction):
         click_kwargs = {}
@@ -1856,7 +1897,7 @@ def _run_storyboard_action(
     elif isinstance(action, WaitForUrlAction):
         page.wait_for_url(action.url)
     elif isinstance(action, OpenAction):
-        _storyboard_goto(page, action.url, skip=skip, fail=fail)
+        _storyboard_goto(page, action.url, skip=skip, fail=fail, wait_until=wait_until)
     elif isinstance(action, JavascriptAction):
         _evaluate_js(page, action.code)
     elif isinstance(action, ScreenshotAction):
@@ -1871,9 +1912,9 @@ def _run_storyboard_action(
         )
 
 
-def _storyboard_goto(page, url, skip=False, fail=False):
+def _storyboard_goto(page, url, skip=False, fail=False, wait_until=None):
     resolved_url = _resolve_storyboard_url(url, page.url)
-    response = page.goto(resolved_url)
+    response = page.goto(resolved_url, wait_until=wait_until)
     if response is not None:
         skip_or_fail(response, skip, fail)
 
@@ -2103,6 +2144,7 @@ def take_shot(
     omit_background = shot.get("omit_background")
     wait = shot.get("wait")
     wait_for = shot.get("wait_for")
+    wait_until = shot.get("wait_until")
     padding = shot.get("padding") or 0
 
     selectors = shot.get("selectors") or []
@@ -2157,7 +2199,7 @@ def take_shot(
 
     if not use_existing_page:
         # Load page and check for errors
-        response = page.goto(url)
+        response = page.goto(url, wait_until=wait_until)
         # Check if page was a 404 or 500 or other error
         if str(response.status)[0] in ("4", "5"):
             if skip:

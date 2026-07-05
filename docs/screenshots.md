@@ -105,6 +105,19 @@ shot-scraper -h 800 'https://www.spiegel.de/international/' \
 ```
 If the expression takes longer than 30 seconds to resolve `shot-scraper` will exit with an error.
 
+## Controlling when navigation is considered complete
+
+By default `shot-scraper` waits for the browser's `load` event to fire before it continues. Some single page applications hold open long-lived connections (such as WebSockets or server-sent events) and never fire `load`, so navigation appears to hang until it times out.
+
+Use `--wait-until` to change the [Playwright navigation condition](https://playwright.dev/python/docs/api/class-page#page-goto-option-wait-until). For those pages `domcontentloaded` is usually the right choice:
+
+```bash
+shot-scraper 'https://my-single-page-app.example/' \
+  --wait-until domcontentloaded
+```
+
+The accepted values are `commit`, `domcontentloaded`, `load` (the default) and `networkidle`. This option is available on the `shot`, `multi`, `pdf`, `html`, `javascript`, `accessibility`, `har` and `video` commands.
+
 ## Executing custom JavaScript
 
 You can use custom JavaScript to modify the page after it has loaded (after the 'onload' event has fired) but before the screenshot is taken using the `--javascript` option:
@@ -366,6 +379,12 @@ Options:
   --browser-arg TEXT              Additional arguments to pass to the browser
   --user-agent TEXT               User-Agent header to use
   --reduced-motion                Emulate 'prefers-reduced-motion' media feature
+  --wait-until [commit|domcontentloaded|load|networkidle]
+                                  When to consider navigation succeeded, passed
+                                  to Playwright's page.goto(). Defaults to
+                                  'load'; use 'domcontentloaded' for single page
+                                  apps that hold open connections and never fire
+                                  the load event.
   --fail                          Fail with an error code if a page returns an
                                   HTTP error
   --skip                          Skip pages that return HTTP errors

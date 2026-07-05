@@ -252,6 +252,12 @@ Options:
   --browser-arg TEXT              Additional arguments to pass to the browser
   --user-agent TEXT               User-Agent header to use
   --reduced-motion                Emulate 'prefers-reduced-motion' media feature
+  --wait-until [commit|domcontentloaded|load|networkidle]
+                                  When to consider navigation succeeded, passed
+                                  to Playwright's page.goto(). Defaults to
+                                  'load'; use 'domcontentloaded' for single page
+                                  apps that hold open connections and never fire
+                                  the load event.
   --log-console                   Write console.log() to stderr
   --fail                          Fail with an error code if a page returns an
                                   HTTP error

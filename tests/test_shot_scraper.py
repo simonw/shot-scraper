@@ -987,3 +987,82 @@ def test_har_extract_content_type_extension(http_server):
         assert (
             len(html_files) >= 1
         ), f"Should have .html file, got: {list(extract_dir.glob('*'))}"
+
+
+# --- --wait-until option -------------------------------------------------- #
+
+
+@pytest.mark.parametrize(
+    "command",
+    ("shot", "multi", "pdf", "html", "javascript", "accessibility", "har", "video"),
+)
+def test_wait_until_is_offered(command):
+    # Every URL-loading command exposes the --wait-until option
+    runner = CliRunner()
+    result = runner.invoke(cli, [command, "--help"])
+    assert result.exit_code == 0
+    assert "--wait-until" in result.output
+
+
+def test_wait_until_rejects_invalid_choice():
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        open("index.html", "w").write(TEST_HTML)
+        result = runner.invoke(
+            cli, ["javascript", "index.html", "document.title", "--wait-until", "bogus"]
+        )
+    assert result.exit_code == 2
+    assert "not one of" in result.output
+
+
+def test_wait_until_end_to_end():
+    # A valid choice runs cleanly through the real navigation path
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        open("index.html", "w").write(TEST_HTML)
+        result = runner.invoke(
+            cli,
+            [
+                "javascript",
+                "index.html",
+                "document.title",
+                "--wait-until",
+                "domcontentloaded",
+            ],
+        )
+        assert result.exit_code == 0, str(result.exception)
+        assert result.output == '"Test title"\n'
+
+
+def test_wait_until_reaches_shot_dict(mocker):
+    # `shot`/`multi` navigate via take_shot(), which reads shot["wait_until"]
+    take = mocker.patch("shot_scraper.cli.take_shot")
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        open("index.html", "w").write(TEST_HTML)
+        result = runner.invoke(
+            cli,
+            ["shot", "index.html", "--wait-until", "networkidle", "-o", "out.png"],
+        )
+        assert result.exit_code == 0, str(result.exception)
+    assert take.call_args.args[1]["wait_until"] == "networkidle"
+
+
+def test_wait_until_reaches_storyboard_goto():
+    # The storyboard `video` path threads wait_until down to page.goto()
+    page = MagicMock()
+    page.url = "about:blank"
+    cli_module._storyboard_goto(
+        page, "https://example.com/", wait_until="domcontentloaded"
+    )
+    page.goto.assert_called_once_with(
+        "https://example.com/", wait_until="domcontentloaded"
+    )
+
+
+def test_goto_defaults_to_none_when_option_unset():
+    # Backwards compatible: no --wait-until => wait_until=None => Playwright default
+    page = MagicMock()
+    page.url = "about:blank"
+    cli_module._storyboard_goto(page, "https://example.com/")
+    page.goto.assert_called_once_with("https://example.com/", wait_until=None)
