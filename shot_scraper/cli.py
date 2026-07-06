@@ -516,6 +516,11 @@ def _browser_context(
     is_flag=True,
     help="Also convert the recorded WebM video to MP4 using ffmpeg",
 )
+@click.option(
+    "--gif",
+    is_flag=True,
+    help="Also convert the recorded WebM video to GIF using ffmpeg",
+)
 def video(
     storyboard_file,
     output,
@@ -534,6 +539,7 @@ def video(
     auth_password,
     leave_server,
     mp4,
+    gif,
 ):
     """
     Record a WebM video from a YAML storyboard.
@@ -584,9 +590,9 @@ def video(
     Top-level YAML keys:
 
     \b
-        output: WebM filename. -o/--output overrides this. With --mp4, an MP4
-          is also written using the same filename with the suffix replaced by
-          .mp4.
+        output: WebM filename. -o/--output overrides this. With --mp4 or --gif,
+          an MP4 or GIF is also written using the same filename with the suffix
+          replaced by .mp4 or .gif.
         url: Starting URL, bare domain, or local HTML path. Omit this only if
           the first scene has open:.
         sh: Shell command string or argument list to run before python: and
@@ -663,6 +669,8 @@ def video(
         )
         if mp4:
             _convert_video_to_mp4(storyboard_config.output, silent=silent)
+        if gif:
+            _convert_video_to_gif(storyboard_config.output, silent=silent)
     except TimeoutError as e:
         raise click.ClickException(str(e))
 
@@ -699,6 +707,38 @@ def _convert_video_to_mp4(output, silent=False):
     if not silent:
         click.echo(f"MP4 written to '{mp4_output}'", err=True)
     return mp4_output
+
+
+def _convert_video_to_gif(output, silent=False):
+    gif_output = str(pathlib.Path(output).with_suffix(".gif"))
+    args = [
+        "ffmpeg",
+        "-y",
+        "-i",
+        output,
+        "-filter_complex",
+        "fps=10,scale=800:-1:flags=lanczos,split[a][b];[a]palettegen[p];[b][p]paletteuse",
+        "-loop",
+        "0",
+        gif_output,
+    ]
+    try:
+        subprocess.run(args, check=True, capture_output=True, text=True)
+    except FileNotFoundError:
+        raise click.ClickException(
+            "WebM was created, but GIF conversion failed: ffmpeg is not installed "
+            "or not on PATH"
+        )
+    except subprocess.CalledProcessError as ex:
+        reason = (ex.stderr or ex.stdout or "").strip()
+        if not reason:
+            reason = f"ffmpeg exited with status {ex.returncode}"
+        raise click.ClickException(
+            f"WebM was created, but GIF conversion failed: {reason}"
+        )
+    if not silent:
+        click.echo(f"GIF written to '{gif_output}'", err=True)
+    return gif_output
 
 
 @cli.command()

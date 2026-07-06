@@ -331,6 +331,7 @@ def test_video_help_documents_storyboard_format():
         '      - type: {into: "selector", text: "value", delay_ms: 25}' in result.output
     )
     assert "  --mp4" in result.output
+    assert "  --gif" in result.output
     assert "\b" not in result.output
 
 
@@ -511,6 +512,99 @@ scenes:
         assert not pathlib.Path("demo.mp4").exists()
         assert (
             "Error: WebM was created, but MP4 conversion failed: ffmpeg is not "
+            "installed or not on PATH\n"
+        ) in result.output
+
+
+@pytest.mark.parametrize(
+    ("output_filename", "gif_filename"),
+    (
+        ("demo.webm", "demo.gif"),
+        ("recording.video", "recording.gif"),
+        ("demo", "demo.gif"),
+    ),
+)
+def test_video_gif_converts_webm_after_recording(mocker, output_filename, gif_filename):
+    runner = CliRunner()
+    events = []
+
+    def record_storyboard(storyboard_config, **kwargs):
+        events.append(("record", storyboard_config.output))
+        pathlib.Path(storyboard_config.output).write_bytes(b"webm")
+
+    def run_ffmpeg(args, **kwargs):
+        events.append(("ffmpeg", args, kwargs))
+        assert pathlib.Path(args[3]).exists()
+        pathlib.Path(args[-1]).write_bytes(b"gif")
+        return cli_module.subprocess.CompletedProcess(args, 0)
+
+    mocker.patch.object(cli_module, "_record_storyboard", side_effect=record_storyboard)
+    mocker.patch.object(cli_module.subprocess, "run", side_effect=run_ffmpeg)
+
+    with runner.isolated_filesystem():
+        pathlib.Path("storyboard.yml").write_text("""
+output: {output_filename}
+url: https://example.com/
+scenes:
+- name: One
+  do:
+  - pause: 0.1
+""".format(output_filename=output_filename).strip())
+        result = runner.invoke(cli, ["video", "storyboard.yml", "--gif"])
+
+        assert result.exit_code == 0, result.output
+        assert pathlib.Path(output_filename).read_bytes() == b"webm"
+        assert pathlib.Path(gif_filename).read_bytes() == b"gif"
+        assert events == [
+            ("record", output_filename),
+            (
+                "ffmpeg",
+                [
+                    "ffmpeg",
+                    "-y",
+                    "-i",
+                    output_filename,
+                    "-filter_complex",
+                    "fps=10,scale=800:-1:flags=lanczos,split[a][b];[a]palettegen[p];[b][p]paletteuse",
+                    "-loop",
+                    "0",
+                    gif_filename,
+                ],
+                {"check": True, "capture_output": True, "text": True},
+            ),
+        ]
+        assert f"GIF written to '{gif_filename}'" in result.output
+
+
+def test_video_gif_missing_ffmpeg_leaves_webm(mocker):
+    runner = CliRunner()
+
+    def record_storyboard(storyboard_config, **kwargs):
+        pathlib.Path(storyboard_config.output).write_bytes(b"webm")
+
+    mocker.patch.object(cli_module, "_record_storyboard", side_effect=record_storyboard)
+    mocker.patch.object(
+        cli_module.subprocess,
+        "run",
+        side_effect=FileNotFoundError("ffmpeg"),
+    )
+
+    with runner.isolated_filesystem():
+        pathlib.Path("storyboard.yml").write_text("""
+output: demo.webm
+url: https://example.com/
+scenes:
+- name: One
+  do:
+  - pause: 0.1
+""".strip())
+        result = runner.invoke(cli, ["video", "storyboard.yml", "--gif"])
+
+        assert result.exit_code == 1
+        assert pathlib.Path("demo.webm").read_bytes() == b"webm"
+        assert not pathlib.Path("demo.gif").exists()
+        assert (
+            "Error: WebM was created, but GIF conversion failed: ffmpeg is not "
             "installed or not on PATH\n"
         ) in result.output
 
