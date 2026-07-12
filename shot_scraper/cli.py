@@ -1,5 +1,6 @@
 import base64
 import secrets
+import socket
 import subprocess
 import sys
 import textwrap
@@ -819,6 +820,7 @@ def multi(
                 shot["skip_shot"] = True
 
     server_processes = []
+    server_needs_ready_check = False
     if shots is None:
         shots = []
     if not isinstance(shots, list):
@@ -856,8 +858,14 @@ def multi(
                 if "server" in shot:
                     # Start that subprocess and remember the pid
                     server_processes.append(_start_server(shot["server"]))
-                    time.sleep(1)
+                    server_needs_ready_check = True
                 if "url" in shot:
+                    if server_needs_ready_check:
+                        _wait_for_server(
+                            server_processes,
+                            url_or_file_path(shot["url"], _check_and_absolutize),
+                        )
+                        server_needs_ready_check = False
                     try:
                         take_shot(
                             context,
@@ -1671,6 +1679,40 @@ def _start_server(server):
     return proc, server
 
 
+SERVER_READY_TIMEOUT = 30.0
+
+
+def _wait_for_server(server_processes, url, timeout=SERVER_READY_TIMEOUT):
+    """
+    Wait until the host:port of url accepts TCP connections.
+
+    Raises ClickException if a server process exits with a non-zero code
+    while waiting. Returns after timeout seconds even if the port never
+    opens, so that navigating to the URL can report its own error.
+    """
+    bits = urllib.parse.urlparse(url)
+    if bits.scheme not in ("http", "https") or not bits.hostname:
+        # Nothing to poll - fall back to the old fixed delay
+        time.sleep(1)
+        return
+    port = bits.port or (443 if bits.scheme == "https" else 80)
+    deadline = time.monotonic() + timeout
+    while True:
+        for process, details in server_processes:
+            returncode = process.poll()
+            if returncode:
+                raise click.ClickException(
+                    f"server: process exited with code {returncode}: {details}"
+                )
+        try:
+            with socket.create_connection((bits.hostname, port), timeout=1):
+                return
+        except OSError:
+            if time.monotonic() >= deadline:
+                return
+            time.sleep(0.05)
+
+
 def _cleanup_servers(server_processes, leave_server):
     if leave_server:
         for process, details in server_processes:
@@ -1718,7 +1760,12 @@ def _record_storyboard(
             _run_python_code(storyboard_config.python)
         if storyboard_config.server is not None:
             server_processes.append(_start_server(storyboard_config.server))
-            time.sleep(1)
+            if start_url:
+                _wait_for_server(
+                    server_processes, _resolve_storyboard_url(start_url)
+                )
+            else:
+                time.sleep(1)
 
         with sync_playwright() as p:
             context, browser_obj = _browser_context(

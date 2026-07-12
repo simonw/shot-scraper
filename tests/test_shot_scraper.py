@@ -1,8 +1,12 @@
 import pathlib
+import socket
 import sys
+import threading
+import time
 from types import SimpleNamespace
 from unittest.mock import patch, MagicMock
 import textwrap
+import click
 from click.testing import CliRunner
 import pytest
 import shot_scraper.cli as cli_module
@@ -55,6 +59,94 @@ def test_multi_server(yaml):
         result = runner.invoke(cli, ["multi", "server.yaml"])
         assert result.exit_code == 0, result.output
         assert pathlib.Path("output.png").exists()
+
+
+def test_multi_server_slow_start():
+    # https://github.com/simonw/shot-scraper/issues/197
+    # A server that takes longer than one second to start listening
+    # should not cause the first shot to fail
+    port = find_free_port()
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        open("slow_server.py", "w").write(
+            textwrap.dedent(
+                f"""
+                import http.server, socketserver, time
+                time.sleep(2.5)
+                with socketserver.TCPServer(
+                    ("127.0.0.1", {port}), http.server.SimpleHTTPRequestHandler
+                ) as httpd:
+                    httpd.serve_forever()
+                """
+            )
+        )
+        open("index.html", "w").write("<h1>Slow server</h1>")
+        open("server.yaml", "w").write(
+            f"- server: python slow_server.py\n"
+            f"- url: http://127.0.0.1:{port}/\n"
+            f"  output: output.png\n"
+        )
+        result = runner.invoke(cli, ["multi", "server.yaml"])
+        assert result.exit_code == 0, result.output
+        assert pathlib.Path("output.png").exists()
+
+
+def test_multi_server_exits_with_error():
+    # If the server process fails on startup the error should be reported
+    port = find_free_port()
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        open("server.yaml", "w").write(
+            f'- server: python -c "import sys; sys.exit(3)"\n'
+            f"- url: http://127.0.0.1:{port}/\n"
+            f"  output: output.png\n"
+        )
+        result = runner.invoke(cli, ["multi", "server.yaml"])
+        assert result.exit_code != 0
+        assert "exited with code 3" in result.output
+        assert not pathlib.Path("output.png").exists()
+
+
+def test_wait_for_server_waits_for_port_to_open():
+    port = find_free_port()
+
+    class RunningProcess:
+        def poll(self):
+            return None
+
+    holder = {}
+
+    def listen_after_delay():
+        time.sleep(0.5)
+        holder["sock"] = socket.create_server(("127.0.0.1", port))
+
+    thread = threading.Thread(target=listen_after_delay, daemon=True)
+    thread.start()
+    try:
+        start = time.monotonic()
+        cli_module._wait_for_server(
+            [(RunningProcess(), "cmd")], f"http://127.0.0.1:{port}/", timeout=10
+        )
+        elapsed = time.monotonic() - start
+        # Should have waited for the port, but returned well before the timeout
+        assert 0.4 < elapsed < 8
+    finally:
+        thread.join()
+        if "sock" in holder:
+            holder["sock"].close()
+
+
+def test_wait_for_server_errors_if_server_process_exits():
+    class DeadProcess:
+        def poll(self):
+            return 3
+
+    with pytest.raises(click.ClickException) as excinfo:
+        cli_module._wait_for_server(
+            [(DeadProcess(), "python broken.py")], "http://127.0.0.1:1/", timeout=2
+        )
+    assert "exited with code 3" in excinfo.value.message
+    assert "python broken.py" in excinfo.value.message
 
 
 def test_multi_commands():
@@ -725,6 +817,121 @@ def test_video_runs_top_level_setup_before_server(mocker):
     ]
     assert "scene" in events
     assert events[-1] == "server.kill"
+
+
+def test_video_server_waits_for_readiness(mocker):
+    # https://github.com/simonw/shot-scraper/issues/197
+    events = []
+
+    class FakeScreencast:
+        def start(self, path, size):
+            events.append(("start", path, size))
+
+        def stop(self):
+            events.append("stop")
+
+    class FakePage:
+        screencast = FakeScreencast()
+
+        def __init__(self):
+            self.closed = False
+
+        def set_viewport_size(self, viewport):
+            events.append(("viewport", viewport))
+
+        def is_closed(self):
+            return self.closed
+
+        def close(self):
+            self.closed = True
+
+    class FakeContext:
+        def __init__(self, page):
+            self.page = page
+
+        def new_page(self):
+            return self.page
+
+        def close(self):
+            pass
+
+    class FakeBrowser:
+        def close(self):
+            pass
+
+    class FakePlaywright:
+        def __enter__(self):
+            return object()
+
+        def __exit__(self, exc_type, exc, tb):
+            pass
+
+    class FakeServerProcess:
+        def kill(self):
+            events.append("server.kill")
+
+        def poll(self):
+            return None
+
+    fake_context = FakeContext(FakePage())
+    mocker.patch.object(
+        cli_module,
+        "_browser_context",
+        return_value=(fake_context, FakeBrowser()),
+    )
+    mocker.patch.object(cli_module, "sync_playwright", return_value=FakePlaywright())
+    mocker.patch.object(
+        cli_module,
+        "_start_server",
+        side_effect=lambda server: (
+            events.append(("server", server)) or (FakeServerProcess(), server)
+        ),
+    )
+    mocker.patch.object(
+        cli_module.time,
+        "sleep",
+        side_effect=lambda seconds: events.append(("sleep", seconds)),
+    )
+    mocker.patch.object(
+        cli_module,
+        "_wait_for_server",
+        side_effect=lambda processes, url: events.append(("wait_for_server", url)),
+    )
+    mocker.patch.object(
+        cli_module,
+        "_storyboard_goto",
+        side_effect=lambda *args, **kwargs: events.append("goto"),
+    )
+    mocker.patch.object(
+        cli_module,
+        "_run_storyboard_scene",
+        side_effect=lambda *args, **kwargs: events.append("scene"),
+    )
+
+    storyboard_config = SimpleNamespace(
+        output="demo.webm",
+        url="http://localhost:8123/",
+        sh=None,
+        python=None,
+        server="serve",
+        cursor=None,
+        wait=None,
+        wait_for=None,
+        wait_for_url=None,
+        javascript=None,
+        scenes=[SimpleNamespace(name="Scene")],
+        viewport_size=lambda: {"width": 640, "height": 360},
+    )
+
+    cli_module._record_storyboard(storyboard_config, silent=True)
+
+    # Server readiness should be checked against the URL, before navigation,
+    # instead of a fixed one second sleep
+    assert ("sleep", 1) not in events
+    server_index = events.index(("server", "serve"))
+    wait_index = events.index(("wait_for_server", "http://localhost:8123/"))
+    goto_index = events.index("goto")
+    assert server_index < wait_index < goto_index
 
 
 @pytest.mark.parametrize(

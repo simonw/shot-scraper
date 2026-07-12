@@ -268,6 +268,8 @@ scenes:
   - pause: 1
 ```
 
+After starting the server, `shot-scraper` will wait for up to 30 seconds for the storyboard's `url:` to start accepting connections before recording begins - so servers that are slow to start up will still work. If the server process exits with an error before it starts listening the command will fail with a message describing what happened.
+
 The server process will be automatically terminated when the video command completes, unless you pass `--leave-server`. In that case it will be left running, and the process ID will be displayed in the console output.
 
 ## Scenes

@@ -165,6 +165,8 @@ With that server configured, you can now take screenshots of `http://localhost:8
 - output: index.png
   url: http://localhost:8000/
 ```
+Before taking the first screenshot after starting a server, `shot-scraper` will wait for up to 30 seconds for that screenshot's URL to start accepting connections - so servers that are slow to start up will still work. If the server process exits with an error before it starts listening the command will fail with a message describing what happened.
+
 The server process will be automatically terminated when the `shot-scraper multi` command completes, unless you pass the `--leave-server` option to `shot-scraper multi` in which case it will be left running - you can terminate it using `kill PID` with the PID displayed in the console output.
 
 ## Running custom code between steps
