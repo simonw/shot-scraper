@@ -51,6 +51,10 @@ Options:
   -a, --auth FILENAME             Path to JSON authentication context file
   -o, --output FILE
   -j, --javascript TEXT           Execute this JS prior to creating the PDF
+  --javascript-file TEXT          Read JavaScript to execute from this file, use
+                                  - for stdin or gh:username/script to load from
+                                  github.com/username/shot-scraper-
+                                  scripts/script.js
   --wait INTEGER                  Wait this many milliseconds before taking the
                                   screenshot
   --wait-for TEXT                 Wait until this JS expression returns true

@@ -113,21 +113,25 @@ Usage: shot-scraper har [OPTIONS] URL
   This creates /tmp/datasette.har and extracts resources to /tmp/datasette/
 
 Options:
-  -z, --zip              Save as a .har.zip file
-  -x, --extract          Extract resources from the HAR file into a directory
-  -a, --auth FILENAME    Path to JSON authentication context file
-  -o, --output FILE      HAR filename
-  --wait INTEGER         Wait this many milliseconds before taking the
-                         screenshot
-  --wait-for TEXT        Wait until this JS expression returns true
-  -j, --javascript TEXT  Execute this JavaScript on the page
-  --timeout INTEGER      Wait this many milliseconds before failing
-  --log-console          Write console.log() to stderr
-  --fail                 Fail with an error code if a page returns an HTTP error
-  --skip                 Skip pages that return HTTP errors
-  --bypass-csp           Bypass Content-Security-Policy
-  --auth-password TEXT   Password for HTTP Basic authentication
-  --auth-username TEXT   Username for HTTP Basic authentication
-  --help                 Show this message and exit.
+  -z, --zip               Save as a .har.zip file
+  -x, --extract           Extract resources from the HAR file into a directory
+  -a, --auth FILENAME     Path to JSON authentication context file
+  -o, --output FILE       HAR filename
+  --wait INTEGER          Wait this many milliseconds before taking the
+                          screenshot
+  --wait-for TEXT         Wait until this JS expression returns true
+  -j, --javascript TEXT   Execute this JavaScript on the page
+  --javascript-file TEXT  Read JavaScript to execute from this file, use - for
+                          stdin or gh:username/script to load from
+                          github.com/username/shot-scraper-scripts/script.js
+  --timeout INTEGER       Wait this many milliseconds before failing
+  --log-console           Write console.log() to stderr
+  --fail                  Fail with an error code if a page returns an HTTP
+                          error
+  --skip                  Skip pages that return HTTP errors
+  --bypass-csp            Bypass Content-Security-Policy
+  --auth-password TEXT    Password for HTTP Basic authentication
+  --auth-username TEXT    Username for HTTP Basic authentication
+  --help                  Show this message and exit.
 ```
 <!-- [[[end]]] -->
