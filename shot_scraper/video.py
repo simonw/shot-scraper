@@ -105,6 +105,32 @@ class WaitForUrlAction(StoryboardBaseModel):
     url: str
 
 
+class ExpectAction(StoryboardBaseModel):
+    action: Literal["expect"]
+    selector: str | None = None
+    text: str | None = None
+    timeout: PositiveInt | None = None
+
+    @model_validator(mode="after")
+    def require_target(self):
+        if self.selector is None and self.text is None:
+            raise ValueError("expect: needs a selector: and/or text:")
+        return self
+
+
+class ExpectGoneAction(StoryboardBaseModel):
+    action: Literal["expect_gone"]
+    selector: str | None = None
+    text: str | None = None
+    timeout: PositiveInt | None = None
+
+    @model_validator(mode="after")
+    def require_target(self):
+        if self.selector is None and self.text is None:
+            raise ValueError("expect_gone: needs a selector: and/or text:")
+        return self
+
+
 class OpenAction(StoryboardBaseModel):
     action: Literal["open"]
     url: str
@@ -142,6 +168,8 @@ StoryboardAction = Annotated[
         PauseAction,
         WaitForAction,
         WaitForUrlAction,
+        ExpectAction,
+        ExpectGoneAction,
         OpenAction,
         JavascriptAction,
         ScreenshotAction,
@@ -160,6 +188,8 @@ STORYBOARD_ACTIONS = {
     "pause",
     "wait_for",
     "wait_for_url",
+    "expect",
+    "expect_gone",
     "open",
     "javascript",
     "js",
@@ -279,6 +309,17 @@ def _normalize_storyboard_action(action):
 
     if action_name == "wait_for_url":
         return {"action": "wait_for_url", "url": value}
+
+    if action_name in ("expect", "expect_gone"):
+        if isinstance(value, str):
+            return {"action": action_name, "selector": value}
+        if isinstance(value, dict):
+            value = dict(value)
+            # `contains:` reads naturally as an alias for the text substring
+            if "contains" in value and "text" not in value:
+                value["text"] = value.pop("contains")
+            return {"action": action_name, **value}
+        raise ValueError(f"{action_name}: must be a selector string or mapping")
 
     if action_name == "open":
         return {"action": "open", "url": value}
