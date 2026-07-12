@@ -113,6 +113,16 @@ shot-scraper https://simonwillison.net/ \
   -o simonwillison-pink.png \
   --javascript "document.body.style.backgroundColor = 'pink';"
 ```
+For larger scripts that would be awkward to include on the command line, use `--js-file` to read the JavaScript from a file instead:
+```bash
+shot-scraper https://simonwillison.net/ \
+  -o simonwillison-modified.png \
+  --js-file remove-banners.js
+```
+Use `--js-file -` to read the script from standard input, or `--js-file gh:username/script` to load it from `github.com/username/shot-scraper-scripts/script.js` on GitHub.
+
+The `--js-file` option is also available for the `pdf`, `html`, `accessibility` and `har` commands.
+
 ## Using JPEGs instead of PNGs
 
 Screenshots default to PNG. You can save as a JPEG by specifying a `-o` filename that ends with `.jpg`.
@@ -343,6 +353,10 @@ Options:
   -p, --padding INTEGER           When using selectors, add this much padding in
                                   pixels
   -j, --javascript TEXT           Execute this JS prior to taking the shot
+  --js-file TEXT                  Read JavaScript to execute from this file, use
+                                  - for stdin or gh:username/script to load from
+                                  github.com/username/shot-scraper-
+                                  scripts/script.js
   --scale-factor FLOAT            Device scale factor. Cannot be used together
                                   with '--retina'.
   --retina                        Use device scale factor of 2. Cannot be used

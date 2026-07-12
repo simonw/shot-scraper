@@ -247,6 +247,7 @@ Options:
   -h, --height INTEGER            Height of browser window, defaults to 720
   -o, --output FILENAME           Save output JSON to this file
   -r, --raw                       Output JSON strings as raw text
+  --timeout INTEGER               Wait this many milliseconds before failing
   -b, --browser [chromium|firefox|webkit|chrome|chrome-beta]
                                   Which browser to use
   --browser-arg TEXT              Additional arguments to pass to the browser

@@ -121,6 +121,9 @@ Options:
                          screenshot
   --wait-for TEXT        Wait until this JS expression returns true
   -j, --javascript TEXT  Execute this JavaScript on the page
+  --js-file TEXT         Read JavaScript to execute from this file, use - for
+                         stdin or gh:username/script to load from
+                         github.com/username/shot-scraper-scripts/script.js
   --timeout INTEGER      Wait this many milliseconds before failing
   --log-console          Write console.log() to stderr
   --fail                 Fail with an error code if a page returns an HTTP error

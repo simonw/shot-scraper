@@ -38,6 +38,9 @@ Options:
   -a, --auth FILENAME    Path to JSON authentication context file
   -o, --output FILENAME
   -j, --javascript TEXT  Execute this JS prior to taking the snapshot
+  --js-file TEXT         Read JavaScript to execute from this file, use - for
+                         stdin or gh:username/script to load from
+                         github.com/username/shot-scraper-scripts/script.js
   --timeout INTEGER      Wait this many milliseconds before failing
   --log-console          Write console.log() to stderr
   --fail                 Fail with an error code if a page returns an HTTP error

@@ -1,5 +1,6 @@
 import base64
 import secrets
+import socket
 import subprocess
 import sys
 import textwrap
@@ -158,6 +159,42 @@ def reduced_motion_option(fn):
     return fn
 
 
+def js_file_option(fn):
+    click.option(
+        "--js-file",
+        help=(
+            "Read JavaScript to execute from this file, use - for stdin "
+            "or gh:username/script to load from "
+            "github.com/username/shot-scraper-scripts/script.js"
+        ),
+    )(fn)
+    return fn
+
+
+def _load_javascript_source(source):
+    "Load JavaScript from a file path, '-' for stdin or gh:username/script"
+    if source.startswith("gh:"):
+        try:
+            return load_github_script(source[3:])
+        except ValueError as ex:
+            raise click.ClickException(str(ex))
+    if source == "-":
+        return sys.stdin.read()
+    try:
+        with open(source, "r") as f:
+            return f.read()
+    except Exception as e:
+        raise click.ClickException(f"Failed to read file '{source}': {e}")
+
+
+def _resolve_javascript(javascript, js_file):
+    if javascript and js_file:
+        raise click.ClickException("Cannot use both javascript and js-file")
+    if js_file:
+        return _load_javascript_source(js_file)
+    return javascript
+
+
 @click.group(
     cls=DefaultGroup,
     default="shot",
@@ -229,6 +266,7 @@ def cli():
     default=0,
 )
 @click.option("-j", "--javascript", help="Execute this JS prior to taking the shot")
+@js_file_option
 @scale_factor_options
 @click.option(
     "--omit-background",
@@ -282,6 +320,7 @@ def shot(
     js_selectors_all,
     padding,
     javascript,
+    js_file,
     retina,
     scale_factor,
     omit_background,
@@ -330,6 +369,7 @@ def shot(
 
         shot-scraper https://simonwillison.net -s '#bighead'
     """
+    javascript = _resolve_javascript(javascript, js_file)
     if output is None:
         ext = "jpg" if quality else None
         output = filename_for_url(url, ext=ext, file_exists=os.path.exists)
@@ -819,6 +859,7 @@ def multi(
                 shot["skip_shot"] = True
 
     server_processes = []
+    server_needs_ready_check = False
     if shots is None:
         shots = []
     if not isinstance(shots, list):
@@ -856,8 +897,14 @@ def multi(
                 if "server" in shot:
                     # Start that subprocess and remember the pid
                     server_processes.append(_start_server(shot["server"]))
-                    time.sleep(1)
+                    server_needs_ready_check = True
                 if "url" in shot:
+                    if server_needs_ready_check:
+                        _wait_for_server(
+                            server_processes,
+                            url_or_file_path(shot["url"], _check_and_absolutize),
+                        )
+                        server_needs_ready_check = False
                     try:
                         take_shot(
                             context,
@@ -897,6 +944,7 @@ def multi(
     default="-",
 )
 @click.option("-j", "--javascript", help="Execute this JS prior to taking the snapshot")
+@js_file_option
 @click.option(
     "--timeout",
     type=int,
@@ -911,6 +959,7 @@ def accessibility(
     auth,
     output,
     javascript,
+    js_file,
     timeout,
     log_console,
     skip,
@@ -926,6 +975,7 @@ def accessibility(
 
         shot-scraper accessibility https://datasette.io/
     """
+    javascript = _resolve_javascript(javascript, js_file)
     url = url_or_file_path(url, _check_and_absolutize)
     with sync_playwright() as p:
         context, browser_obj = _browser_context(
@@ -977,6 +1027,7 @@ def accessibility(
 )
 @click.option("--wait-for", help="Wait until this JS expression returns true")
 @click.option("-j", "--javascript", help="Execute this JavaScript on the page")
+@js_file_option
 @click.option(
     "--timeout",
     type=int,
@@ -996,6 +1047,7 @@ def har(
     wait_for,
     timeout,
     javascript,
+    js_file,
     log_console,
     skip,
     fail,
@@ -1023,6 +1075,7 @@ def har(
 
     This creates /tmp/datasette.har and extracts resources to /tmp/datasette/
     """
+    javascript = _resolve_javascript(javascript, js_file)
     if output is None:
         output = filename_for_url(
             url, ext="har.zip" if zip_ else "har", file_exists=os.path.exists
@@ -1206,6 +1259,11 @@ def _extract_har_entry(entry, extract_dir, existing_files, file_exists_fn, zip_f
     is_flag=True,
     help="Output JSON strings as raw text",
 )
+@click.option(
+    "--timeout",
+    type=int,
+    help="Wait this many milliseconds before failing",
+)
 @browser_option
 @browser_args_option
 @user_agent_option
@@ -1223,6 +1281,7 @@ def javascript(
     height,
     output,
     raw,
+    timeout,
     browser,
     browser_args,
     user_agent,
@@ -1260,19 +1319,7 @@ def javascript(
     If a JavaScript error occurs an exit code of 1 will be returned.
     """
     if not javascript:
-        if input.startswith("gh:"):
-            try:
-                javascript = load_github_script(input[3:])
-            except ValueError as ex:
-                raise click.ClickException(str(ex))
-        elif input == "-":
-            javascript = sys.stdin.read()
-        else:
-            try:
-                with open(input, "r") as f:
-                    javascript = f.read()
-            except Exception as e:
-                raise click.ClickException(f"Failed to read file '{input}': {e}")
+        javascript = _load_javascript_source(input)
 
     url = url_or_file_path(url, _check_and_absolutize)
     with sync_playwright() as p:
@@ -1283,6 +1330,7 @@ def javascript(
             browser_args=browser_args,
             user_agent=user_agent,
             reduced_motion=reduced_motion,
+            timeout=timeout,
             bypass_csp=bypass_csp,
             auth_username=auth_username,
             auth_password=auth_password,
@@ -1293,7 +1341,10 @@ def javascript(
         viewport = _get_viewport(width, height)
         if viewport:
             page.set_viewport_size(viewport)
-        response = page.goto(url)
+        try:
+            response = page.goto(url)
+        except TimeoutError as e:
+            raise click.ClickException(str(e))
         skip_or_fail(response, skip, fail)
         result = _evaluate_js(page, javascript)
         browser_obj.close()
@@ -1318,6 +1369,7 @@ def javascript(
     type=click.Path(file_okay=True, writable=True, dir_okay=False, allow_dash=True),
 )
 @click.option("-j", "--javascript", help="Execute this JS prior to creating the PDF")
+@js_file_option
 @click.option(
     "--wait", type=int, help="Wait this many milliseconds before taking the screenshot"
 )
@@ -1370,6 +1422,7 @@ def pdf(
     auth,
     output,
     javascript,
+    js_file,
     wait,
     wait_for,
     timeout,
@@ -1403,6 +1456,7 @@ def pdf(
 
         shot-scraper pdf invoice.html -o invoice.pdf
     """
+    javascript = _resolve_javascript(javascript, js_file)
     url = url_or_file_path(url, _check_and_absolutize)
     if output is None:
         output = filename_for_url(url, ext="pdf", file_exists=os.path.exists)
@@ -1466,6 +1520,7 @@ def pdf(
     default="-",
 )
 @click.option("-j", "--javascript", help="Execute this JS prior to saving the HTML")
+@js_file_option
 @click.option(
     "-s",
     "--selector",
@@ -1473,6 +1528,11 @@ def pdf(
 )
 @click.option(
     "--wait", type=int, help="Wait this many milliseconds before taking the snapshot"
+)
+@click.option(
+    "--timeout",
+    type=int,
+    help="Wait this many milliseconds before failing",
 )
 @log_console_option
 @browser_option
@@ -1487,8 +1547,10 @@ def html(
     auth,
     output,
     javascript,
+    js_file,
     selector,
     wait,
+    timeout,
     log_console,
     browser,
     browser_args,
@@ -1511,6 +1573,7 @@ def html(
 
         shot-scraper html https://datasette.io/ -o index.html
     """
+    javascript = _resolve_javascript(javascript, js_file)
     url = url_or_file_path(url, _check_and_absolutize)
     if output is None:
         output = filename_for_url(url, ext="html", file_exists=os.path.exists)
@@ -1521,6 +1584,7 @@ def html(
             browser=browser,
             browser_args=browser_args,
             user_agent=user_agent,
+            timeout=timeout,
             bypass_csp=bypass_csp,
             auth_username=auth_username,
             auth_password=auth_password,
@@ -1528,7 +1592,10 @@ def html(
         page = context.new_page()
         if log_console:
             page.on("console", console_log)
-        response = page.goto(url)
+        try:
+            response = page.goto(url)
+        except TimeoutError as e:
+            raise click.ClickException(str(e))
         skip_or_fail(response, skip, fail)
         if wait:
             time.sleep(wait / 1000)
@@ -1671,6 +1738,40 @@ def _start_server(server):
     return proc, server
 
 
+SERVER_READY_TIMEOUT = 30.0
+
+
+def _wait_for_server(server_processes, url, timeout=SERVER_READY_TIMEOUT):
+    """
+    Wait until the host:port of url accepts TCP connections.
+
+    Raises ClickException if a server process exits with a non-zero code
+    while waiting. Returns after timeout seconds even if the port never
+    opens, so that navigating to the URL can report its own error.
+    """
+    bits = urllib.parse.urlparse(url)
+    if bits.scheme not in ("http", "https") or not bits.hostname:
+        # Nothing to poll - fall back to the old fixed delay
+        time.sleep(1)
+        return
+    port = bits.port or (443 if bits.scheme == "https" else 80)
+    deadline = time.monotonic() + timeout
+    while True:
+        for process, details in server_processes:
+            returncode = process.poll()
+            if returncode:
+                raise click.ClickException(
+                    f"server: process exited with code {returncode}: {details}"
+                )
+        try:
+            with socket.create_connection((bits.hostname, port), timeout=1):
+                return
+        except OSError:
+            if time.monotonic() >= deadline:
+                return
+            time.sleep(0.05)
+
+
 def _cleanup_servers(server_processes, leave_server):
     if leave_server:
         for process, details in server_processes:
@@ -1718,7 +1819,10 @@ def _record_storyboard(
             _run_python_code(storyboard_config.python)
         if storyboard_config.server is not None:
             server_processes.append(_start_server(storyboard_config.server))
-            time.sleep(1)
+            if start_url:
+                _wait_for_server(server_processes, _resolve_storyboard_url(start_url))
+            else:
+                time.sleep(1)
 
         with sync_playwright() as p:
             context, browser_obj = _browser_context(
@@ -2169,7 +2273,7 @@ def take_shot(
     if wait:
         time.sleep(wait / 1000)
 
-    javascript = shot.get("javascript")
+    javascript = _resolve_javascript(shot.get("javascript"), shot.get("js_file"))
     if javascript:
         _evaluate_js(page, javascript)
 
