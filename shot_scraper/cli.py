@@ -1261,6 +1261,11 @@ def _extract_har_entry(entry, extract_dir, existing_files, file_exists_fn, zip_f
     is_flag=True,
     help="Output JSON strings as raw text",
 )
+@click.option(
+    "--timeout",
+    type=int,
+    help="Wait this many milliseconds before failing",
+)
 @browser_option
 @browser_args_option
 @user_agent_option
@@ -1278,6 +1283,7 @@ def javascript(
     height,
     output,
     raw,
+    timeout,
     browser,
     browser_args,
     user_agent,
@@ -1326,6 +1332,7 @@ def javascript(
             browser_args=browser_args,
             user_agent=user_agent,
             reduced_motion=reduced_motion,
+            timeout=timeout,
             bypass_csp=bypass_csp,
             auth_username=auth_username,
             auth_password=auth_password,
@@ -1336,7 +1343,10 @@ def javascript(
         viewport = _get_viewport(width, height)
         if viewport:
             page.set_viewport_size(viewport)
-        response = page.goto(url)
+        try:
+            response = page.goto(url)
+        except TimeoutError as e:
+            raise click.ClickException(str(e))
         skip_or_fail(response, skip, fail)
         result = _evaluate_js(page, javascript)
         browser_obj.close()
@@ -1521,6 +1531,11 @@ def pdf(
 @click.option(
     "--wait", type=int, help="Wait this many milliseconds before taking the snapshot"
 )
+@click.option(
+    "--timeout",
+    type=int,
+    help="Wait this many milliseconds before failing",
+)
 @log_console_option
 @browser_option
 @browser_args_option
@@ -1537,6 +1552,7 @@ def html(
     javascript_file,
     selector,
     wait,
+    timeout,
     log_console,
     browser,
     browser_args,
@@ -1570,6 +1586,7 @@ def html(
             browser=browser,
             browser_args=browser_args,
             user_agent=user_agent,
+            timeout=timeout,
             bypass_csp=bypass_csp,
             auth_username=auth_username,
             auth_password=auth_password,
@@ -1577,7 +1594,10 @@ def html(
         page = context.new_page()
         if log_console:
             page.on("console", console_log)
-        response = page.goto(url)
+        try:
+            response = page.goto(url)
+        except TimeoutError as e:
+            raise click.ClickException(str(e))
         skip_or_fail(response, skip, fail)
         if wait:
             time.sleep(wait / 1000)

@@ -223,6 +223,64 @@ def test_multi_javascript_file():
         assert "boom-marker" in result.output
 
 
+def test_javascript_command_timeout():
+    # https://github.com/simonw/shot-scraper/issues/118
+    # A listening socket that never responds, to make page.goto hang
+    server_socket = socket.create_server(("127.0.0.1", 0))
+    port = server_socket.getsockname()[1]
+    runner = CliRunner()
+    try:
+        result = runner.invoke(
+            cli,
+            [
+                "javascript",
+                f"http://127.0.0.1:{port}/",
+                "document.title",
+                "--timeout",
+                "800",
+            ],
+        )
+        assert result.exit_code != 0
+        assert "Timeout 800ms exceeded" in result.output
+    finally:
+        server_socket.close()
+
+
+def test_html_command_timeout():
+    server_socket = socket.create_server(("127.0.0.1", 0))
+    port = server_socket.getsockname()[1]
+    runner = CliRunner()
+    try:
+        with runner.isolated_filesystem():
+            result = runner.invoke(
+                cli,
+                [
+                    "html",
+                    f"http://127.0.0.1:{port}/",
+                    "-o",
+                    "out.html",
+                    "--timeout",
+                    "800",
+                ],
+            )
+            assert result.exit_code != 0
+            assert "Timeout 800ms exceeded" in result.output
+    finally:
+        server_socket.close()
+
+
+def test_javascript_command_timeout_not_exceeded():
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        open("index.html", "w").write("<title>Hi</title>")
+        result = runner.invoke(
+            cli,
+            ["javascript", "index.html", "document.title", "--timeout", "10000"],
+        )
+        assert result.exit_code == 0, result.output
+        assert json.loads(result.output) == "Hi"
+
+
 def test_multi_commands():
     runner = CliRunner()
     with runner.isolated_filesystem():

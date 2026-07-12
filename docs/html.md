@@ -67,6 +67,7 @@ Options:
                                   this CSS selector
   --wait INTEGER                  Wait this many milliseconds before taking the
                                   snapshot
+  --timeout INTEGER               Wait this many milliseconds before failing
   --log-console                   Write console.log() to stderr
   -b, --browser [chromium|firefox|webkit|chrome|chrome-beta]
                                   Which browser to use
