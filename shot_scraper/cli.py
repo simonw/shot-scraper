@@ -159,9 +159,9 @@ def reduced_motion_option(fn):
     return fn
 
 
-def javascript_file_option(fn):
+def js_file_option(fn):
     click.option(
-        "--javascript-file",
+        "--js-file",
         help=(
             "Read JavaScript to execute from this file, use - for stdin "
             "or gh:username/script to load from "
@@ -187,13 +187,11 @@ def _load_javascript_source(source):
         raise click.ClickException(f"Failed to read file '{source}': {e}")
 
 
-def _resolve_javascript(javascript, javascript_file):
-    if javascript and javascript_file:
-        raise click.ClickException(
-            "Cannot use both javascript and javascript-file"
-        )
-    if javascript_file:
-        return _load_javascript_source(javascript_file)
+def _resolve_javascript(javascript, js_file):
+    if javascript and js_file:
+        raise click.ClickException("Cannot use both javascript and js-file")
+    if js_file:
+        return _load_javascript_source(js_file)
     return javascript
 
 
@@ -268,7 +266,7 @@ def cli():
     default=0,
 )
 @click.option("-j", "--javascript", help="Execute this JS prior to taking the shot")
-@javascript_file_option
+@js_file_option
 @scale_factor_options
 @click.option(
     "--omit-background",
@@ -322,7 +320,7 @@ def shot(
     js_selectors_all,
     padding,
     javascript,
-    javascript_file,
+    js_file,
     retina,
     scale_factor,
     omit_background,
@@ -371,7 +369,7 @@ def shot(
 
         shot-scraper https://simonwillison.net -s '#bighead'
     """
-    javascript = _resolve_javascript(javascript, javascript_file)
+    javascript = _resolve_javascript(javascript, js_file)
     if output is None:
         ext = "jpg" if quality else None
         output = filename_for_url(url, ext=ext, file_exists=os.path.exists)
@@ -946,7 +944,7 @@ def multi(
     default="-",
 )
 @click.option("-j", "--javascript", help="Execute this JS prior to taking the snapshot")
-@javascript_file_option
+@js_file_option
 @click.option(
     "--timeout",
     type=int,
@@ -961,7 +959,7 @@ def accessibility(
     auth,
     output,
     javascript,
-    javascript_file,
+    js_file,
     timeout,
     log_console,
     skip,
@@ -977,7 +975,7 @@ def accessibility(
 
         shot-scraper accessibility https://datasette.io/
     """
-    javascript = _resolve_javascript(javascript, javascript_file)
+    javascript = _resolve_javascript(javascript, js_file)
     url = url_or_file_path(url, _check_and_absolutize)
     with sync_playwright() as p:
         context, browser_obj = _browser_context(
@@ -1029,7 +1027,7 @@ def accessibility(
 )
 @click.option("--wait-for", help="Wait until this JS expression returns true")
 @click.option("-j", "--javascript", help="Execute this JavaScript on the page")
-@javascript_file_option
+@js_file_option
 @click.option(
     "--timeout",
     type=int,
@@ -1049,7 +1047,7 @@ def har(
     wait_for,
     timeout,
     javascript,
-    javascript_file,
+    js_file,
     log_console,
     skip,
     fail,
@@ -1077,7 +1075,7 @@ def har(
 
     This creates /tmp/datasette.har and extracts resources to /tmp/datasette/
     """
-    javascript = _resolve_javascript(javascript, javascript_file)
+    javascript = _resolve_javascript(javascript, js_file)
     if output is None:
         output = filename_for_url(
             url, ext="har.zip" if zip_ else "har", file_exists=os.path.exists
@@ -1371,7 +1369,7 @@ def javascript(
     type=click.Path(file_okay=True, writable=True, dir_okay=False, allow_dash=True),
 )
 @click.option("-j", "--javascript", help="Execute this JS prior to creating the PDF")
-@javascript_file_option
+@js_file_option
 @click.option(
     "--wait", type=int, help="Wait this many milliseconds before taking the screenshot"
 )
@@ -1424,7 +1422,7 @@ def pdf(
     auth,
     output,
     javascript,
-    javascript_file,
+    js_file,
     wait,
     wait_for,
     timeout,
@@ -1458,7 +1456,7 @@ def pdf(
 
         shot-scraper pdf invoice.html -o invoice.pdf
     """
-    javascript = _resolve_javascript(javascript, javascript_file)
+    javascript = _resolve_javascript(javascript, js_file)
     url = url_or_file_path(url, _check_and_absolutize)
     if output is None:
         output = filename_for_url(url, ext="pdf", file_exists=os.path.exists)
@@ -1522,7 +1520,7 @@ def pdf(
     default="-",
 )
 @click.option("-j", "--javascript", help="Execute this JS prior to saving the HTML")
-@javascript_file_option
+@js_file_option
 @click.option(
     "-s",
     "--selector",
@@ -1549,7 +1547,7 @@ def html(
     auth,
     output,
     javascript,
-    javascript_file,
+    js_file,
     selector,
     wait,
     timeout,
@@ -1575,7 +1573,7 @@ def html(
 
         shot-scraper html https://datasette.io/ -o index.html
     """
-    javascript = _resolve_javascript(javascript, javascript_file)
+    javascript = _resolve_javascript(javascript, js_file)
     url = url_or_file_path(url, _check_and_absolutize)
     if output is None:
         output = filename_for_url(url, ext="html", file_exists=os.path.exists)
@@ -1822,9 +1820,7 @@ def _record_storyboard(
         if storyboard_config.server is not None:
             server_processes.append(_start_server(storyboard_config.server))
             if start_url:
-                _wait_for_server(
-                    server_processes, _resolve_storyboard_url(start_url)
-                )
+                _wait_for_server(server_processes, _resolve_storyboard_url(start_url))
             else:
                 time.sleep(1)
 
@@ -2277,9 +2273,7 @@ def take_shot(
     if wait:
         time.sleep(wait / 1000)
 
-    javascript = _resolve_javascript(
-        shot.get("javascript"), shot.get("javascript_file")
-    )
+    javascript = _resolve_javascript(shot.get("javascript"), shot.get("js_file"))
     if javascript:
         _evaluate_js(page, javascript)
 

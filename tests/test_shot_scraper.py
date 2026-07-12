@@ -68,18 +68,14 @@ def test_multi_server_slow_start():
     port = find_free_port()
     runner = CliRunner()
     with runner.isolated_filesystem():
-        open("slow_server.py", "w").write(
-            textwrap.dedent(
-                f"""
+        open("slow_server.py", "w").write(textwrap.dedent(f"""
                 import http.server, socketserver, time
                 time.sleep(2.5)
                 with socketserver.TCPServer(
                     ("127.0.0.1", {port}), http.server.SimpleHTTPRequestHandler
                 ) as httpd:
                     httpd.serve_forever()
-                """
-            )
-        )
+                """))
         open("index.html", "w").write("<h1>Slow server</h1>")
         open("server.yaml", "w").write(
             f"- server: python slow_server.py\n"
@@ -149,7 +145,7 @@ def test_wait_for_server_errors_if_server_process_exits():
     assert "python broken.py" in excinfo.value.message
 
 
-def test_html_javascript_file():
+def test_html_js_file():
     # https://github.com/simonw/shot-scraper/issues/192
     runner = CliRunner()
     with runner.isolated_filesystem():
@@ -157,39 +153,39 @@ def test_html_javascript_file():
         open("mod.js", "w").write("document.querySelector('h1').innerText = 'Modified'")
         result = runner.invoke(
             cli,
-            ["html", "index.html", "-o", "out.html", "--javascript-file", "mod.js"],
+            ["html", "index.html", "-o", "out.html", "--js-file", "mod.js"],
         )
         assert result.exit_code == 0, result.output
         assert "Modified" in open("out.html").read()
 
 
-def test_html_javascript_file_stdin():
+def test_html_js_file_stdin():
     runner = CliRunner()
     with runner.isolated_filesystem():
         open("index.html", "w").write("<h1>Original</h1>")
         result = runner.invoke(
             cli,
-            ["html", "index.html", "-o", "out.html", "--javascript-file", "-"],
+            ["html", "index.html", "-o", "out.html", "--js-file", "-"],
             input="document.querySelector('h1').innerText = 'FromStdin'",
         )
         assert result.exit_code == 0, result.output
         assert "FromStdin" in open("out.html").read()
 
 
-def test_javascript_file_missing_file():
+def test_js_file_missing_file():
     runner = CliRunner()
     with runner.isolated_filesystem():
         open("index.html", "w").write("<h1>Original</h1>")
         result = runner.invoke(
             cli,
-            ["html", "index.html", "-o", "out.html", "--javascript-file", "nope.js"],
+            ["html", "index.html", "-o", "out.html", "--js-file", "nope.js"],
         )
         assert result.exit_code != 0
         assert "Failed to read file 'nope.js'" in result.output
 
 
 @pytest.mark.parametrize("command", ("shot", "pdf", "html", "accessibility", "har"))
-def test_javascript_and_javascript_file_error(command):
+def test_javascript_and_js_file_error(command):
     runner = CliRunner()
     with runner.isolated_filesystem():
         open("some.js", "w").write("1 + 1")
@@ -200,7 +196,7 @@ def test_javascript_and_javascript_file_error(command):
                 "https://example.com/",
                 "-j",
                 "1 + 1",
-                "--javascript-file",
+                "--js-file",
                 "some.js",
             ],
         )
@@ -208,14 +204,14 @@ def test_javascript_and_javascript_file_error(command):
         assert "Cannot use both" in result.output
 
 
-def test_multi_javascript_file():
-    # javascript_file: key in YAML should load and execute the script
+def test_multi_js_file():
+    # js_file: key in YAML should load and execute the script
     runner = CliRunner()
     with runner.isolated_filesystem():
         open("index.html", "w").write("<h1>Original</h1>")
         open("boom.js", "w").write("throw new Error('boom-marker')")
         open("shots.yaml", "w").write(
-            "- url: index.html\n  output: output.png\n  javascript_file: boom.js\n"
+            "- url: index.html\n  output: output.png\n  js_file: boom.js\n"
         )
         result = runner.invoke(cli, ["multi", "shots.yaml"])
         # The error raised by the script proves it was loaded and executed

@@ -99,15 +99,15 @@ To execute JavaScript after the page has loaded but before the screenshot is tak
     document.body.style.backgroundColor = 'pink'
 ```
 
-Use `javascript_file` in place of `javascript` to load the JavaScript from a file - useful for scripts that are too large to include directly in the YAML:
+Use `js_file` in place of `javascript` to load the JavaScript from a file - useful for scripts that are too large to include directly in the YAML:
 
 ```yaml
 - output: bighead-modified.png
   url: https://simonwillison.net/
-  javascript_file: remove-banners.js
+  js_file: remove-banners.js
 ```
 
-`javascript_file` also accepts `gh:username/script` to load a script from `github.com/username/shot-scraper-scripts/script.js`.
+`js_file` also accepts `gh:username/script` to load a script from `github.com/username/shot-scraper-scripts/script.js`.
 
 You can include desired `height`, `width`, `quality`, `wait` and `wait_for` options on each item as well:
 

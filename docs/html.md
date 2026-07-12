@@ -59,7 +59,7 @@ Options:
   -a, --auth FILENAME             Path to JSON authentication context file
   -o, --output FILE
   -j, --javascript TEXT           Execute this JS prior to saving the HTML
-  --javascript-file TEXT          Read JavaScript to execute from this file, use
+  --js-file TEXT                  Read JavaScript to execute from this file, use
                                   - for stdin or gh:username/script to load from
                                   github.com/username/shot-scraper-
                                   scripts/script.js

@@ -113,15 +113,15 @@ shot-scraper https://simonwillison.net/ \
   -o simonwillison-pink.png \
   --javascript "document.body.style.backgroundColor = 'pink';"
 ```
-For larger scripts that would be awkward to include on the command line, use `--javascript-file` to read the JavaScript from a file instead:
+For larger scripts that would be awkward to include on the command line, use `--js-file` to read the JavaScript from a file instead:
 ```bash
 shot-scraper https://simonwillison.net/ \
   -o simonwillison-modified.png \
-  --javascript-file remove-banners.js
+  --js-file remove-banners.js
 ```
-Use `--javascript-file -` to read the script from standard input, or `--javascript-file gh:username/script` to load it from `github.com/username/shot-scraper-scripts/script.js` on GitHub.
+Use `--js-file -` to read the script from standard input, or `--js-file gh:username/script` to load it from `github.com/username/shot-scraper-scripts/script.js` on GitHub.
 
-The `--javascript-file` option is also available for the `pdf`, `html`, `accessibility` and `har` commands.
+The `--js-file` option is also available for the `pdf`, `html`, `accessibility` and `har` commands.
 
 ## Using JPEGs instead of PNGs
 
@@ -353,7 +353,7 @@ Options:
   -p, --padding INTEGER           When using selectors, add this much padding in
                                   pixels
   -j, --javascript TEXT           Execute this JS prior to taking the shot
-  --javascript-file TEXT          Read JavaScript to execute from this file, use
+  --js-file TEXT                  Read JavaScript to execute from this file, use
                                   - for stdin or gh:username/script to load from
                                   github.com/username/shot-scraper-
                                   scripts/script.js
