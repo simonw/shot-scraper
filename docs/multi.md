@@ -269,6 +269,9 @@ Options:
   --har                           Save all requests to trace.har file
   --har-zip                       Save all requests to trace.har.zip file
   --har-file FILE                 Path to HAR file to save all requests
+  --init-script TEXT              JavaScript to run as a page init script,
+                                  before the page's own scripts run. Can be
+                                  passed more than once.
   --help                          Show this message and exit.
 ```
 <!-- [[[end]]] -->

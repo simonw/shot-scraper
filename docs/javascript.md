@@ -137,6 +137,20 @@ This example [uses GitHub Actions](https://docs.github.com/en/actions/quickstart
       }"
 ```
 
+## Running an init script
+
+The `-j/--javascript` option runs code *after* the page has loaded. Sometimes you need to run code *before* the page's own scripts execute instead - for example to seed `Math.random()`, freeze `Date`, or hide the `navigator.webdriver` flag that some sites use to detect headless browsers.
+
+The `--init-script` option registers JavaScript as a [Playwright init script](https://playwright.dev/python/docs/api/class-page#page-add-init-script), which runs on every navigation before any of the page's own scripts:
+
+```bash
+shot-scraper javascript https://example.com/ \
+  --init-script "delete Object.getPrototypeOf(navigator).webdriver" \
+  "navigator.webdriver"
+```
+
+You can pass `--init-script` more than once to register several scripts, and it works with the `shot`, `multi`, `javascript`, `accessibility`, `pdf`, `html` and `har` commands.
+
 ## Running JavaScript from a file
 
 You can also save JavaScript to a file and execute it like this:
@@ -260,6 +274,9 @@ Options:
   --bypass-csp                    Bypass Content-Security-Policy
   --auth-password TEXT            Password for HTTP Basic authentication
   --auth-username TEXT            Username for HTTP Basic authentication
+  --init-script TEXT              JavaScript to run as a page init script,
+                                  before the page's own scripts run. Can be
+                                  passed more than once.
   --help                          Show this message and exit.
 ```
 <!-- [[[end]]] -->
