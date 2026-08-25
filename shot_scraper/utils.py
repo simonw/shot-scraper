@@ -1,6 +1,7 @@
 import urllib.parse
 import re
 import os.path
+import pathlib
 
 disallowed_re = re.compile("[^a-zA-Z0-9_-]")
 
@@ -65,10 +66,10 @@ def filename_for_url(url, ext=None, file_exists=file_exists_never):
 
 
 def url_or_file_path(url, file_exists=file_exists_never):
-    # If url exists as a file, convert that to file:/
+    # If url exists as a file, convert it to a fully qualified file URI.
     file_path = file_exists(url)
     if file_path:
-        return f"file:{file_path}"
+        return pathlib.Path(file_path).as_uri()
     if not (url.startswith("http://") or url.startswith("https://")):
         return f"http://{url}"
     return url
