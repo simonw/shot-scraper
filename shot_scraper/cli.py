@@ -42,6 +42,7 @@ from shot_scraper.utils import (
 )
 
 BROWSERS = ("chromium", "firefox", "webkit", "chrome", "chrome-beta")
+SCREENSHOT_FORMATS = ("png", "jpeg", "webp")
 
 
 def console_log(msg):
@@ -271,9 +272,19 @@ def cli():
 @click.option(
     "--omit-background",
     is_flag=True,
-    help="Omit the default browser background from the shot, making it possible take advantage of transparency. Does not work with JPEGs or when using --quality.",
+    help="Omit the default browser background from the shot, making it possible take advantage of transparency. Does not work with JPEGs.",
 )
-@click.option("--quality", type=int, help="Save as JPEG with this quality, e.g. 80")
+@click.option(
+    "--format",
+    "format_",
+    type=click.Choice(SCREENSHOT_FORMATS, case_sensitive=False),
+    help="Image format. Overrides the output extension; use with -o - for stdout.",
+)
+@click.option(
+    "--quality",
+    type=click.IntRange(0, 100),
+    help="JPEG or WebP quality, e.g. 80. Defaults to JPEG unless WebP is selected. WebP defaults to 100 (lossless).",
+)
 @click.option(
     "--wait", type=int, help="Wait this many milliseconds before taking the screenshot"
 )
@@ -324,6 +335,7 @@ def shot(
     retina,
     scale_factor,
     omit_background,
+    format_,
     quality,
     wait,
     wait_for,
@@ -370,8 +382,9 @@ def shot(
         shot-scraper https://simonwillison.net -s '#bighead'
     """
     javascript = _resolve_javascript(javascript, js_file)
+    format_ = _screenshot_format(output, format_, quality)
     if output is None:
-        ext = "jpg" if quality else None
+        ext = "jpg" if format_ == "jpeg" else format_
         output = filename_for_url(url, ext=ext, file_exists=os.path.exists)
 
     scale_factor = normalize_scale_factor(retina, scale_factor)
@@ -385,6 +398,7 @@ def shot(
         "javascript": javascript,
         "width": width,
         "height": height,
+        "format": format_,
         "quality": quality,
         "wait": wait,
         "wait_for": wait_for,
@@ -2180,6 +2194,28 @@ def _get_viewport(width, height):
         return {}
 
 
+def _screenshot_format(output, format_, quality):
+    "Resolve explicit formats and quality, or let Playwright infer from the path."
+    if quality is not None and (
+        not isinstance(quality, int)
+        or isinstance(quality, bool)
+        or not 0 <= quality <= 100
+    ):
+        raise click.ClickException("quality must be an integer between 0 and 100")
+    if format_ is not None:
+        if not isinstance(format_, str) or format_.lower() not in SCREENSHOT_FORMATS:
+            raise click.ClickException("format must be one of: png, jpeg, webp")
+        format_ = format_.lower()
+    elif pathlib.Path((output or "").strip()).suffix.lower() == ".webp":
+        format_ = "webp"
+    elif quality is not None:
+        # Preserve the existing behavior of --quality selecting JPEG.
+        format_ = "jpeg"
+    if format_ == "png" and quality is not None:
+        raise click.ClickException("quality is not supported for PNG images")
+    return format_
+
+
 def take_shot(
     context_or_page,
     shot,
@@ -2201,9 +2237,14 @@ def take_shot(
     url = url_or_file_path(url, file_exists=_check_and_absolutize)
 
     output = (shot.get("output") or "").strip()
-    if not output and not return_bytes:
-        output = filename_for_url(url, ext="png", file_exists=os.path.exists)
     quality = shot.get("quality")
+    format_ = _screenshot_format(output, shot.get("format"), quality)
+    if not output and not return_bytes:
+        output = filename_for_url(
+            url,
+            ext="jpg" if format_ == "jpeg" else format_,
+            file_exists=os.path.exists,
+        )
     omit_background = shot.get("omit_background")
     wait = shot.get("wait")
     wait_for = shot.get("wait_for")
@@ -2281,8 +2322,10 @@ def take_shot(
         page.wait_for_function(wait_for)
 
     screenshot_args = {}
-    if quality:
-        screenshot_args.update({"quality": quality, "type": "jpeg"})
+    if format_ is not None:
+        screenshot_args["type"] = format_
+    if quality is not None:
+        screenshot_args["quality"] = quality
     if omit_background:
         screenshot_args.update({"omit_background": True})
     if not return_bytes:
