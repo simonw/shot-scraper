@@ -34,6 +34,21 @@ class CursorOptions(StoryboardBaseModel):
     click_size: PositiveInt = 44
 
 
+class NarrationOptions(StoryboardBaseModel):
+    # Kokoro voice id and speech rate.
+    voice: str = "af_heart"
+    speed: float = 1.0
+    # Seconds budgeted for a scene's actions before its line starts speaking.
+    action_allowance: NonNegativeFloat = 1.0
+    # Settle pause before a line speaks, so the UI has come to rest.
+    lead: NonNegativeFloat = 0.4
+    # Held still-frame after each line, absorbing small action-time variance.
+    buffer: NonNegativeFloat = 0.6
+    # Optional explicit Kokoro model/voices paths (else cached/downloaded).
+    model: str | None = None
+    voices: str | None = None
+
+
 class ClickAction(StoryboardBaseModel):
     action: Literal["click"]
     selector: str
@@ -176,6 +191,10 @@ class StoryboardScene(StoryboardBaseModel):
     wait_for_url: str | None = None
     sh: str | list[str] | None = None
     python: str | None = None
+    # Spoken narration for this scene (rendered with --mp4).
+    say: str | None = None
+    # Per-scene override of narration.action_allowance.
+    action_allowance: NonNegativeFloat | None = None
     do: list[StoryboardAction] = Field(default_factory=list)
 
     @field_validator("do", mode="before")
@@ -200,6 +219,7 @@ class Storyboard(StoryboardBaseModel):
     wait_for: str | None = None
     wait_for_url: str | None = None
     javascript: str | None = None
+    narration: NarrationOptions = Field(default_factory=NarrationOptions)
     scenes: list[StoryboardScene] = Field(default_factory=list)
 
     @field_validator("cursor", mode="before")
@@ -223,6 +243,9 @@ class Storyboard(StoryboardBaseModel):
         width = self.viewport.width or 1280
         height = self.viewport.height or 720
         return {"width": width, "height": height}
+
+    def has_narration(self):
+        return any(scene.say for scene in self.scenes)
 
 
 def load_storyboard(storyboard_file):

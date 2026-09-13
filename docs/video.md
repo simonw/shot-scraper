@@ -673,6 +673,52 @@ scenes:
   - pause: 2
 ```
 
+## Narration
+
+A scene can carry a `say:` line of spoken narration. When any scene has one, `shot-scraper video ... --mp4` synthesizes each line to speech, holds each frame long enough for its line to finish, and mixes the audio into the MP4:
+
+```yaml
+url: https://shot-scraper.datasette.io/
+narration:
+  voice: af_heart
+scenes:
+- say: This is the shot-scraper documentation homepage.
+  do:
+    - pause: 1
+- say: Clicking through takes us to the screenshots guide.
+  do:
+    - click: "a[href$='screenshots.html']"
+    - wait_for: "h1"
+```
+
+```bash
+shot-scraper video narrated.yml -o demo.webm --mp4
+```
+
+This writes the silent `demo.webm` and a narrated `demo.mp4`. Narration is *audio-led*: the pause after each scene is sized from the measured length of its spoken line, so the words and the visuals cannot drift apart. Because the audio lives in the MP4, `say:` requires `--mp4`.
+
+Speech is generated **offline** with [Kokoro](https://github.com/thewh1teagle/kokoro-onnx) on the CPU — no network or API key at render time (the model is downloaded and cached on first use). Install the extra dependencies and their system requirements:
+
+```bash
+pip install shot-scraper[narrate]
+# ffmpeg (also needed for --mp4) and espeak-ng must be on PATH:
+#   macOS:         brew install ffmpeg espeak-ng
+#   Debian/Ubuntu: sudo apt-get install ffmpeg espeak-ng
+```
+
+Narration is tuned with an optional top-level `narration:` mapping:
+
+| Key | Default | Meaning |
+| --- | --- | --- |
+| `voice` | `af_heart` | Kokoro voice id |
+| `speed` | `1.0` | Speech rate |
+| `action_allowance` | `1.0` | Seconds budgeted for a scene's actions before its line speaks (override per-scene with `action_allowance:` on the scene) |
+| `lead` | `0.4` | Settle pause before a line starts speaking |
+| `buffer` | `0.6` | Held still-frame after each line |
+| `model` / `voices` | auto | Explicit paths to the Kokoro model files |
+
+If a line starts too early or late over its shot, increase that scene's `action_allowance` and re-render.
+
 ## Command options
 
 `shot-scraper video` supports the same browser selection, authentication, console logging, timeout, CSP bypass and HTTP Basic authentication options as the other browser-based commands.

@@ -24,6 +24,33 @@ If you want to use other browsers such as Firefox you should install those too:
 shot-scraper install -b firefox
 ```
 
+(installation-docker)=
+
+## Running with Docker
+
+The repository includes a `Dockerfile` that packages shot-scraper together with Chromium, its system libraries, `ffmpeg`, `espeak-ng` and the Kokoro narration model, so the only thing the host needs is Docker.
+
+Build the image:
+```bash
+docker build -t shot-scraper .
+```
+
+Then mount a directory as `/work` for inputs and outputs. Chromium cannot use its sandbox as root inside a container, so pass `--no-sandbox` (and `--disable-dev-shm-usage`, since the default 64MB `/dev/shm` is too small) via `--browser-arg`:
+```bash
+docker run --rm -v "$PWD:/work" shot-scraper \
+  shot https://example.com/ -o /work/example.png \
+  --browser-arg --no-sandbox --browser-arg --disable-dev-shm-usage
+```
+
+Recording a {ref}`narrated video <video>` works fully offline — the Kokoro model is baked into the image:
+```bash
+docker run --rm -v "$PWD:/work" shot-scraper \
+  video /work/storyboard.yml -o /work/demo.webm --mp4 \
+  --browser-arg --no-sandbox --browser-arg --disable-dev-shm-usage
+```
+
+To reach a server running on the host's own `localhost`, add `--network host` (Linux) or point the storyboard `url:` at `http://host.docker.internal:PORT/` (Docker Desktop on macOS/Windows).
+
 ## `shot-scraper install --help`
 
 Full `--help` for the `shot-scraper install` command:
