@@ -3,6 +3,7 @@ from shot_scraper.utils import (
     filename_for_url,
     extension_for_content_type,
     filename_for_har_entry,
+    url_or_file_path,
 )
 
 
@@ -37,6 +38,26 @@ def test_filename_for_url(url, ext, expected):
 )
 def test_filename_for_url_if_exists(url, existing_files, expected):
     assert filename_for_url(url, file_exists=lambda s: s in existing_files) == expected
+
+
+def test_url_or_file_path_uses_a_fully_qualified_file_uri(tmp_path):
+    local_file = tmp_path / "page with spaces.html"
+    local_file.write_text("<h1>Hello</h1>")
+
+    assert url_or_file_path(
+        str(local_file), file_exists=lambda _: local_file
+    ) == local_file.as_uri()
+
+
+@pytest.mark.parametrize(
+    "url,expected",
+    (
+        ("https://example.com/", "https://example.com/"),
+        ("example.com", "http://example.com"),
+    ),
+)
+def test_url_or_file_path_preserves_web_url_behavior(url, expected):
+    assert url_or_file_path(url) == expected
 
 
 @pytest.mark.parametrize(
