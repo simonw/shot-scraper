@@ -172,6 +172,19 @@ def js_file_option(fn):
     return fn
 
 
+def init_script_option(fn):
+    click.option(
+        "init_scripts",
+        "--init-script",
+        multiple=True,
+        help=(
+            "JavaScript to run as a page init script, before the page's own "
+            "scripts run. Can be passed more than once."
+        ),
+    )(fn)
+    return fn
+
+
 def _load_javascript_source(source):
     "Load JavaScript from a file path, '-' for stdin or gh:username/script"
     if source.startswith("gh:"):
@@ -319,6 +332,7 @@ def cli():
 @bypass_csp_option
 @silent_option
 @http_auth_options
+@init_script_option
 def shot(
     url,
     auth,
@@ -354,6 +368,7 @@ def shot(
     silent,
     auth_username,
     auth_password,
+    init_scripts,
 ):
     """
     Take a single screenshot of a page or portion of a page.
@@ -424,6 +439,7 @@ def shot(
             bypass_csp=bypass_csp,
             auth_username=auth_username,
             auth_password=auth_password,
+            init_scripts=init_scripts,
         )
         if interactive or devtools:
             use_existing_page = True
@@ -483,6 +499,7 @@ def _browser_context(
     record_video_dir=None,
     record_video_size=None,
     viewport=None,
+    init_scripts=None,
 ):
     # Playwright 1.58 removed the `devtools` launch option. Emulate the
     # previous behavior for Chromium by passing the corresponding flag.
@@ -526,6 +543,8 @@ def _browser_context(
     if viewport:
         context_args["viewport"] = viewport
     context = browser_obj.new_context(**context_args)
+    for init_script in init_scripts or []:
+        context.add_init_script(script=init_script)
     if timeout:
         context.set_default_timeout(timeout)
     return context, browser_obj
@@ -817,6 +836,7 @@ def _convert_video_to_mp4(output, silent=False):
     type=click.Path(file_okay=True, writable=True, dir_okay=False),
     help="Path to HAR file to save all requests",
 )
+@init_script_option
 def multi(
     config,
     auth,
@@ -840,6 +860,7 @@ def multi(
     har,
     har_zip,
     har_file,
+    init_scripts,
 ):
     """
     Take multiple screenshots, defined by a YAML file
@@ -891,6 +912,7 @@ def multi(
             auth_username=auth_username,
             auth_password=auth_password,
             record_har_path=har_file or None,
+            init_scripts=init_scripts,
         )
         try:
             for shot in shots:
@@ -968,6 +990,7 @@ def multi(
 @skip_fail_options
 @bypass_csp_option
 @http_auth_options
+@init_script_option
 def accessibility(
     url,
     auth,
@@ -981,6 +1004,7 @@ def accessibility(
     bypass_csp,
     auth_username,
     auth_password,
+    init_scripts,
 ):
     """
     Dump the Chromium accessibility tree for the specifed page
@@ -999,6 +1023,7 @@ def accessibility(
             bypass_csp=bypass_csp,
             auth_username=auth_username,
             auth_password=auth_password,
+            init_scripts=init_scripts,
         )
         page = context.new_page()
         if log_console:
@@ -1051,6 +1076,7 @@ def accessibility(
 @skip_fail_options
 @bypass_csp_option
 @http_auth_options
+@init_script_option
 def har(
     url,
     zip_,
@@ -1068,6 +1094,7 @@ def har(
     bypass_csp,
     auth_username,
     auth_password,
+    init_scripts,
 ):
     """
     Record a HAR file for the specified page
@@ -1108,6 +1135,7 @@ def har(
             auth_username=auth_username,
             auth_password=auth_password,
             record_har_path=str(output),
+            init_scripts=init_scripts,
         )
         page = context.new_page()
         if log_console:
@@ -1286,6 +1314,7 @@ def _extract_har_entry(entry, extract_dir, existing_files, file_exists_fn, zip_f
 @skip_fail_options
 @bypass_csp_option
 @http_auth_options
+@init_script_option
 def javascript(
     url,
     javascript,
@@ -1306,6 +1335,7 @@ def javascript(
     bypass_csp,
     auth_username,
     auth_password,
+    init_scripts,
 ):
     """
     Execute JavaScript against the page and return the result as JSON
@@ -1348,6 +1378,7 @@ def javascript(
             bypass_csp=bypass_csp,
             auth_username=auth_username,
             auth_password=auth_password,
+            init_scripts=init_scripts,
         )
         page = context.new_page()
         if log_console:
@@ -1431,6 +1462,7 @@ def javascript(
 @bypass_csp_option
 @silent_option
 @http_auth_options
+@init_script_option
 def pdf(
     url,
     auth,
@@ -1454,6 +1486,7 @@ def pdf(
     silent,
     auth_username,
     auth_password,
+    init_scripts,
 ):
     """
     Create a PDF of the specified page
@@ -1482,6 +1515,7 @@ def pdf(
             auth_username=auth_username,
             auth_password=auth_password,
             timeout=timeout,
+            init_scripts=init_scripts,
         )
         page = context.new_page()
         if log_console:
@@ -1556,6 +1590,7 @@ def pdf(
 @bypass_csp_option
 @silent_option
 @http_auth_options
+@init_script_option
 def html(
     url,
     auth,
@@ -1575,6 +1610,7 @@ def html(
     silent,
     auth_username,
     auth_password,
+    init_scripts,
 ):
     """
     Output the final HTML of the specified page
@@ -1602,6 +1638,7 @@ def html(
             bypass_csp=bypass_csp,
             auth_username=auth_username,
             auth_password=auth_password,
+            init_scripts=init_scripts,
         )
         page = context.new_page()
         if log_console:
