@@ -121,6 +121,29 @@ You can include desired `height`, `width`, `quality`, `wait` and `wait_for` opti
   wait_for: document.querySelector('#bighead')
 ```
 
+To save a WebP image, use an `output` filename ending in `.webp`. WebP is lossless by default; add `quality` from 0 to 99 for lossy compression:
+
+```yaml
+- output: simon.webp
+  url: https://simonwillison.net/
+  height: 800
+- output: bighead.webp
+  url: https://simonwillison.net/
+  selector: "#bighead"
+  quality: 80
+```
+
+You can also specify `format: png`, `format: jpeg` or `format: webp` on each item. This takes precedence over the output filename extension:
+
+```yaml
+- output: screenshot
+  url: https://simonwillison.net/
+  format: webp
+  quality: 80
+```
+
+Without `format` or a `.webp` output filename, `quality` selects JPEG. Combining `format: png` with `quality` is an error. See {ref}`screenshots` for more about image formats and quality.
+
 (multi-har)=
 ## Recording to an HTTP Archive
 

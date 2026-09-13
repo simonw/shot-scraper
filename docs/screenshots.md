@@ -125,7 +125,7 @@ The `--js-file` option is also available for the `pdf`, `html`, `accessibility` 
 
 ## Using JPEGs instead of PNGs
 
-Screenshots default to PNG. You can save as a JPEG by specifying a `-o` filename that ends with `.jpg`.
+Screenshots default to PNG. Use a `-o` filename ending in `.jpg` or `.jpeg` to save as JPEG, or `.webp` to save as WebP.
 
 You can also use `--quality X` to save as a JPEG with the specified quality, in order to reduce the filesize. 80 is a good value to use here:
 ```bash
@@ -136,6 +136,47 @@ shot-scraper https://simonwillison.net/ \
 % ls -lah simonwillison.jpg
 -rw-r--r--@ 1 simon  staff   168K Mar  9 13:53 simonwillison.jpg
 ```
+## Using WebP
+
+Save a screenshot as WebP by specifying a filename ending in `.webp`:
+
+```bash
+shot-scraper https://simonwillison.net/ -h 800 -o simonwillison.webp
+```
+
+WebP screenshots are lossless by default, equivalent to `--quality 100`. Use a lower quality to apply lossy compression:
+
+```bash
+shot-scraper https://simonwillison.net/ \
+  -h 800 -o simonwillison.webp --quality 80
+```
+
+WebP also works with selectors:
+
+```bash
+shot-scraper https://simonwillison.net/ -s '#bighead' -o bighead.webp
+```
+
+WebP images are limited to [16,383 pixels in either dimension](https://developers.google.com/speed/webp/faq#what_is_the_maximum_size_a_webp_image_can_be), so use `--height` or a selector when capturing a page that exceeds that limit.
+
+## Specifying the image format
+
+Use `--format png`, `--format jpeg` or `--format webp` to select the format explicitly. This takes precedence over the output filename extension.
+
+Without `-o`, the automatic filename uses the selected format. This writes to `datasette-io.webp`:
+
+```bash
+shot-scraper https://datasette.io/ --format webp
+```
+
+Use `--format` with `-o -` to write WebP or JPEG to standard output:
+
+```bash
+shot-scraper https://datasette.io/ --format webp -o - > datasette.webp
+```
+
+The `--quality` option accepts values from 0 to 100 for JPEG and WebP. Combining `--format png` with `--quality` is an error because PNG does not use a quality setting.
+
 ## Device scale factor
 
 The `--scale-factor` option sets a specific device scale factor, which effectively simulates different device pixel ratios. This setting is useful for testing high-definition displays or emulating screens with various pixel densities.
@@ -164,10 +205,16 @@ Note: The `--retina` option should not be used in conjunction with the `--scale-
 
 ## Transparent background
 
-The `--omit-background` option instructs the browser to ignore the default background, allowing for the capture of a page with a transparent background. Does not work with JPG images or when `quality` is set.
+The `--omit-background` option instructs the browser to ignore the default background, allowing for the capture of a page with a transparent background. The default Chromium browser supports this for PNG and WebP images. JPEG does not support transparency.
 ```bash
 shot-scraper https://simonwillison.net/ -o simon.png \
   --width 400 --height 600 --omit-background
+```
+WebP can preserve transparency when using `--quality`:
+
+```bash
+shot-scraper https://simonwillison.net/ -o simon.webp \
+  --width 400 --height 600 --omit-background --quality 80
 ```
 ## Interacting with the page
 
@@ -363,9 +410,12 @@ Options:
                                   together with '--scale-factor'.
   --omit-background               Omit the default browser background from the
                                   shot, making it possible take advantage of
-                                  transparency. Does not work with JPEGs or when
-                                  using --quality.
-  --quality INTEGER               Save as JPEG with this quality, e.g. 80
+                                  transparency. Does not work with JPEGs.
+  --format [png|jpeg|webp]        Image format. Overrides the output extension;
+                                  use with -o - for stdout.
+  --quality INTEGER RANGE         JPEG or WebP quality, e.g. 80. Defaults to
+                                  JPEG unless WebP is selected. WebP defaults to
+                                  100 (lossless).  [0<=x<=100]
   --wait INTEGER                  Wait this many milliseconds before taking the
                                   screenshot
   --wait-for TEXT                 Wait until this JS expression returns true
