@@ -1,9 +1,13 @@
 from io import StringIO
 
 import pytest
+from click.testing import CliRunner
 
+from shot_scraper.cli import cli
 from shot_scraper.video import (
     ClickAction,
+    ExpectAction,
+    ExpectGoneAction,
     FillAction,
     OpenAction,
     PressAction,
@@ -204,6 +208,16 @@ scenes:
 """,
             "scenes.0.banana: Extra inputs are not permitted",
         ),
+        (
+            """
+output: demo.webm
+url: https://example.com/
+scenes:
+- do:
+  - expect: {}
+""",
+            "scenes.0.do.0.expect: expect: needs a selector: and/or text:",
+        ),
     ),
 )
 def test_load_storyboard_validation_errors(yaml, expected):
@@ -211,3 +225,87 @@ def test_load_storyboard_validation_errors(yaml, expected):
         parse_storyboard(yaml)
 
     assert str(ex.value) == expected
+
+
+def test_load_storyboard_normalizes_expect_actions():
+    storyboard = parse_storyboard(
+        """
+output: demo.webm
+url: https://example.com/
+scenes:
+- do:
+  - expect: "#done"
+  - expect: { text: "Saved", timeout: 500 }
+  - expect_gone: { contains: "Loading" }
+"""
+    )
+    actions = storyboard.scenes[0].do
+    assert isinstance(actions[0], ExpectAction)
+    assert actions[0].selector == "#done" and actions[0].text is None
+    assert isinstance(actions[1], ExpectAction)
+    assert actions[1].text == "Saved" and actions[1].timeout == 500
+    # `contains:` is an alias for `text:`
+    assert isinstance(actions[2], ExpectGoneAction)
+    assert actions[2].text == "Loading"
+
+
+EXPECT_HTML = "<!DOCTYPE html><html><head><title>t</title></head><body><h1 id='h'>Present text</h1></body></html>"
+
+
+def _record(runner, storyboard):
+    open("index.html", "w").write(EXPECT_HTML)
+    open("sb.yml", "w").write(storyboard)
+    return runner.invoke(cli, ["video", "sb.yml", "--browser-arg", "--no-sandbox"])
+
+
+def test_expect_passes_when_condition_holds():
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = _record(
+            runner,
+            """
+output: demo.webm
+url: index.html
+scenes:
+- do:
+  - expect: "#h"
+  - expect: { text: "Present text" }
+  - expect_gone: { text: "never here" }
+  - pause: 0.2
+""",
+        )
+        assert result.exit_code == 0, result.output
+
+
+def test_expect_fails_recording_when_condition_never_holds():
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = _record(
+            runner,
+            """
+output: demo.webm
+url: index.html
+scenes:
+- do:
+  - expect: { text: "this is absent", timeout: 800 }
+""",
+        )
+        assert result.exit_code != 0
+        assert "expect assertion failed" in result.output
+
+
+def test_expect_gone_fails_when_target_stays_present():
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = _record(
+            runner,
+            """
+output: demo.webm
+url: index.html
+scenes:
+- do:
+  - expect_gone: { selector: "#h", timeout: 800 }
+""",
+        )
+        assert result.exit_code != 0
+        assert "expect_gone assertion failed" in result.output

@@ -533,6 +533,33 @@ Wait for the current URL to match a string or glob pattern:
 - wait_for_url: "**/pricing"
 ```
 
+### expect
+
+Assert that a condition holds, **failing the recording** if it is never met. Unlike `wait_for`, which just waits, `expect` turns an unmet condition into a hard error — useful for proving that an action actually changed the page rather than silently recording a no-op.
+
+The target is a CSS `selector`, a `text` substring of the page, or both (when both are given the text is matched inside the selected element). A short string is treated as a selector:
+
+```yaml
+- expect: "#saved-indicator"
+- expect: { text: "Saved" }
+- expect: { selector: ".toast", text: "Saved" }
+```
+
+It polls until the condition holds or the timeout is reached (the command's `--timeout`, or a per-step `timeout` in milliseconds):
+
+```yaml
+- expect: { text: "Loaded", timeout: 5000 }
+```
+
+### expect_gone
+
+The inverse of `expect`: assert that the target is **absent**, failing the recording if it never disappears. This catches an action that should have removed or reverted something but didn't:
+
+```yaml
+- expect_gone: { text: "Draft saved" }
+- expect_gone: { selector: ".spinner" }
+```
+
 ### open
 
 Navigate during a scene. Relative URLs are resolved against the current page URL.
