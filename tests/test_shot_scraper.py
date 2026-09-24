@@ -90,6 +90,42 @@ def test_multi_server_string_child_process_is_stopped():
     assert not _port_is_open(port)
 
 
+SKIPPED_SERVER_YAML = """
+- server: python -m http.server 9024
+- url: http://localhost:9024/
+  output: output.png
+""".strip()
+
+
+@pytest.mark.parametrize("options", (["-n"], ["-o", "other.png"]))
+def test_multi_nothing_to_do_skips_server_and_browser(mocker, options):
+    start_server = mocker.patch.object(cli_module, "_start_server")
+    sync_playwright = mocker.patch.object(cli_module, "sync_playwright")
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        open("output.png", "w").write("existing")
+        open("shots.yml", "w").write(SKIPPED_SERVER_YAML)
+        result = runner.invoke(cli, ["multi", "shots.yml", *options])
+        assert result.exit_code == 0, result.output
+        assert open("output.png").read() == "existing"
+    start_server.assert_not_called()
+    sync_playwright.assert_not_called()
+
+
+def test_multi_no_clobber_starts_server_for_missing_shot():
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        open("existing.png", "w").write("existing")
+        open("shots.yml", "w").write(
+            SKIPPED_SERVER_YAML
+            + "\n- url: http://localhost:9024/\n  output: existing.png\n"
+        )
+        result = runner.invoke(cli, ["multi", "shots.yml", "-n"])
+        assert result.exit_code == 0, result.output
+        assert pathlib.Path("output.png").exists()
+        assert open("existing.png").read() == "existing"
+
+
 def test_multi_server_slow_start():
     # https://github.com/simonw/shot-scraper/issues/197
     # A server that takes longer than one second to start listening
