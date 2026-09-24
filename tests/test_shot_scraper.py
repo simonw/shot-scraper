@@ -908,10 +908,6 @@ def test_video_runs_top_level_setup_before_server(mocker):
         def __exit__(self, exc_type, exc, tb):
             pass
 
-    class FakeServerProcess:
-        def kill(self):
-            events.append("server.kill")
-
     fake_page = FakePage()
     fake_context = FakeContext(fake_page)
     fake_browser = FakeBrowser()
@@ -935,8 +931,13 @@ def test_video_runs_top_level_setup_before_server(mocker):
         cli_module,
         "_start_server",
         side_effect=lambda server: (
-            events.append(("server", server)) or (FakeServerProcess(), server)
+            events.append(("server", server)) or (object(), server)
         ),
+    )
+    mocker.patch.object(
+        cli_module,
+        "_stop_server",
+        side_effect=lambda process: events.append("server.kill"),
     )
     mocker.patch.object(
         cli_module.time,
@@ -1024,9 +1025,6 @@ def test_video_server_waits_for_readiness(mocker):
             pass
 
     class FakeServerProcess:
-        def kill(self):
-            events.append("server.kill")
-
         def poll(self):
             return None
 
@@ -1043,6 +1041,11 @@ def test_video_server_waits_for_readiness(mocker):
         side_effect=lambda server: (
             events.append(("server", server)) or (FakeServerProcess(), server)
         ),
+    )
+    mocker.patch.object(
+        cli_module,
+        "_stop_server",
+        side_effect=lambda process: events.append("server.kill"),
     )
     mocker.patch.object(
         cli_module.time,

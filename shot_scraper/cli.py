@@ -1743,31 +1743,14 @@ def _run_python_code(code):
         ) from ex
 
 
-class _ServerProcess(subprocess.Popen):
-    """
-    Runs a server: command in its own process group, so kill() also stops
-    any child processes - such as the command started by "sh -c"
-    """
-
-    def __init__(self, args, **kwargs):
-        if os.name == "posix":
-            kwargs["start_new_session"] = True
-        super().__init__(args, **kwargs)
-
-    def kill(self):
-        if os.name != "posix":
-            return super().kill()
-        try:
-            os.killpg(self.pid, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
-
-
 def _start_server(server):
+    # Run the server in its own process group so _stop_server() can stop
+    # any child processes too, such as the command started by "sh -c"
+    popen_kwargs = {"start_new_session": True} if os.name == "posix" else {}
     if isinstance(server, str):
-        proc = _ServerProcess(server, shell=True)
+        proc = subprocess.Popen(server, shell=True, **popen_kwargs)
     elif isinstance(server, list):
-        proc = _ServerProcess(map(str, server))
+        proc = subprocess.Popen(map(str, server), **popen_kwargs)
     else:
         raise click.ClickException("server: must be a string or list")
     return proc, server
@@ -1816,7 +1799,17 @@ def _cleanup_servers(server_processes, leave_server):
             )
     else:
         for process, _ in server_processes:
-            process.kill()
+            _stop_server(process)
+
+
+def _stop_server(process):
+    if os.name == "posix":
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+    else:
+        process.kill()
 
 
 def _record_storyboard(
