@@ -1,5 +1,6 @@
 import base64
 import secrets
+import signal
 import socket
 import subprocess
 import sys
@@ -1742,11 +1743,31 @@ def _run_python_code(code):
         ) from ex
 
 
+class _ServerProcess(subprocess.Popen):
+    """
+    Runs a server: command in its own process group, so kill() also stops
+    any child processes - such as the command started by "sh -c"
+    """
+
+    def __init__(self, args, **kwargs):
+        if os.name == "posix":
+            kwargs["start_new_session"] = True
+        super().__init__(args, **kwargs)
+
+    def kill(self):
+        if os.name != "posix":
+            return super().kill()
+        try:
+            os.killpg(self.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+
+
 def _start_server(server):
     if isinstance(server, str):
-        proc = subprocess.Popen(server, shell=True)
+        proc = _ServerProcess(server, shell=True)
     elif isinstance(server, list):
-        proc = subprocess.Popen(map(str, server))
+        proc = _ServerProcess(map(str, server))
     else:
         raise click.ClickException("server: must be a string or list")
     return proc, server

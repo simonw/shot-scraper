@@ -61,6 +61,35 @@ def test_multi_server(yaml):
         assert pathlib.Path("output.png").exists()
 
 
+def _port_is_open(port):
+    try:
+        with socket.create_connection(("127.0.0.1", port), timeout=1):
+            return True
+    except OSError:
+        return False
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Uses POSIX shell syntax")
+def test_multi_server_string_child_process_is_stopped():
+    # The trailing command stops the shell from exec-ing python, so python
+    # runs as a child of "sh -c" - that child should still be stopped
+    port = find_free_port()
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        open("server.yaml", "w").write(
+            f'- server: "python -m http.server {port}; echo stopped"\n'
+            f"- url: http://127.0.0.1:{port}/\n"
+            f"  output: output.png\n"
+        )
+        result = runner.invoke(cli, ["multi", "server.yaml"])
+        assert result.exit_code == 0, result.output
+        assert pathlib.Path("output.png").exists()
+    deadline = time.monotonic() + 5
+    while _port_is_open(port) and time.monotonic() < deadline:
+        time.sleep(0.1)
+    assert not _port_is_open(port)
+
+
 def test_multi_server_slow_start():
     # https://github.com/simonw/shot-scraper/issues/197
     # A server that takes longer than one second to start listening
