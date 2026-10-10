@@ -17,6 +17,14 @@ dependencies = [
     "click-default-group",
 ]
 
+[project.optional-dependencies]
+# Spoken narration for `shot-scraper video` (say: lines). Also needs a system
+# ffmpeg/ffprobe and espeak-ng.
+narrate = [
+    "kokoro-onnx",
+    "soundfile",
+]
+
 [project.urls]
 Homepage = "https://shot-scraper.datasette.io/"
 Issues = "https://github.com/simonw/shot-scraper/issues"
