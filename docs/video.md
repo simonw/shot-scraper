@@ -67,6 +67,14 @@ shot-scraper video storyboard.yml --mp4
 
 If `ffmpeg` is not installed, the WebM file is still created but the command exits with a non-zero status and an error explaining that the MP4 was not created.
 
+Use `--gif` to instead convert the recorded WebM video to an animated GIF using `ffmpeg`, again reusing the output filename with the extension replaced by `.gif`:
+
+```bash
+shot-scraper video storyboard.yml --gif
+```
+
+GIFs are much larger than the equivalent MP4, so they suit short clips; the same `ffmpeg` requirement and error handling apply.
+
 ## Storyboard structure
 
 A storyboard file is a YAML mapping with these keys:
@@ -744,9 +752,9 @@ Usage: shot-scraper video [OPTIONS] STORYBOARD_FILE
 
   Top-level YAML keys:
 
-      output: WebM filename. -o/--output overrides this. With --mp4, an MP4
-        is also written using the same filename with the suffix replaced by
-        .mp4.
+      output: WebM filename. -o/--output overrides this. With --mp4 or --gif,
+        an MP4 or GIF is also written using the same filename with the suffix
+        replaced by .mp4 or .gif.
       url: Starting URL, bare domain, or local HTML path. Omit this only if
         the first scene has open:.
       sh: Shell command string or argument list to run before python: and
@@ -814,6 +822,8 @@ Options:
   --auth-username TEXT            Username for HTTP Basic authentication
   --leave-server                  Leave servers running when script finishes
   --mp4                           Also convert the recorded WebM video to MP4
+                                  using ffmpeg
+  --gif                           Also convert the recorded WebM video to GIF
                                   using ffmpeg
   --help                          Show this message and exit.
 ```
