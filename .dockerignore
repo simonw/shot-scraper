@@ -1,0 +1,11 @@
+.git
+.venv
+venv
+**/__pycache__
+*.pyc
+.pytest_cache
+docs/_build
+test-artifacts
+*.webm
+*.mp4
+*.png
