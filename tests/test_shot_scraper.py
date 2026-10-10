@@ -386,6 +386,80 @@ def test_javascript(args, expected):
         assert result.output == expected
 
 
+# HTML that records, at parse time, whether the init script already ran
+INIT_SCRIPT_HTML = """
+<!DOCTYPE html>
+<html>
+<head><title>Init title</title></head>
+<body>
+<script>
+window.seenAtParse = (typeof window.injectedValue !== "undefined")
+  ? window.injectedValue
+  : "missing";
+</script>
+</body>
+</html>
+"""
+
+
+def test_javascript_init_script():
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        open("index.html", "w").write(TEST_HTML)
+        result = runner.invoke(
+            cli,
+            [
+                "javascript",
+                "index.html",
+                "--init-script",
+                "window.injectedValue = 'hello';",
+                "window.injectedValue",
+            ],
+        )
+        assert result.exit_code == 0, str(result.exception)
+        assert result.output == '"hello"\n'
+
+
+def test_javascript_init_script_runs_before_page_scripts():
+    # An init script runs before the page's own scripts, so the inline
+    # <script> in INIT_SCRIPT_HTML should observe the injected value.
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        open("index.html", "w").write(INIT_SCRIPT_HTML)
+        result = runner.invoke(
+            cli,
+            [
+                "javascript",
+                "index.html",
+                "--init-script",
+                "window.injectedValue = 'early';",
+                "window.seenAtParse",
+            ],
+        )
+        assert result.exit_code == 0, str(result.exception)
+        assert result.output == '"early"\n'
+
+
+def test_javascript_multiple_init_scripts():
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        open("index.html", "w").write(TEST_HTML)
+        result = runner.invoke(
+            cli,
+            [
+                "javascript",
+                "index.html",
+                "--init-script",
+                "window.parts = ['a'];",
+                "--init-script",
+                "window.parts.push('b');",
+                "window.parts.join('-')",
+            ],
+        )
+        assert result.exit_code == 0, str(result.exception)
+        assert result.output == '"a-b"\n'
+
+
 def test_javascript_width_height():
     runner = CliRunner()
     with runner.isolated_filesystem():

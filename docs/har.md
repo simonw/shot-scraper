@@ -131,6 +131,8 @@ Options:
   --bypass-csp           Bypass Content-Security-Policy
   --auth-password TEXT   Password for HTTP Basic authentication
   --auth-username TEXT   Username for HTTP Basic authentication
+  --init-script TEXT     JavaScript to run as a page init script, before the
+                         page's own scripts run. Can be passed more than once.
   --help                 Show this message and exit.
 ```
 <!-- [[[end]]] -->
