@@ -61,6 +61,71 @@ def test_multi_server(yaml):
         assert pathlib.Path("output.png").exists()
 
 
+def _port_is_open(port):
+    try:
+        with socket.create_connection(("127.0.0.1", port), timeout=1):
+            return True
+    except OSError:
+        return False
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Uses POSIX shell syntax")
+def test_multi_server_string_child_process_is_stopped():
+    # The trailing command stops the shell from exec-ing python, so python
+    # runs as a child of "sh -c" - that child should still be stopped
+    port = find_free_port()
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        open("server.yaml", "w").write(
+            f'- server: "python -m http.server {port}; echo stopped"\n'
+            f"- url: http://127.0.0.1:{port}/\n"
+            f"  output: output.png\n"
+        )
+        result = runner.invoke(cli, ["multi", "server.yaml"])
+        assert result.exit_code == 0, result.output
+        assert pathlib.Path("output.png").exists()
+    deadline = time.monotonic() + 5
+    while _port_is_open(port) and time.monotonic() < deadline:
+        time.sleep(0.1)
+    assert not _port_is_open(port)
+
+
+SKIPPED_SERVER_YAML = """
+- server: python -m http.server 9024
+- url: http://localhost:9024/
+  output: output.png
+""".strip()
+
+
+@pytest.mark.parametrize("options", (["-n"], ["-o", "other.png"]))
+def test_multi_nothing_to_do_skips_server_and_browser(mocker, options):
+    start_server = mocker.patch.object(cli_module, "_start_server")
+    sync_playwright = mocker.patch.object(cli_module, "sync_playwright")
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        open("output.png", "w").write("existing")
+        open("shots.yml", "w").write(SKIPPED_SERVER_YAML)
+        result = runner.invoke(cli, ["multi", "shots.yml", *options])
+        assert result.exit_code == 0, result.output
+        assert open("output.png").read() == "existing"
+    start_server.assert_not_called()
+    sync_playwright.assert_not_called()
+
+
+def test_multi_no_clobber_starts_server_for_missing_shot():
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        open("existing.png", "w").write("existing")
+        open("shots.yml", "w").write(
+            SKIPPED_SERVER_YAML
+            + "\n- url: http://localhost:9024/\n  output: existing.png\n"
+        )
+        result = runner.invoke(cli, ["multi", "shots.yml", "-n"])
+        assert result.exit_code == 0, result.output
+        assert pathlib.Path("output.png").exists()
+        assert open("existing.png").read() == "existing"
+
+
 def test_multi_server_slow_start():
     # https://github.com/simonw/shot-scraper/issues/197
     # A server that takes longer than one second to start listening
@@ -941,10 +1006,6 @@ def test_video_runs_top_level_setup_before_server(mocker):
         def __exit__(self, exc_type, exc, tb):
             pass
 
-    class FakeServerProcess:
-        def kill(self):
-            events.append("server.kill")
-
     fake_page = FakePage()
     fake_context = FakeContext(fake_page)
     fake_browser = FakeBrowser()
@@ -968,8 +1029,13 @@ def test_video_runs_top_level_setup_before_server(mocker):
         cli_module,
         "_start_server",
         side_effect=lambda server: (
-            events.append(("server", server)) or (FakeServerProcess(), server)
+            events.append(("server", server)) or (object(), server)
         ),
+    )
+    mocker.patch.object(
+        cli_module,
+        "_stop_server",
+        side_effect=lambda process: events.append("server.kill"),
     )
     mocker.patch.object(
         cli_module.time,
@@ -1058,9 +1124,6 @@ def test_video_server_waits_for_readiness(mocker):
             pass
 
     class FakeServerProcess:
-        def kill(self):
-            events.append("server.kill")
-
         def poll(self):
             return None
 
@@ -1077,6 +1140,11 @@ def test_video_server_waits_for_readiness(mocker):
         side_effect=lambda server: (
             events.append(("server", server)) or (FakeServerProcess(), server)
         ),
+    )
+    mocker.patch.object(
+        cli_module,
+        "_stop_server",
+        side_effect=lambda process: events.append("server.kill"),
     )
     mocker.patch.object(
         cli_module.time,

@@ -1,5 +1,6 @@
 import base64
 import secrets
+import signal
 import socket
 import subprocess
 import sys
@@ -888,6 +889,14 @@ def multi(
         shots = []
     if not isinstance(shots, list):
         raise click.ClickException("YAML file must contain a list")
+    # Nothing to do, for example because --no-clobber skipped every shot,
+    # so there is no need to start any servers or launch the browser
+    if not any(
+        shot.get("sh") or shot.get("python") or "url" in shot
+        for shot in shots
+        if not _skipped_by_options(shot, noclobber, outputs)
+    ):
+        return
     with sync_playwright() as p:
         context, browser_obj = _browser_context(
             p,
@@ -904,13 +913,7 @@ def multi(
         )
         try:
             for shot in shots:
-                if (
-                    noclobber
-                    and shot.get("output")
-                    and pathlib.Path(shot["output"]).exists()
-                ):
-                    continue
-                if outputs and shot.get("output") and shot.get("output") not in outputs:
+                if _skipped_by_options(shot, noclobber, outputs):
                     continue
                 # Run "sh" key
                 if shot.get("sh"):
@@ -1752,11 +1755,23 @@ def _run_python_code(code):
         ) from ex
 
 
+def _skipped_by_options(shot, noclobber, outputs):
+    output = shot.get("output")
+    if not output:
+        return False
+    if noclobber and pathlib.Path(output).exists():
+        return True
+    return bool(outputs) and output not in outputs
+
+
 def _start_server(server):
+    # Run the server in its own process group so _stop_server() can stop
+    # any child processes too, such as the command started by "sh -c"
+    popen_kwargs = {"start_new_session": True} if os.name == "posix" else {}
     if isinstance(server, str):
-        proc = subprocess.Popen(server, shell=True)
+        proc = subprocess.Popen(server, shell=True, **popen_kwargs)
     elif isinstance(server, list):
-        proc = subprocess.Popen(map(str, server))
+        proc = subprocess.Popen(map(str, server), **popen_kwargs)
     else:
         raise click.ClickException("server: must be a string or list")
     return proc, server
@@ -1805,7 +1820,17 @@ def _cleanup_servers(server_processes, leave_server):
             )
     else:
         for process, _ in server_processes:
-            process.kill()
+            _stop_server(process)
+
+
+def _stop_server(process):
+    if os.name == "posix":
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+    else:
+        process.kill()
 
 
 def _record_storyboard(

@@ -20,7 +20,7 @@ Use `-` to pass in YAML from standard input:
 ```bash
 echo "- url: http://www.example.com" | shot-scraper multi -
 ```
-If you run the tool with the `-n` or `--no-clobber` option any shots where the output file aleady exists will be skipped.
+If you run the tool with the `-n` or `--no-clobber` option any shots where the output file already exists will be skipped. If every shot is skipped, `shot-scraper` exits without starting any `server:` processes.
 
 You can specify a subset of screenshots to take by specifying output files that you would like to create. For example, to take just the shots of `one.png` and `three.png` that are defined in `shots.yml` run this:
 ```bash
