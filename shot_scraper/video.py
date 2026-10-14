@@ -195,6 +195,7 @@ class Storyboard(StoryboardBaseModel):
     python: str | None = None
     server: str | list[str | int] | None = None
     viewport: StoryboardViewport = Field(default_factory=StoryboardViewport)
+    fps: PositiveInt = Field(default=25, strict=True)
     cursor: CursorOptions | None = None
     wait: NonNegativeFloat | None = None
     wait_for: str | None = None

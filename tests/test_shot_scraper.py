@@ -551,7 +551,66 @@ def test_video_help_documents_storyboard_format():
         '      - type: {into: "selector", text: "value", delay_ms: 25}' in result.output
     )
     assert "  --mp4" in result.output
+    assert "  --fps" in result.output
     assert "\b" not in result.output
+
+
+@pytest.mark.parametrize(
+    "fps_yaml,args,expected",
+    (
+        ("", [], 25),
+        ("fps: 60", [], 60),
+        ("", ["--fps", "30"], 30),
+        ("fps: 60", ["--fps", "30"], 30),
+        ("fps: 60", ["--fps", "1"], 1),
+    ),
+)
+def test_video_fps_option(mocker, fps_yaml, args, expected):
+    record_storyboard = mocker.patch.object(cli_module, "_record_storyboard")
+    result = CliRunner().invoke(
+        cli,
+        ["video", "-", *args],
+        input=f"""
+output: demo.webm
+url: https://example.com/
+{fps_yaml}
+scenes:
+- name: Home
+""",
+    )
+
+    assert result.exit_code == 0, result.output
+    record_storyboard.assert_called_once()
+    assert record_storyboard.call_args.args[0].fps == expected
+
+
+@pytest.mark.parametrize("fps", ("0", "-1", "29.97", "true", "fast"))
+def test_video_rejects_invalid_fps_option(mocker, fps):
+    record_storyboard = mocker.patch.object(cli_module, "_record_storyboard")
+    result = CliRunner().invoke(cli, ["video", "-", "--fps", fps], input="")
+
+    assert result.exit_code == 2
+    assert "Invalid value for '--fps'" in result.output
+    record_storyboard.assert_not_called()
+
+
+def test_video_rejects_invalid_storyboard_fps(mocker):
+    record_storyboard = mocker.patch.object(cli_module, "_record_storyboard")
+    result = CliRunner().invoke(
+        cli,
+        ["video", "-"],
+        input="""
+output: demo.webm
+url: https://example.com/
+fps: 0
+scenes:
+- name: Home
+""",
+    )
+
+    assert result.exit_code == 1
+    assert "Error: fps:" in result.output
+    record_storyboard.assert_not_called()
 
 
 def test_video_records_video():
@@ -582,6 +641,7 @@ server:
 - {port}
 url: http://localhost:{port}/
 cursor: true
+fps: 60
 viewport:
   width: 640
   height: 360
@@ -735,12 +795,13 @@ scenes:
         ) in result.output
 
 
-def test_video_starts_screencast_after_initial_navigation(mocker):
+@pytest.mark.parametrize("fps", (25, 60))
+def test_video_starts_screencast_after_initial_navigation(mocker, fps):
     events = []
 
     class FakeScreencast:
-        def start(self, path, size):
-            events.append(("start", path, size))
+        def start(self, path, size, fps):
+            events.append(("start", path, size, fps))
 
         def stop(self):
             events.append("stop")
@@ -804,6 +865,7 @@ def test_video_starts_screencast_after_initial_navigation(mocker):
 
     storyboard_config = SimpleNamespace(
         output="demo.webm",
+        fps=fps,
         url="https://example.com/",
         sh=None,
         python=None,
@@ -822,7 +884,7 @@ def test_video_starts_screencast_after_initial_navigation(mocker):
     assert events[:4] == [
         ("viewport", {"width": 640, "height": 360}),
         "goto",
-        ("start", "demo.webm", {"width": 640, "height": 360}),
+        ("start", "demo.webm", {"width": 640, "height": 360}, fps),
         "scene",
     ]
     assert "stop" in events
@@ -836,8 +898,8 @@ def test_video_runs_top_level_setup_before_server(mocker):
     events = []
 
     class FakeScreencast:
-        def start(self, path, size):
-            events.append(("start", path, size))
+        def start(self, path, size, fps):
+            events.append(("start", path, size, fps))
 
         def stop(self):
             events.append("stop")
@@ -922,6 +984,7 @@ def test_video_runs_top_level_setup_before_server(mocker):
 
     storyboard_config = SimpleNamespace(
         output="demo.webm",
+        fps=25,
         url=None,
         sh="setup shell",
         python="setup python",
@@ -952,8 +1015,8 @@ def test_video_server_waits_for_readiness(mocker):
     events = []
 
     class FakeScreencast:
-        def start(self, path, size):
-            events.append(("start", path, size))
+        def start(self, path, size, fps):
+            events.append(("start", path, size, fps))
 
         def stop(self):
             events.append("stop")
@@ -1038,6 +1101,7 @@ def test_video_server_waits_for_readiness(mocker):
 
     storyboard_config = SimpleNamespace(
         output="demo.webm",
+        fps=25,
         url="http://localhost:8123/",
         sh=None,
         python=None,

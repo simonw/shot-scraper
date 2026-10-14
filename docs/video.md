@@ -53,11 +53,25 @@ shot-scraper video storyboard.yml
 
 This opens the starting URL, records the scenes and writes the video to `demo.webm`.
 
+Storyboards can also use JSON syntax. Pass `-` as the filename to read YAML or JSON from standard input:
+
+```bash
+echo '{"url":"https://example.com/","scenes":[{"do":[{"pause":3}]}]}' | shot-scraper video - -o demo.webm
+```
+
 Use `-o` or `--output` to override the output filename:
 
 ```bash
 shot-scraper video storyboard.yml -o alternate.webm
 ```
+
+Set `fps: 60` in the storyboard or use `--fps` to override its frame rate:
+
+```bash
+shot-scraper video storyboard.yml --fps 60
+```
+
+The default is 25 frames per second. Higher frame rates can make animations and scrolling smoother in Chromium, at the cost of more CPU spent on encoding. Firefox and WebKit currently capture at most 25 distinct frames per second.
 
 Use `--mp4` to also convert the recorded WebM video to MP4 using `ffmpeg`. The WebM is still written first, then the MP4 is written using the same filename with the extension replaced by `.mp4`:
 
@@ -132,6 +146,13 @@ If a `sh:` or `python:` command exits with a non-zero status, `shot-scraper vide
   viewport:
     width: 1440
     height: 900
+  ```
+
+`fps`
+: Optional frame rate as a positive integer. Defaults to `25`. The `--fps` option overrides this value. Firefox and WebKit currently capture at most 25 distinct frames per second.
+
+  ```yaml
+  fps: 60
   ```
 
 `cursor`
@@ -705,6 +726,7 @@ Usage: shot-scraper video [OPTIONS] STORYBOARD_FILE
 
       shot-scraper video storyboard.yml
       shot-scraper video storyboard.yml -o demo.webm --mp4
+      shot-scraper video storyboard.yml --fps 60
 
   A storyboard is a YAML mapping with an output filename, a starting URL (or an
   opening scene), and a list of scenes. Each scene can wait, run commands, run
@@ -754,6 +776,7 @@ Usage: shot-scraper video [OPTIONS] STORYBOARD_FILE
       python: Python code to run after sh: and before server:.
       server: Optional command string or argument list to run while recording.
       viewport: Mapping with width: and height:. Defaults to 1280 by 720.
+      fps: Positive integer frame rate. Defaults to 25. --fps overrides this.
       cursor: true, false, or a mapping with visible, clicks, color, size and
         click_size.
       wait: Seconds to pause after the starting page loads.
@@ -797,6 +820,8 @@ Usage: shot-scraper video [OPTIONS] STORYBOARD_FILE
 Options:
   -o, --output FILE               Output video filename (.webm), overriding
                                   output: in the storyboard
+  --fps INTEGER RANGE             Frames per second, overriding fps: in the
+                                  storyboard (default: 25)  [x>=1]
   -a, --auth FILENAME             Path to JSON authentication context file
   --timeout INTEGER               Wait this many milliseconds before failing
   -b, --browser [chromium|firefox|webkit|chrome|chrome-beta]
