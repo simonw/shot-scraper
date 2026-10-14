@@ -116,6 +116,36 @@ scenes:
     assert storyboard.viewport_size() == {"width": 1280, "height": 720}
 
 
+@pytest.mark.parametrize(
+    "fps_yaml,expected",
+    (("", 25), ("fps: 1", 1), ("fps: 60", 60), ("fps: 144", 144)),
+)
+def test_load_storyboard_fps(fps_yaml, expected):
+    storyboard = parse_storyboard(f"""
+output: demo.webm
+url: https://example.com/
+{fps_yaml}
+scenes:
+- name: Home
+""")
+
+    assert storyboard.fps == expected
+
+
+@pytest.mark.parametrize(
+    "fps_yaml", ("0", "-1", "29.97", "60.0", "true", "false", '"60"', "null")
+)
+def test_load_storyboard_rejects_invalid_fps(fps_yaml):
+    with pytest.raises(StoryboardError, match="^fps:"):
+        parse_storyboard(f"""
+output: demo.webm
+url: https://example.com/
+fps: {fps_yaml}
+scenes:
+- name: Home
+""")
+
+
 def test_load_storyboard_cursor_true_uses_defaults():
     storyboard = parse_storyboard("""
 output: demo.webm

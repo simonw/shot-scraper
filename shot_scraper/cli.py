@@ -540,6 +540,11 @@ def _browser_context(
     help="Output video filename (.webm), overriding output: in the storyboard",
 )
 @click.option(
+    "--fps",
+    type=click.IntRange(min=1),
+    help="Frames per second, overriding fps: in the storyboard (default: 25)",
+)
+@click.option(
     "-a",
     "--auth",
     type=click.File("r"),
@@ -573,6 +578,7 @@ def _browser_context(
 def video(
     storyboard_file,
     output,
+    fps,
     auth,
     timeout,
     browser,
@@ -597,6 +603,7 @@ def video(
     \b
         shot-scraper video storyboard.yml
         shot-scraper video storyboard.yml -o demo.webm --mp4
+        shot-scraper video storyboard.yml --fps 60
 
     A storyboard is a YAML mapping with an output filename, a starting URL (or
     an opening scene), and a list of scenes. Each scene can wait, run commands,
@@ -648,6 +655,7 @@ def video(
         python: Python code to run after sh: and before server:.
         server: Optional command string or argument list to run while recording.
         viewport: Mapping with width: and height:. Defaults to 1280 by 720.
+        fps: Positive integer frame rate. Defaults to 25. --fps overrides this.
         cursor: true, false, or a mapping with visible, clicks, color, size and
           click_size.
         wait: Seconds to pause after the starting page loads.
@@ -697,6 +705,8 @@ def video(
         raise click.ClickException(str(ex))
     if output:
         storyboard_config = storyboard_config.model_copy(update={"output": output})
+    if fps is not None:
+        storyboard_config = storyboard_config.model_copy(update={"fps": fps})
     try:
         _record_storyboard(
             storyboard_config,
@@ -1886,7 +1896,7 @@ def _record_storyboard(
                 if storyboard_config.javascript:
                     _evaluate_js(page, storyboard_config.javascript)
 
-                page.screencast.start(path=output, size=viewport)
+                page.screencast.start(path=output, size=viewport, fps=storyboard_config.fps)
                 recording_started = True
                 for index, scene in enumerate(storyboard_config.scenes, 1):
                     _run_storyboard_scene(
