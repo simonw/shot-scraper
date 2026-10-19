@@ -340,6 +340,15 @@ See https://www.facebook.com/selfxss for more information.
 Screenshot of 'http://facebook.com' written to 'facebook-com.png'
 ```
 
+## Skipping pages that cannot be loaded
+
+Use `--skip` to skip a screenshot if the page returns an HTTP error or navigation
+fails, for example because of a DNS error, connection failure, invalid TLS
+certificate or timeout. The command reports that the page was skipped and exits
+successfully without writing a screenshot. Certificate verification remains
+enabled. Errors after navigation, such as invalid JavaScript or screenshot errors,
+are not suppressed by this option.
+
 ## `shot-scraper shot --help`
 
 Full `--help` for this command:

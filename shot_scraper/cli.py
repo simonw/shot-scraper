@@ -2312,7 +2312,14 @@ def take_shot(
 
     if not use_existing_page:
         # Load page and check for errors
-        response = page.goto(url)
+        try:
+            response = page.goto(url)
+        except Error:
+            if not skip:
+                raise
+            click.echo(f"Navigation error for {url}, skipping", err=True)
+            page.close()
+            return
         # Check if page was a 404 or 500 or other error
         if str(response.status)[0] in ("4", "5"):
             if skip:

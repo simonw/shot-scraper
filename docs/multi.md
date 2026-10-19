@@ -144,6 +144,15 @@ You can also specify `format: png`, `format: jpeg` or `format: webp` on each ite
 
 Without `format` or a `.webp` output filename, `quality` selects JPEG. Combining `format: png` with `quality` is an error. See {ref}`screenshots` for more about image formats and quality.
 
+## Skipping pages that cannot be loaded
+
+To continue taking screenshots when a page returns an HTTP error or cannot be
+loaded, use `shot-scraper multi shots.yml --skip`. This also skips navigation
+failures such as DNS errors, connection failures, invalid TLS certificates and
+timeouts. No screenshot is written for a skipped page. Certificate verification
+remains enabled, and errors after navigation, such as invalid JavaScript or failed
+screenshots, are still reported normally.
+
 (multi-har)=
 ## Recording to an HTTP Archive
 
