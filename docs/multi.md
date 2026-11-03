@@ -16,6 +16,25 @@ shot-scraper multi shots.yml
 ```
 This will create two image files, `www-example-com.png` and `w3c.org.png`, containing screenshots of those two URLs.
 
+You can also load a YAML configuration from an HTTP(S) URL:
+
+```bash
+shot-scraper multi https://example.com/shots.yml
+```
+
+GitHub-hosted configurations support the `gh:` shorthand:
+
+```bash
+shot-scraper multi gh:username/repository/shots.yml
+```
+
+The shorter `gh:username/shots.yml` form uses the
+`username/shot-scraper-scripts` repository. GitHub shorthand
+uses the repository's `main` branch.
+
+**Security:** Multi configurations can execute `sh` and `python`
+commands. Only load remote YAML from sources you trust.
+
 Use `-` to pass in YAML from standard input:
 ```bash
 echo "- url: http://www.example.com" | shot-scraper multi -

@@ -9,6 +9,7 @@ import json
 import os
 import pathlib
 import urllib.parse
+import urllib.request
 import zipfile
 from runpy import run_module
 from click_default_group import DefaultGroup
@@ -170,6 +171,46 @@ def js_file_option(fn):
         ),
     )(fn)
     return fn
+
+
+
+def _load_multi_config(config):
+    """Read a multi YAML configuration from a file, URL, or GitHub."""
+    if config.startswith("gh:"):
+        parts = config[3:].split("/")
+
+        if len(parts) == 2:
+            parts.insert(1, "shot-scraper-scripts")
+
+        if len(parts) < 3 or not all(parts):
+            raise click.ClickException(
+                "GitHub config must be gh:user/repo/file.yml "
+                "or gh:user/file.yml"
+            )
+
+        username, repository, *file_path = parts
+        config = (
+            f"https://raw.githubusercontent.com/"
+            f"{username}/{repository}/main/"
+            f"{'/'.join(file_path)}"
+        )
+
+    if config.startswith(("https://", "http://")):
+        try:
+            with urllib.request.urlopen(config, timeout=30) as response:
+                return response.read().decode("utf-8")
+        except (OSError, UnicodeError) as error:
+            raise click.ClickException(
+                f"Failed to load YAML config from '{config}': {error}"
+            ) from error
+
+    try:
+        with click.open_file(config, "r", encoding="utf-8") as file:
+            return file.read()
+    except (OSError, click.ClickException) as error:
+        raise click.ClickException(
+            f"Failed to read YAML config '{config}': {error}"
+        ) from error
 
 
 def _load_javascript_source(source):
@@ -766,7 +807,7 @@ def _convert_video_to_mp4(output, silent=False):
 
 
 @cli.command()
-@click.argument("config", type=click.File(mode="r"))
+@click.argument("config")
 @click.option(
     "-a",
     "--auth",
@@ -874,7 +915,7 @@ def multi(
         )
 
     scale_factor = normalize_scale_factor(retina, scale_factor)
-    shots = yaml.safe_load(config)
+    shots = yaml.safe_load(_load_multi_config(config))
 
     # Special case: if we are recording a har_file output can be blank to skip a shot
     if har_file:

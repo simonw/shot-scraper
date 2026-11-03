@@ -1386,3 +1386,60 @@ def test_har_extract_content_type_extension(http_server):
         assert (
             len(html_files) >= 1
         ), f"Should have .html file, got: {list(extract_dir.glob('*'))}"
+
+
+@pytest.mark.parametrize(
+    "config,expected_url",
+    [
+        (
+            "https://example.com/shots.yml",
+            "https://example.com/shots.yml",
+        ),
+        (
+            "gh:owner/repo/shots.yml",
+            "https://raw.githubusercontent.com/owner/repo/main/shots.yml",
+        ),
+        (
+            "gh:owner/shots.yml",
+            "https://raw.githubusercontent.com/"
+            "owner/shot-scraper-scripts/main/shots.yml",
+        ),
+    ],
+)
+def test_multi_remote_config(config, expected_url):
+    runner = CliRunner()
+    with patch("shot_scraper.cli.urllib.request.urlopen") as urlopen:
+        urlopen.return_value.__enter__.return_value.read.return_value = b"[]"
+        result = runner.invoke(cli, ["multi", config])
+
+    assert result.exit_code == 0, repr(result.exception)
+    urlopen.assert_called_once_with(expected_url, timeout=30)
+
+
+def test_multi_remote_config_download_failure():
+    runner = CliRunner()
+    with patch(
+        "shot_scraper.cli.urllib.request.urlopen",
+        side_effect=OSError("Network unavailable"),
+    ):
+        result = runner.invoke(
+            cli, ["multi", "https://example.com/shots.yml"]
+        )
+
+    assert result.exit_code != 0
+    assert "Network unavailable" in result.output
+
+
+def test_multi_invalid_github_config():
+    runner = CliRunner()
+    result = runner.invoke(cli, ["multi", "gh:owner"])
+
+    assert result.exit_code != 0
+    assert "GitHub config must be" in result.output
+
+
+def test_multi_stdin_config():
+    runner = CliRunner()
+    result = runner.invoke(cli, ["multi", "-"], input="[]")
+
+    assert result.exit_code == 0, repr(result.exception)
