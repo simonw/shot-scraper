@@ -2375,7 +2375,6 @@ def take_shot(
         if return_bytes:
             return bytes_
         else:
-            page.locator(selector_to_shoot).screenshot(**screenshot_args)
             message = "Screenshot of '{}' on '{}' written to '{}'".format(
                 ", ".join(list(selectors) + list(selectors_all)), url, output
             )

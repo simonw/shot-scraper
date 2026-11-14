@@ -1,10 +1,11 @@
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
 import yaml
 from click.testing import CliRunner
 
-from shot_scraper.cli import cli
+from shot_scraper.cli import cli, take_shot
 
 
 @pytest.fixture
@@ -193,3 +194,19 @@ def test_invalid_yaml_format_options(image_runner, mocker, options, error):
     assert error in result.output
     context.new_page.assert_not_called()
     assert not Path("image.webp").exists()
+
+
+@pytest.mark.parametrize("return_bytes", [False, True])
+def test_selector_screenshot_is_taken_once(return_bytes):
+    page = MagicMock()
+    page.locator.return_value.screenshot.return_value = b"png"
+    result = take_shot(
+        page,
+        {"url": "https://example.com/", "output": "image.png", "selector": "#target"},
+        return_bytes=return_bytes,
+        use_existing_page=True,
+        silent=True,
+    )
+    screenshot_args = {} if return_bytes else {"path": "image.png"}
+    page.locator.return_value.screenshot.assert_called_once_with(**screenshot_args)
+    assert result == (b"png" if return_bytes else None)
