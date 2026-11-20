@@ -774,6 +774,11 @@ def _convert_video_to_mp4(output, silent=False):
     help="Path to JSON authentication context file",
 )
 @scale_factor_options
+@click.option("-w", "--width", type=int, help="Default width for screenshots")
+@click.option("-h", "--height", type=int, help="Default height for screenshots")
+@click.option(
+    "--quality", type=click.IntRange(0, 100), help="Default JPEG or WebP quality"
+)
 @click.option(
     "--timeout",
     type=int,
@@ -830,6 +835,9 @@ def _convert_video_to_mp4(output, silent=False):
 def multi(
     config,
     auth,
+    width,
+    height,
+    quality,
     retina,
     scale_factor,
     timeout,
@@ -888,6 +896,11 @@ def multi(
         shots = []
     if not isinstance(shots, list):
         raise click.ClickException("YAML file must contain a list")
+    shot_defaults = {
+        key: value
+        for key, value in (("width", width), ("height", height), ("quality", quality))
+        if value is not None
+    }
     with sync_playwright() as p:
         context, browser_obj = _browser_context(
             p,
@@ -923,6 +936,8 @@ def multi(
                     server_processes.append(_start_server(shot["server"]))
                     server_needs_ready_check = True
                 if "url" in shot:
+                    if shot_defaults:
+                        shot = {**shot_defaults, **shot}
                     if server_needs_ready_check:
                         _wait_for_server(
                             server_processes,

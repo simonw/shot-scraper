@@ -147,6 +147,50 @@ def test_multi_image_formats(image_runner):
         assert_image_format(generated[0].read_bytes(), image_format)
 
 
+def test_multi_screenshot_defaults(image_runner):
+    shots = [
+        {"output": "inherited.webp"},
+        {"output": "lossy.webp", "quality": 0},
+        {"output": "legacy.png"},
+        {"output": "default-size.png", "format": "png", "quality": None},
+        {
+            "output": "full-page.png",
+            "format": "png",
+            "width": 105,
+            "height": None,
+            "quality": None,
+        },
+    ]
+    Path("shots.yml").write_text(
+        yaml.safe_dump([{"url": "page.html", **shot} for shot in shots])
+    )
+    result = image_runner.invoke(
+        cli, ["multi", "shots.yml", "-w", "120", "-h", "80", "--quality", "100"]
+    )
+    assert result.exit_code == 0, result.output
+
+    assert_image_format(Path("inherited.webp").read_bytes(), "webp", True)
+    assert_image_format(Path("lossy.webp").read_bytes(), "webp", False)
+    assert_image_format(Path("legacy.png").read_bytes(), "jpeg")
+    for output, width, height in (
+        ("default-size.png", 120, 80),
+        ("full-page.png", 105, 720),
+    ):
+        content = Path(output).read_bytes()
+        assert_image_format(content, "png")
+        assert int.from_bytes(content[16:20], "big") == width
+        assert int.from_bytes(content[20:24], "big") == height
+
+
+def test_multi_rejects_out_of_range_default_quality(image_runner, mocker):
+    playwright = mocker.patch("shot_scraper.cli.sync_playwright")
+    result = image_runner.invoke(cli, ["multi", "-", "--quality", "101"])
+    assert result.exit_code == 2, result.output
+    assert "--quality" in result.output
+    assert "0<=x<=100" in result.output
+    playwright.assert_not_called()
+
+
 @pytest.mark.parametrize(
     "options,error",
     [

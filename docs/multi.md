@@ -16,6 +16,31 @@ shot-scraper multi shots.yml
 ```
 This will create two image files, `www-example-com.png` and `w3c.org.png`, containing screenshots of those two URLs.
 
+Use `--width` and `--height` to set default dimensions for screenshots:
+
+```bash
+shot-scraper multi shots.yml --width 1280 --height 720
+```
+
+Save these shots as `image-shots.yml` to set a default quality for JPEG and WebP:
+
+```yaml
+- url: https://example.com/
+  output: example.jpg
+- url: https://example.com/
+  output: example.webp
+```
+
+```bash
+shot-scraper multi image-shots.yml --quality 80
+```
+
+Values in YAML take precedence, including `0` and `null`. For example,
+`height: null` keeps the full-page default. When a shot has no explicit format,
+quality selects JPEG unless the output ends in `.webp`. This can produce JPEG
+data in a filename ending in `.png`. Set `quality: null` on PNG shots to ignore
+the default quality. An explicit `format: png` with a quality value is an error.
+
 Use `-` to pass in YAML from standard input:
 ```bash
 echo "- url: http://www.example.com" | shot-scraper multi -
@@ -273,6 +298,9 @@ Options:
                                   with '--retina'.
   --retina                        Use device scale factor of 2. Cannot be used
                                   together with '--scale-factor'.
+  -w, --width INTEGER             Default width for screenshots
+  -h, --height INTEGER            Default height for screenshots
+  --quality INTEGER RANGE         Default JPEG or WebP quality  [0<=x<=100]
   --timeout INTEGER               Wait this many milliseconds before failing
   -n, --no-clobber                Skip images that already exist
   -o, --output TEXT               Just take shots matching these output files
